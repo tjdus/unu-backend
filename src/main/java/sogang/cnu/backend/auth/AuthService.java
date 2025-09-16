@@ -39,7 +39,7 @@ public class AuthService {
     }
 
     public LoginResponseDTO login(LoginRequestDTO loginRequestDto){
-        User user = userRepository.findByLoginId(loginRequestDto.getLoginId())
+        User user = userRepository.findByUsername(loginRequestDto.getUsername())
                 .orElse(null);
 
         if(user == null || !passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword())) {
@@ -70,7 +70,7 @@ public class AuthService {
 
         String email = jwtTokenProvider.getIdFromToken(refreshToken);
 
-        User user = userRepository.findByLoginId(email)
+        User user = userRepository.findByUsername(email)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
         List<String> roles = getUserRoles(user.getId());

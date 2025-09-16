@@ -7,7 +7,7 @@ public class UserMapper {
     public static User toEntity(SignUpRequestDTO requestDTO, String encodedPassword) {
         return User.builder()
                 .name(requestDTO.getName())
-                .loginId(requestDTO.getLoginId())
+                .username(requestDTO.getUsername())
                 .password(encodedPassword)
                 .studentId(requestDTO.getStudentId())
                 .githubId(requestDTO.getGithubId())
@@ -20,7 +20,7 @@ public class UserMapper {
         return UserResponseDTO.builder()
                 .id(user.getId())
                 .name(user.getName())
-                .loginId(user.getLoginId())
+                .username(user.getUsername())
                 .studentId(user.getStudentId())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())

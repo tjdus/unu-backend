@@ -6,7 +6,7 @@ import lombok.Builder;
 public class UserResponseDTO {
     private Long id;
     private String name;
-    private String loginId;
+    private String username;
     private String studentId;
     private String email;
     private String phoneNumber;
