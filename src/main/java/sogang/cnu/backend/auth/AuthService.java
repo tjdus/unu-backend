@@ -28,6 +28,7 @@ public class AuthService {
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserMapper userMapper;
 
     public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto){
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
@@ -43,7 +44,7 @@ public class AuthService {
                 .isActive(true)
                 .build();
 
-        User user = UserMapper.INSTANCE.toEntity(userRequestDto);
+        User user = userMapper.toEntity(userRequestDto);
         User saved = userRepository.save(user);
         return SignUpResponseDto.builder()
                 .id(saved.getId())

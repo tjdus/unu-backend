@@ -16,19 +16,20 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserRepositoryCustom userRepositoryCustom;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public UserResponseDto getByStudentId(String studentId) {
         User user = userRepository.findByStudentId(studentId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        return UserMapper.INSTANCE.toResponseDto(user);
+        return userMapper.toResponseDto(user);
     }
 
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAll() {
         return userRepository.findAll().stream()
-                .map(UserMapper.INSTANCE::toResponseDto)
+                .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -36,7 +37,7 @@ public class UserService {
     public List<UserResponseDto> search(String role, Boolean isActive, String joinedQuarter, String name, String studentId) {
         List<User> users = userRepositoryCustom.search(role, isActive, joinedQuarter, name, studentId);
         return users.stream()
-                .map(UserMapper.INSTANCE::toResponseDto)
+                .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 

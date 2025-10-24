@@ -76,7 +76,7 @@ public class ActivityService {
 
         ActivityMappingDto mappingDto = toMappingDto(dto);
 
-        activity.update(dto);
+        activity.update(mappingDto);
 
         Activity updatedActivity = activityRepository.save(activity);
         return activityMapper.toResponseDto(updatedActivity);

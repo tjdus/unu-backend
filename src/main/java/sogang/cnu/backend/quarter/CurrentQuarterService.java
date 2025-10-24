@@ -12,6 +12,7 @@ import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 public class CurrentQuarterService {
     private final CurrentQuarterRepository currentQuarterRepository;
     private final QuarterRepository quarterRepository;
+    private final QuarterMapper quarterMapper;
 
     private CurrentQuarter getOne() {
         return currentQuarterRepository.findById(1L)
@@ -24,7 +25,7 @@ public class CurrentQuarterService {
     @Transactional
     public QuarterResponseDto get() {
         Quarter quarter = getOne().getQuarter();
-        return QuarterMapper.INSTANCE.toResponseDto(quarter);
+        return quarterMapper.toResponseDto(quarter);
     }
 
     @Transactional
@@ -35,7 +36,7 @@ public class CurrentQuarterService {
 
         currentQuarter.update(quarter);
         Quarter updatedQuarter = currentQuarterRepository.save(currentQuarter).getQuarter();
-        return QuarterMapper.INSTANCE.toResponseDto(updatedQuarter);
+        return quarterMapper.toResponseDto(updatedQuarter);
     }
 
 }
