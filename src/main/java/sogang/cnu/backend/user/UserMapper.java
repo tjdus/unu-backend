@@ -1,31 +1,19 @@
 package sogang.cnu.backend.user;
 
-import sogang.cnu.backend.auth.DTO.SignUpRequestDTO;
-import sogang.cnu.backend.user.DTO.UserResponseDTO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+import sogang.cnu.backend.user.dto.UserRequestDto;
+import sogang.cnu.backend.user.dto.UserResponseDto;
 
-public class UserMapper {
-    public static User toEntity(SignUpRequestDTO requestDTO, String encodedPassword) {
-        return User.builder()
-                .name(requestDTO.getName())
-                .username(requestDTO.getUsername())
-                .password(encodedPassword)
-                .studentId(requestDTO.getStudentId())
-                .githubId(requestDTO.getGithubId())
-                .phoneNumber(requestDTO.getPhoneNumber())
-                .email(requestDTO.getEmail())
-                .build();
-    }
+@Mapper(componentModel = "spring")
+public interface UserMapper {
 
-    public static UserResponseDTO toResponseDto(User user) {
-        return UserResponseDTO.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .username(user.getUsername())
-                .studentId(user.getStudentId())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .githubId(user.getGithubId())
-                .build();
-    }
+    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
 
+    UserResponseDto toUserResponseDto(User user);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "isActive", ignore = true)
+    User toUserEntity(UserRequestDto userRequestDto);
 }

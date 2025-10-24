@@ -3,16 +3,17 @@ package sogang.cnu.backend.auth;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import sogang.cnu.backend.auth.DTO.LoginRequestDTO;
-import sogang.cnu.backend.auth.DTO.LoginResponseDTO;
-import sogang.cnu.backend.auth.DTO.SignUpRequestDTO;
-import sogang.cnu.backend.auth.DTO.SignUpResponseDTO;
+import sogang.cnu.backend.auth.dto.LoginRequestDto;
+import sogang.cnu.backend.auth.dto.LoginResponseDto;
+import sogang.cnu.backend.auth.dto.SignUpRequestDto;
+import sogang.cnu.backend.auth.dto.SignUpResponseDto;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.role_permission.RolePermissionRepository;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
 import sogang.cnu.backend.user.UserRepository;
+import sogang.cnu.backend.user.dto.UserRequestDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
@@ -28,17 +29,29 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public SignUpResponseDTO signUp(SignUpRequestDTO signUpRequestDto){
+    public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto){
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
-        User user = UserMapper.toEntity(signUpRequestDto, encodedPassword);
+
+        UserRequestDto userRequestDto = UserRequestDto.builder()
+                .name(signUpRequestDto.getName())
+                .username(signUpRequestDto.getUsername())
+                .password(encodedPassword)
+                .studentId(signUpRequestDto.getStudentId())
+                .githubId(signUpRequestDto.getGithubId())
+                .phoneNumber(signUpRequestDto.getPhoneNumber())
+                .email(signUpRequestDto.getEmail())
+                .isActive(true)
+                .build();
+
+        User user = UserMapper.INSTANCE.toUserEntity(userRequestDto);
         User saved = userRepository.save(user);
-        return SignUpResponseDTO.builder()
+        return SignUpResponseDto.builder()
                 .id(saved.getId())
                 .email(saved.getEmail())
                 .build();
     }
 
-    public LoginResponseDTO login(LoginRequestDTO loginRequestDto){
+    public LoginResponseDto login(LoginRequestDto loginRequestDto){
         User user = userRepository.findByUsername(loginRequestDto.getUsername())
                 .orElse(null);
 
@@ -52,14 +65,14 @@ public class AuthService {
 
         String token = jwtTokenProvider.generateAccessToken(user.getId(), roles, permissions);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-        return LoginResponseDTO.builder()
+        return LoginResponseDto.builder()
                 .token(token)
                 .refreshToken(refreshToken)
                 .email(user.getEmail())
                 .build();
     }
 
-    public LoginResponseDTO refreshToken(String refreshToken) {
+    public LoginResponseDto refreshToken(String refreshToken) {
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new RuntimeException("유효하지 않은 리프레시 토큰입니다.");
         }
@@ -79,7 +92,7 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), roles, permissions);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        return LoginResponseDTO.builder()
+        return LoginResponseDto.builder()
                 .token(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .email(user.getEmail())

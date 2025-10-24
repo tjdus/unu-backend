@@ -1,11 +1,11 @@
-package sogang.cnu.backend.auth.DTO;
+package sogang.cnu.backend.auth.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class LoginRequestDTO {
+public class LoginRequestDto {
     private String username;
     private String password;
 }

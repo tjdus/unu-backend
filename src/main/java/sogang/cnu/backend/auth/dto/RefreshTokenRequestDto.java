@@ -1,4 +1,4 @@
-package sogang.cnu.backend.auth.DTO;
+package sogang.cnu.backend.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +9,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RefreshTokenRequestDTO {
+public class RefreshTokenRequestDto {
     private String refreshToken;
 }

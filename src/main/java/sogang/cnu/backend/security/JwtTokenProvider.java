@@ -59,12 +59,9 @@ public class JwtTokenProvider {
         Claims claims = getClaims(token);
         String email = claims.getSubject();
 
+        List<String> roles = getStringListClaim(claims, ROLES_CLAIM);
 
-        List<String> roles = Optional.ofNullable(claims.get(ROLES_CLAIM, List.class))
-                .orElse(List.of());
-
-        List<String> permissions = Optional.ofNullable(claims.get(PERMISSIONS_CLAIM, List.class))
-                .orElse(List.of());
+        List<String> permissions = getStringListClaim(claims, PERMISSIONS_CLAIM);
 
         List<SimpleGrantedAuthority> authorities = Stream.concat(
                 roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)),
@@ -119,5 +116,16 @@ public class JwtTokenProvider {
 
     private Claims getClaims(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+    }
+
+    private static List<String> getStringListClaim(Claims claims, String key) {
+        Object value = claims.get(key);
+        if (value instanceof List<?>) {
+            return ((List<?>) value).stream()
+                    .filter(item -> item instanceof String)
+                    .map(item -> (String) item)
+                    .toList();
+        }
+        return List.of();
     }
 }

@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sogang.cnu.backend.auth.DTO.*;
+import sogang.cnu.backend.auth.dto.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -14,14 +14,14 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<SignUpResponseDTO> signup(@RequestBody SignUpRequestDTO request) {
-        SignUpResponseDTO signUpResponseDto = authService.signUp(request);
+    public ResponseEntity<SignUpResponseDto> signup(@RequestBody SignUpRequestDto request) {
+        SignUpResponseDto signUpResponseDto = authService.signUp(request);
         return ResponseEntity.ok(signUpResponseDto);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequestDto) {
-        LoginResponseDTO loginResponseDto = authService.login(loginRequestDto);
+    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
+        LoginResponseDto loginResponseDto = authService.login(loginRequestDto);
         return ResponseEntity.ok(loginResponseDto);
     }
 
@@ -31,8 +31,8 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<LoginResponseDTO> refresh(@RequestBody RefreshTokenRequestDTO request) {
-        LoginResponseDTO response = authService.refreshToken(request.getRefreshToken());
+    public ResponseEntity<LoginResponseDto> refresh(@RequestBody RefreshTokenRequestDto request) {
+        LoginResponseDto response = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(response);
     }
 }

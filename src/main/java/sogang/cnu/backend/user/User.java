@@ -36,8 +36,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
-    private boolean active = true;
+    @Column(nullable = false, name="is_active")
+    @Builder.Default
+    private Boolean isActive = true;
 
 //    @Column(name = "joined_at", nullable = false)
 //    private LocalDateTime joinedAt;

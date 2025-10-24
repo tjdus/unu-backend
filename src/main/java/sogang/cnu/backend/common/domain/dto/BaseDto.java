@@ -1,4 +1,4 @@
-package sogang.cnu.backend.common.domain.DTO;
+package sogang.cnu.backend.common.domain.dto;
 
 
 import lombok.AllArgsConstructor;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BaseDTO {
+public class BaseDto {
     private String createdBy;
     private LocalDateTime createdAt;
     private String modifiedBy;

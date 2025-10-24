@@ -1,4 +1,4 @@
-package sogang.cnu.backend.auth.DTO;
+package sogang.cnu.backend.auth.dto;
 
 import lombok.*;
 
@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SignUpResponseDTO {
+public class SignUpResponseDto {
     private Long id;
     private String email;
 }
