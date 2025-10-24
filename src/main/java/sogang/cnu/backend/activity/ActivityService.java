@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity.dto.ActivityMappingDto;
+import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.activity_type.ActivityTypeRepository;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -26,6 +27,7 @@ public class ActivityService {
     private final UserRepository userRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final QuarterRepository quarterRepository;
+    private final ActivityRepositoryCustom activityRepositoryCustom;
 
     @Transactional(readOnly = true)
     public ActivityResponseDto getById(Long id) {
@@ -87,6 +89,13 @@ public class ActivityService {
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
         activityRepository.delete(activity);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityResponseDto> search(ActivitySearchQuery query) {
+        return activityRepositoryCustom.search(query).stream()
+                .map(activityMapper::toResponseDto)
+                .collect(Collectors.toList());
     }
 
 }
