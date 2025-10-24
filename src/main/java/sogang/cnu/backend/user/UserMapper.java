@@ -11,9 +11,9 @@ public interface UserMapper {
 
     UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
 
-    UserResponseDto toUserResponseDto(User user);
+    UserResponseDto toResponseDto(User user);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "isActive", ignore = true)
-    User toUserEntity(UserRequestDto userRequestDto);
+    User toEntity(UserRequestDto userRequestDto);
 }

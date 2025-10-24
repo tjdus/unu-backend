@@ -43,7 +43,7 @@ public class AuthService {
                 .isActive(true)
                 .build();
 
-        User user = UserMapper.INSTANCE.toUserEntity(userRequestDto);
+        User user = UserMapper.INSTANCE.toEntity(userRequestDto);
         User saved = userRepository.save(user);
         return SignUpResponseDto.builder()
                 .id(saved.getId())
