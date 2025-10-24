@@ -11,7 +11,7 @@ public interface QuarterMapper {
 
     QuarterMapper INSTANCE = Mappers.getMapper(QuarterMapper.class);
 
-    QuarterResponseDto toQuarterResponseDto(Quarter quarter);
+    QuarterResponseDto toResponseDto(Quarter quarter);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "name", ignore = true)

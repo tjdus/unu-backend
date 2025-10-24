@@ -20,13 +20,13 @@ public class QuarterService {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
 
-        return QuarterMapper.INSTANCE.toQuarterResponseDto(quarter);
+        return QuarterMapper.INSTANCE.toResponseDto(quarter);
     }
 
     @Transactional(readOnly = true)
     public List<QuarterResponseDto> getAll() {
         return quarterRepository.findAll().stream()
-                .map(QuarterMapper.INSTANCE::toQuarterResponseDto)
+                .map(QuarterMapper.INSTANCE::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -34,7 +34,7 @@ public class QuarterService {
     public QuarterResponseDto create(QuarterRequestDto dto) {
         Quarter quarter = QuarterMapper.INSTANCE.toEntity(dto);
         Quarter savedQuarter = quarterRepository.save(quarter);
-        return QuarterMapper.INSTANCE.toQuarterResponseDto(savedQuarter);
+        return QuarterMapper.INSTANCE.toResponseDto(savedQuarter);
     }
 
     public QuarterResponseDto update(Long id, QuarterRequestDto dto) {
@@ -44,7 +44,7 @@ public class QuarterService {
         quarter.update(dto);
 
         Quarter updatedQuarter = quarterRepository.save(quarter);
-        return QuarterMapper.INSTANCE.toQuarterResponseDto(updatedQuarter);
+        return QuarterMapper.INSTANCE.toResponseDto(updatedQuarter);
     }
 
     public void delete(Long id) {
@@ -58,7 +58,7 @@ public class QuarterService {
     public List<QuarterResponseDto> searchByYearAndSeason(int year, Season season) {
         List<Quarter> quarters = quarterRepository.findByYearAndSeason(year, season);
         return quarters.stream()
-                .map(QuarterMapper.INSTANCE::toQuarterResponseDto)
+                .map(QuarterMapper.INSTANCE::toResponseDto)
                 .collect(Collectors.toList());
     }
 

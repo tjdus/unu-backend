@@ -5,11 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.dto.CurrentQuarterRequestDto;
-import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +24,7 @@ public class CurrentQuarterService {
     @Transactional
     public QuarterResponseDto get() {
         Quarter quarter = getOne().getQuarter();
-        return QuarterMapper.INSTANCE.toQuarterResponseDto(quarter);
+        return QuarterMapper.INSTANCE.toResponseDto(quarter);
     }
 
     @Transactional
@@ -39,7 +35,7 @@ public class CurrentQuarterService {
 
         currentQuarter.update(quarter);
         Quarter updatedQuarter = currentQuarterRepository.save(currentQuarter).getQuarter();
-        return QuarterMapper.INSTANCE.toQuarterResponseDto(updatedQuarter);
+        return QuarterMapper.INSTANCE.toResponseDto(updatedQuarter);
     }
 
 }
