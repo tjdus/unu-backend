@@ -3,7 +3,8 @@ package sogang.cnu.backend.activity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sogang.cnu.backend.activity.dto.ActivityMappingDto;
+import sogang.cnu.backend.activity.command.ActivityCreateCommand;
+import sogang.cnu.backend.activity.command.ActivityUpdateCommand;
 import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.activity_type.ActivityTypeRepository;
@@ -46,48 +47,25 @@ public class ActivityService {
 
     @Transactional
     public ActivityResponseDto create(ActivityRequestDto dto) {
-        ActivityMappingDto mappingDto = toMappingDto(dto);
-        Activity activity = activityMapper.toEntity(mappingDto);
+        ActivityCreateCommand createCommand = toCreateCommand(dto);
+        Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
         return activityMapper.toResponseDto(savedActivity);
     }
 
-    private ActivityMappingDto toMappingDto(ActivityRequestDto dto) {
-        ActivityType activityType = activityTypeRepository.findById(dto.getActivityTypeId())
-                .orElseThrow(() -> new NotFoundException("Activity type not found"));
-        User assignee = userRepository.findById(dto.getAssigneeId())
-                .orElseThrow(() -> new NotFoundException("Assignee not found"));
-        Quarter quarter = quarterRepository.findById(dto.getQuarterId())
-                .orElseThrow(() -> new NotFoundException("Quarter not found"));
-
-        return ActivityMappingDto.builder()
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .status(dto.getStatus())
-                .activityType(activityType)
-                .assignee(assignee)
-                .quarter(quarter)
-                .startDate(dto.getStartDate())
-                .endDate(dto.getEndDate())
-                .build();
-    }
-
+    @Transactional
     public ActivityResponseDto update(Long id, ActivityRequestDto dto) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
-        ActivityMappingDto mappingDto = toMappingDto(dto);
-
-        activity.update(mappingDto);
-
-        Activity updatedActivity = activityRepository.save(activity);
-        return activityMapper.toResponseDto(updatedActivity);
+        activity.update(toUpdateCommand(dto));
+        return activityMapper.toResponseDto(activity);
     }
 
+    @Transactional
     public void delete(Long id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
-
         activityRepository.delete(activity);
     }
 
@@ -96,6 +74,45 @@ public class ActivityService {
         return activityRepositoryCustom.search(query).stream()
                 .map(activityMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private ActivityType findActivityType(Integer activityTypeId) {
+        return activityTypeRepository.findById(activityTypeId)
+                .orElseThrow(() -> new NotFoundException("Activity type not found"));
+    }
+    private User findAssignee(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Assignee not found"));
+    }
+    private Quarter findQuarter(Long quarterId) {
+        return quarterRepository.findById(quarterId)
+                .orElseThrow(() -> new NotFoundException("Quarter not found"));
+    }
+
+    private ActivityCreateCommand toCreateCommand(ActivityRequestDto dto) {
+        return ActivityCreateCommand.builder()
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .status(ActivityStatus.valueOf(dto.getStatus()))
+                .activityType(findActivityType(dto.getActivityTypeId()))
+                .assignee(findAssignee(dto.getAssigneeId()))
+                .quarter(findQuarter(dto.getQuarterId()))
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .build();
+    }
+
+    private ActivityUpdateCommand toUpdateCommand(ActivityRequestDto dto) {
+        return ActivityUpdateCommand.builder()
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .status(ActivityStatus.valueOf(dto.getStatus()))
+                .activityType(findActivityType(dto.getActivityTypeId()))
+                .assignee(findAssignee(dto.getAssigneeId()))
+                .quarter(findQuarter(dto.getQuarterId()))
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .build();
     }
 
 }

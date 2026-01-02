@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.quarter.command.QuarterCreateCommand;
+import sogang.cnu.backend.quarter.command.QuarterUpdateCommand;
 import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 
@@ -33,21 +35,22 @@ public class QuarterService {
 
     @Transactional
     public QuarterResponseDto create(QuarterRequestDto dto) {
-        Quarter quarter = quarterMapper.toEntity(dto);
+        Quarter quarter = Quarter.create(toCreateCommand(dto));
         Quarter savedQuarter = quarterRepository.save(quarter);
         return quarterMapper.toResponseDto(savedQuarter);
     }
 
+    @Transactional
     public QuarterResponseDto update(Long id, QuarterRequestDto dto) {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
+        QuarterUpdateCommand updateCommand = toUpdateCommand(dto);
+        quarter.update(updateCommand);
 
-        quarter.update(dto);
-
-        Quarter updatedQuarter = quarterRepository.save(quarter);
-        return quarterMapper.toResponseDto(updatedQuarter);
+        return quarterMapper.toResponseDto(quarter);
     }
 
+    @Transactional
     public void delete(Long id) {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
@@ -61,6 +64,24 @@ public class QuarterService {
         return quarters.stream()
                 .map(quarterMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private QuarterCreateCommand toCreateCommand(QuarterRequestDto dto) {
+        return QuarterCreateCommand.builder()
+                .year(dto.getYear())
+                .season(Season.valueOf(dto.getSeason()))
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .build();
+    }
+
+    private QuarterUpdateCommand toUpdateCommand(QuarterRequestDto dto) {
+        return QuarterUpdateCommand.builder()
+                .year(dto.getYear())
+                .season(Season.valueOf(dto.getSeason()))
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .build();
     }
 
 

@@ -35,8 +35,7 @@ public class CurrentQuarterService {
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
 
         currentQuarter.update(quarter);
-        Quarter updatedQuarter = currentQuarterRepository.save(currentQuarter).getQuarter();
-        return quarterMapper.toResponseDto(updatedQuarter);
+        return quarterMapper.toResponseDto(currentQuarter.getQuarter());
     }
 
 }

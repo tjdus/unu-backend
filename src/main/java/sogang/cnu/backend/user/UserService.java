@@ -1,7 +1,6 @@
 package sogang.cnu.backend.user;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserRepository userRepository;
     private final UserRepositoryCustom userRepositoryCustom;
-    private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
     @Transactional(readOnly = true)

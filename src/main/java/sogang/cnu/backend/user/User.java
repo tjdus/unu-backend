@@ -2,6 +2,7 @@ package sogang.cnu.backend.user;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sogang.cnu.backend.user.command.UserCreateCommand;
 
 import java.time.LocalDateTime;
 
@@ -41,7 +42,7 @@ public class User {
     private Boolean isActive = true;
 
 //    @Column(name = "joined_at", nullable = false)
-//    private LocalDateTime joinedAt;
+//    private LocalDateTime joinedAt;priv
 
 //    @ManyToOne
 //    @JoinColumn(name = "joined_quarter", nullable = false)
@@ -50,4 +51,17 @@ public class User {
     //TODO
     //department
     //joinedQuarter
+
+    public static User create(UserCreateCommand command) {
+        return User.builder()
+                .name(command.getName())
+                .username(command.getUsername())
+                .password(command.getPassword())
+                .studentId(command.getStudentId())
+                .githubId(command.getGithubId())
+                .phoneNumber(command.getPhoneNumber())
+                .email(command.getEmail())
+                .isActive(true)
+                .build();
+    }
 }

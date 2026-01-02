@@ -1,22 +1,23 @@
 package sogang.cnu.backend.activity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import sogang.cnu.backend.activity.dto.ActivityMappingDto;
-import sogang.cnu.backend.activity.dto.ActivityRequestDto;
+import lombok.*;
+import sogang.cnu.backend.activity.command.ActivityCreateCommand;
+import sogang.cnu.backend.activity.command.ActivityUpdateCommand;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.user.User;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "activities")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Activity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,14 +46,28 @@ public class Activity extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    public void update(ActivityMappingDto mappingDto) {
-        this.title = mappingDto.getTitle();
-        this.description = mappingDto.getDescription();
-        this.status = ActivityStatus.valueOf(mappingDto.getStatus());
-        this.startDate = mappingDto.getStartDate();
-        this.endDate = mappingDto.getEndDate();
-        this.activityType = mappingDto.getActivityType();
-        this.assignee = mappingDto.getAssignee();
-        this.quarter = mappingDto.getQuarter();
+    public void update(ActivityUpdateCommand command) {
+        this.title = command.getTitle();
+        this.description = command.getDescription();
+        this.status = command.getStatus();
+        this.startDate = command.getStartDate();
+        this.endDate = command.getEndDate();
+        this.activityType = command.getActivityType();
+        this.assignee = command.getAssignee();
+        this.quarter = command.getQuarter();
+    }
+
+    public static Activity create(ActivityCreateCommand command) {
+        Activity activity = Activity.builder()
+                .title(command.getTitle())
+                .description(command.getDescription())
+                .status(command.getStatus())
+                .startDate(command.getStartDate())
+                .endDate(command.getEndDate())
+                .activityType(command.getActivityType())
+                .assignee(command.getAssignee())
+                .quarter(command.getQuarter())
+                .build();
+        return activity;
     }
 }

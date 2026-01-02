@@ -13,6 +13,7 @@ import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
 import sogang.cnu.backend.user.UserRepository;
+import sogang.cnu.backend.user.command.UserCreateCommand;
 import sogang.cnu.backend.user.dto.UserRequestDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
@@ -33,22 +34,15 @@ public class AuthService {
     public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto){
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
 
-        UserRequestDto userRequestDto = UserRequestDto.builder()
-                .name(signUpRequestDto.getName())
-                .username(signUpRequestDto.getUsername())
-                .password(encodedPassword)
-                .studentId(signUpRequestDto.getStudentId())
-                .githubId(signUpRequestDto.getGithubId())
-                .phoneNumber(signUpRequestDto.getPhoneNumber())
-                .email(signUpRequestDto.getEmail())
-                .isActive(true)
-                .build();
+        UserCreateCommand createCommand = toCreateCommand(signUpRequestDto);
+        createCommand.setPassword(encodedPassword);
 
-        User user = userMapper.toEntity(userRequestDto);
-        User saved = userRepository.save(user);
+        User user = User.create(createCommand);
+        userRepository.save(user);
+
         return SignUpResponseDto.builder()
-                .id(saved.getId())
-                .email(saved.getEmail())
+                .id(user.getId())
+                .email(user.getEmail())
                 .build();
     }
 
@@ -120,5 +114,18 @@ public class AuthService {
                 .stream()
                 .map(rolePermission -> rolePermission.getPermission().getName())
                 .toList();
+    }
+
+    private UserCreateCommand toCreateCommand(SignUpRequestDto dto) {
+        return UserCreateCommand.builder()
+                .name(dto.getName())
+                .username(dto.getUsername())
+                .password(dto.getPassword())
+                .studentId(dto.getStudentId())
+                .githubId(dto.getGithubId())
+                .phoneNumber(dto.getPhoneNumber())
+                .email(dto.getEmail())
+                .isActive(true)
+                .build();
     }
 }

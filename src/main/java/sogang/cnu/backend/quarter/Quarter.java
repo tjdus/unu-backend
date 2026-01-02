@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import sogang.cnu.backend.common.domain.BaseEntity;
+import sogang.cnu.backend.quarter.command.QuarterCreateCommand;
+import sogang.cnu.backend.quarter.command.QuarterUpdateCommand;
 import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 
 import java.time.LocalDate;
@@ -25,7 +27,7 @@ public class Quarter extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private int year;
+    private Integer year;
 
     @Enumerated(EnumType.STRING)
     private Season season;
@@ -46,12 +48,23 @@ public class Quarter extends BaseEntity {
         }
     }
 
-    public void update(QuarterRequestDto requestDto) {
-        this.year = requestDto.getYear();
-        this.season = Season.valueOf(requestDto.getSeason());
-        this.startDate = requestDto.getStartDate();
-        this.endDate = requestDto.getEndDate();
+    public void update(QuarterUpdateCommand command) {
+        this.year = command.getYear();
+        this.season = command.getSeason();
+        this.startDate = command.getStartDate();
+        this.endDate = command.getEndDate();
         updateName();
+    }
+
+    public static Quarter create(QuarterCreateCommand command) {
+        Quarter quarter = Quarter.builder()
+                .year(command.getYear())
+                .season(command.getSeason())
+                .startDate(command.getStartDate())
+                .endDate(command.getEndDate())
+                .build();
+        quarter.updateName();
+        return quarter;
     }
 
 }

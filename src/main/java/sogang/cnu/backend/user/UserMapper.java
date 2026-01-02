@@ -8,12 +8,5 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
-
-    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
-
     UserResponseDto toResponseDto(User user);
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "isActive", ignore = true)
-    User toEntity(UserRequestDto userRequestDto);
 }
