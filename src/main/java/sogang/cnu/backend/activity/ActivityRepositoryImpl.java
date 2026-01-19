@@ -18,8 +18,10 @@ public class ActivityRepositoryImpl implements ActivityRepositoryCustom {
 
         return queryFactory.selectFrom(activity)
                 .where(
-                        query.getTitle() != null ? activity.title.containsIgnoreCase(query.getTitle()) : null,
-                        query.getStatus() != null ? activity.status.eq(ActivityStatus.valueOf(query.getStatus())) : null,
+                        query.getTitle() != null && !query.getTitle().isBlank()
+                                ? activity.title.containsIgnoreCase(query.getTitle()) : null,
+                        query.getStatus() != null && !query.getStatus().isBlank()
+                                ? activity.status.eq(ActivityStatus.valueOf(query.getStatus().toUpperCase())) : null,
                         query.getActivityTypeId() != null ? activity.activityType.id.eq(query.getActivityTypeId()) : null,
                         query.getQuarterId() != null ? activity.quarter.id.eq(query.getQuarterId()) : null
                 )

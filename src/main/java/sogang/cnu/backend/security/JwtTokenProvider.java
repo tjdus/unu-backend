@@ -57,6 +57,7 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
+        Long userId = Long.valueOf(claims.getSubject());
         String email = claims.getSubject();
 
         List<String> roles = getStringListClaim(claims, ROLES_CLAIM);
@@ -68,7 +69,9 @@ public class JwtTokenProvider {
                 permissions.stream().map(SimpleGrantedAuthority::new)
         ).toList();
 
-        User principal = new User(email, "", authorities);
+        CustomUserDetails principal =
+                new CustomUserDetails(userId, email, authorities);
+
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 
