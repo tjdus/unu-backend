@@ -28,7 +28,6 @@ public class ActivityService {
     private final UserRepository userRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final QuarterRepository quarterRepository;
-    private final ActivityRepositoryCustom activityRepositoryCustom;
 
     @Transactional(readOnly = true)
     public ActivityResponseDto getById(Long id) {
@@ -71,7 +70,7 @@ public class ActivityService {
 
     @Transactional(readOnly = true)
     public List<ActivityResponseDto> search(ActivitySearchQuery query) {
-        return activityRepositoryCustom.search(query).stream()
+        return activityRepository.search(query).stream()
                 .map(activityMapper::toResponseDto)
                 .collect(Collectors.toList());
     }

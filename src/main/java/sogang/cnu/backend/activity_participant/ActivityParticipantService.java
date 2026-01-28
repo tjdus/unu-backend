@@ -11,7 +11,6 @@ import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDt
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
-import sogang.cnu.backend.util.SecurityUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,14 +43,20 @@ public class ActivityParticipantService {
     public ActivityParticipantResponseDto create(ActivityParticipantRequestDto dto) {
         ActivityParticipantCreateCommand createCommand = toCreateCommand(dto);
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
+        activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
     }
 
     @Transactional
-    public ActivityParticipantResponseDto participate(Long userId, ActivityParticipantRequestDto dto) {
-        dto.setUserId(userId);
+    public ActivityParticipantResponseDto createMyParticipantByActivityId(Long userId, Long activityId) {
+        ActivityParticipantRequestDto dto = ActivityParticipantRequestDto.builder()
+                .userId(userId)
+                .activityId(activityId)
+                .status(String.valueOf(ActivityParticipantStatus.APPLIED))
+                .build();
         ActivityParticipantCreateCommand createCommand = toCreateCommand(dto);
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
+        activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
     }
 
@@ -87,6 +92,11 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
         activityParticipantRepository.delete(activity);
+    }
+
+    public ActivityParticipantResponseDto getMyParticipantByActivityId(Long userId, Long activityId) {
+        ActivityParticipant participant = activityParticipantRepository.findByUserIdAndActivityId(userId, activityId).orElse(null);
+        return activityParticipantMapper.toResponseDto(participant);
     }
 
     private Activity findActivity(Long activityId) {

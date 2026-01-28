@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.activity.dto.ActivityRequestDto;
 import sogang.cnu.backend.activity.dto.ActivityResponseDto;
 import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
+import sogang.cnu.backend.security.CurrentUser;
+import sogang.cnu.backend.security.CustomUserDetails;
 
 import java.util.List;
 

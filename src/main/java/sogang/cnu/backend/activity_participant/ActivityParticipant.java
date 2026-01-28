@@ -16,7 +16,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "activity_participants")
+@Table(
+        name = "activity_participants",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_activity_user",
+                        columnNames = {"activity_id", "user_id"}
+                )
+        }
+)
 @Getter
 @Setter
 @Builder

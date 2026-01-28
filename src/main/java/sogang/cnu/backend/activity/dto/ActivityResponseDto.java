@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.activity_type.dto.ActivityTypeResponseDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
-import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 
 @Getter

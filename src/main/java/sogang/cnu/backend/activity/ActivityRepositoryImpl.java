@@ -1,30 +1,31 @@
 package sogang.cnu.backend.activity;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
-
 import java.util.List;
+
+import static sogang.cnu.backend.activity.QActivity.activity;
 
 @Repository
 @RequiredArgsConstructor
 public class ActivityRepositoryImpl implements ActivityRepositoryCustom {
+
     private final JPAQueryFactory queryFactory;
 
-    @Override
-    public List<Activity> search(ActivitySearchQuery query) {
-        QActivity activity = QActivity.activity;
 
+    @Override public List<Activity> search(ActivitySearchQuery query) {
         return queryFactory.selectFrom(activity)
-                .where(
-                        query.getTitle() != null && !query.getTitle().isBlank()
-                                ? activity.title.containsIgnoreCase(query.getTitle()) : null,
-                        query.getStatus() != null && !query.getStatus().isBlank()
-                                ? activity.status.eq(ActivityStatus.valueOf(query.getStatus().toUpperCase())) : null,
-                        query.getActivityTypeId() != null ? activity.activityType.id.eq(query.getActivityTypeId()) : null,
-                        query.getQuarterId() != null ? activity.quarter.id.eq(query.getQuarterId()) : null
-                )
+                .where( query.getTitle() != null
+                        && !query.getTitle().isBlank()
+                        ? activity.title.containsIgnoreCase(query.getTitle()) : null, query.getStatus() != null
+                        && !query.getStatus().isBlank() ? activity.status.eq(ActivityStatus.valueOf(query.getStatus().toUpperCase())) : null, query.getActivityTypeId() != null
+                        ? activity.activityType.id.eq(query.getActivityTypeId()) : null, query.getQuarterId() != null
+                        ? activity.quarter.id.eq(query.getQuarterId()) : null )
                 .fetch();
     }
+
+
 }

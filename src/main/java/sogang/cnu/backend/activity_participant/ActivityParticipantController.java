@@ -2,8 +2,6 @@ package sogang.cnu.backend.activity_participant;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDto;
@@ -11,11 +9,10 @@ import sogang.cnu.backend.security.CurrentUser;
 import sogang.cnu.backend.security.CustomUserDetails;
 
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/activityParticipant-participants")
+@RequestMapping("/api/activity-participants")
 @RequiredArgsConstructor
 public class ActivityParticipantController {
     private final ActivityParticipantService activityParticipantService;
@@ -25,16 +22,14 @@ public class ActivityParticipantController {
         return ResponseEntity.ok(activityParticipantService.getAll());
     }
 
+    @GetMapping("/test")
+    public ResponseEntity<String> test(@CurrentUser CustomUserDetails user) {
+        return ResponseEntity.ok(user.getEmail() + " " + user.getId());
+    }
+
     @PostMapping("")
     public ResponseEntity<ActivityParticipantResponseDto> create(@RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
         return ResponseEntity.ok(activityParticipantService.create(activityParticipantRequestDto));
-    }
-
-    @PostMapping("/participation")
-    public ResponseEntity<ActivityParticipantResponseDto> participate(
-            @CurrentUser CustomUserDetails user,
-            @RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
-        return ResponseEntity.ok(activityParticipantService.participate(user.getId(), activityParticipantRequestDto));
     }
 
     @GetMapping("/{id}")
@@ -61,6 +56,20 @@ public class ActivityParticipantController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
         activityParticipantService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/activities/{id}/me")
+    public ResponseEntity<ActivityParticipantResponseDto> getMyParticipantByActivityId(
+            @CurrentUser CustomUserDetails user,
+            @PathVariable("id") Long activityId) {
+        return ResponseEntity.ok(activityParticipantService.getMyParticipantByActivityId(user.getId(), activityId));
+    }
+
+    @PostMapping("/activities/{id}/me")
+    public ResponseEntity<ActivityParticipantResponseDto> createMyParticipantByActivityId(
+            @CurrentUser CustomUserDetails user,
+            @PathVariable("id") Long activityId) {
+        return ResponseEntity.ok(activityParticipantService.createMyParticipantByActivityId(user.getId(), activityId));
     }
 
 

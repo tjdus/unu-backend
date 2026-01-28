@@ -7,3 +7,5 @@ import sogang.cnu.backend.activity.dto.ActivityResponseDto;
 public interface ActivityMapper {
     ActivityResponseDto toResponseDto(Activity activity);
 }
+
+
