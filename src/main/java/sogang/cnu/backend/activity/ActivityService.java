@@ -53,6 +53,15 @@ public class ActivityService {
     }
 
     @Transactional
+    public ActivityResponseDto createWithAssignee(Long userId, ActivityRequestDto dto) {
+        dto.setAssigneeId(userId);
+        ActivityCreateCommand createCommand = toCreateCommand(dto);
+        Activity activity = Activity.create(createCommand);
+        Activity savedActivity = activityRepository.save(activity);
+        return activityMapper.toResponseDto(savedActivity);
+    }
+
+    @Transactional
     public ActivityResponseDto update(Long id, ActivityRequestDto dto) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));

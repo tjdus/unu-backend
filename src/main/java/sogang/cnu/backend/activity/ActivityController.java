@@ -27,6 +27,11 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.create(activityRequestDto));
     }
 
+    @PostMapping("/me")
+    public ResponseEntity<ActivityResponseDto> createForMe(@CurrentUser CustomUserDetails user, @RequestBody ActivityRequestDto activityRequestDto) {
+        return ResponseEntity.ok(activityService.createWithAssignee(user.getId(), activityRequestDto));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ActivityResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(activityService.getById(id));
