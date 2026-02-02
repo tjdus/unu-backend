@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @Builder
@@ -12,4 +14,7 @@ public class QuarterResponseDto {
     private String name;
     private int year;
     private String season;
+
+    private LocalDate startDate;
+    private LocalDate endDate;
 }
