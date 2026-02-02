@@ -55,6 +55,7 @@ public class ActivityService {
     @Transactional
     public ActivityResponseDto createWithAssignee(Long userId, ActivityRequestDto dto) {
         dto.setAssigneeId(userId);
+        dto.setStatus(String.valueOf(ActivityStatus.CREATED));
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
