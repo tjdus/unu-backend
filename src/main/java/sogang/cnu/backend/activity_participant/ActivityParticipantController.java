@@ -59,17 +59,17 @@ public class ActivityParticipantController {
     }
 
     @GetMapping("/activities/{id}/me")
-    public ResponseEntity<ActivityParticipantResponseDto> getMyParticipantByActivityId(
+    public ResponseEntity<ActivityParticipantResponseDto> getMyParticipant(
             @CurrentUser CustomUserDetails user,
             @PathVariable("id") Long activityId) {
-        return ResponseEntity.ok(activityParticipantService.getMyParticipantByActivityId(user.getId(), activityId));
+        return ResponseEntity.ok(activityParticipantService.getByUserIdAndActivityId(user.getId(), activityId));
     }
 
     @PostMapping("/activities/{id}/me")
-    public ResponseEntity<ActivityParticipantResponseDto> createMyParticipantByActivityId(
+    public ResponseEntity<ActivityParticipantResponseDto> joinActivity(
             @CurrentUser CustomUserDetails user,
             @PathVariable("id") Long activityId) {
-        return ResponseEntity.ok(activityParticipantService.createMyParticipantByActivityId(user.getId(), activityId));
+        return ResponseEntity.ok(activityParticipantService.createWithUserIdAndActivityId(user.getId(), activityId));
     }
 
 

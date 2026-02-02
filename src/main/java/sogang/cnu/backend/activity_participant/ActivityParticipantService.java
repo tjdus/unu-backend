@@ -48,7 +48,7 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public ActivityParticipantResponseDto createMyParticipantByActivityId(Long userId, Long activityId) {
+    public ActivityParticipantResponseDto createWithUserIdAndActivityId(Long userId, Long activityId) {
         ActivityParticipantRequestDto dto = ActivityParticipantRequestDto.builder()
                 .userId(userId)
                 .activityId(activityId)
@@ -94,7 +94,7 @@ public class ActivityParticipantService {
         activityParticipantRepository.delete(activity);
     }
 
-    public ActivityParticipantResponseDto getMyParticipantByActivityId(Long userId, Long activityId) {
+    public ActivityParticipantResponseDto getByUserIdAndActivityId(Long userId, Long activityId) {
         ActivityParticipant participant = activityParticipantRepository.findByUserIdAndActivityId(userId, activityId).orElse(null);
         return activityParticipantMapper.toResponseDto(participant);
     }
