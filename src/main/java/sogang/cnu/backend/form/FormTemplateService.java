@@ -1,0 +1,56 @@
+package sogang.cnu.backend.form;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.form.dto.FormTemplateRequestDto;
+import sogang.cnu.backend.form.dto.FormTemplateResponseDto;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class FormTemplateService {
+    private final FormTemplateRepository formTemplateRepository;
+    private final FormTemplateMapper formTemplateMapper;
+
+    @Transactional(readOnly = true)
+    public FormTemplateResponseDto getById(Long id) {
+        FormTemplate formTemplate = formTemplateRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
+        return formTemplateMapper.toResponseDto(formTemplate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FormTemplateResponseDto> getAll() {
+        return formTemplateRepository.findAll().stream()
+                .map(formTemplateMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public FormTemplateResponseDto create(FormTemplateRequestDto dto) {
+        FormTemplate formTemplate = FormTemplate.create(dto.getTitle(), dto.getSchema());
+        FormTemplate savedFormTemplate = formTemplateRepository.save(formTemplate);
+        return formTemplateMapper.toResponseDto(savedFormTemplate);
+    }
+
+    @Transactional
+    public FormTemplateResponseDto update(Long id, FormTemplateRequestDto dto) {
+        FormTemplate formTemplate = formTemplateRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
+
+        formTemplate.update(dto.getTitle(), dto.getSchema());
+        return formTemplateMapper.toResponseDto(formTemplate);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        FormTemplate formTemplate = formTemplateRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
+        formTemplateRepository.delete(formTemplate);
+    }
+}
+
