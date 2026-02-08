@@ -1,14 +1,15 @@
-package sogang.cnu.backend.application.command;
+package sogang.cnu.backend.application.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Getter;
-import sogang.cnu.backend.recruitment.Recruitment;
+import lombok.Setter;
 
 @Getter
+@Setter
 @Builder
-public class ApplicationCreateCommand {
-    private Recruitment recruitment;
+public class ApplicationRequestDto {
+    private Long recruitmentId;
     private String name;
     private String studentId;
     private String major;
@@ -17,8 +18,6 @@ public class ApplicationCreateCommand {
     private String githubId;
     private String phoneNumber;
     private JsonNode answers;
-    private JsonNode formSnapshot;
 
     private String password;
 }
-

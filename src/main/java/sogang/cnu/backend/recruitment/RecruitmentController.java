@@ -9,27 +9,27 @@ import sogang.cnu.backend.recruitment.dto.RecruitmentResponseDto;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/recruitments")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class RecruitmentController {
     private final RecruitmentService recruitmentService;
 
-    @GetMapping("")
+    @GetMapping("/recruitments")
     public ResponseEntity<List<RecruitmentResponseDto>> getAll() {
         return ResponseEntity.ok(recruitmentService.getAll());
     }
 
-    @PostMapping("")
+    @PostMapping("/recruitments")
     public ResponseEntity<RecruitmentResponseDto> create(@RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.create(request));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/public/recruitments/{id}")
     public ResponseEntity<RecruitmentResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(recruitmentService.getById(id));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/recruitments/{id}")
     public ResponseEntity<RecruitmentResponseDto> update(@PathVariable Long id, @RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.update(id, request));
     }
@@ -40,7 +40,7 @@ public class RecruitmentController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/active" )
+    @GetMapping("/public/recruitments/active" )
     public ResponseEntity<RecruitmentResponseDto> getActiveRecruitment() {
         return ResponseEntity.ok(recruitmentService.getActiveRecruitment());
     }

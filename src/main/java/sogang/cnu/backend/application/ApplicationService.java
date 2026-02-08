@@ -1,11 +1,15 @@
 package sogang.cnu.backend.application;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.application.command.ApplicationCreateCommand;
-import sogang.cnu.backend.application.dto.ApplicationCreateRequest;
+import sogang.cnu.backend.application.command.ApplicationUpdateCommand;
+import sogang.cnu.backend.application.dto.ApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationResponse;
+import sogang.cnu.backend.application.dto.ApplicationSearchQuery;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.recruitment.Recruitment;
 import sogang.cnu.backend.recruitment.RecruitmentRepository;
@@ -14,17 +18,29 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final ApplicationMapper applicationMapper;
     private final RecruitmentRepository recruitmentRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public ApplicationResponse getById(Long id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
+        return applicationMapper.toResponseDto(application);
+    }
+
+    @Transactional(readOnly = true)
+    public ApplicationResponse getByIdWithPassword(Long id, String password) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+
+        validatePassword(password, application.getPassword());
+
         return applicationMapper.toResponseDto(application);
     }
 
@@ -36,7 +52,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse create(ApplicationCreateRequest dto) {
+    public ApplicationResponse create(ApplicationRequestDto dto) {
         Recruitment recruitment = findRecruitment(dto.getRecruitmentId());
 
         validateRecruitmentActive(recruitment);
@@ -53,11 +69,70 @@ public class ApplicationService {
                 .phoneNumber(dto.getPhoneNumber())
                 .answers(dto.getAnswers())
                 .formSnapshot(recruitment.getForm().getSchema())
+                .password(passwordEncoder.encode(dto.getPassword()))
                 .build();
 
         Application application = Application.create(command);
         Application savedApplication = applicationRepository.save(application);
         return applicationMapper.toResponseDto(savedApplication);
+    }
+
+    @Transactional
+    public ApplicationResponse update(Long id, ApplicationRequestDto dto) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+
+        // Only allow updates if the application is still in APPLIED status
+        if (application.getStatus() != ApplicationStatus.APPLIED) {
+            throw new IllegalStateException("Can only update applications in APPLIED status");
+        }
+
+        validatePassword(dto.getPassword(), application.getPassword());
+
+        ApplicationUpdateCommand command = ApplicationUpdateCommand.builder()
+                .name(dto.getName())
+                .studentId(dto.getStudentId())
+                .major(dto.getMajor())
+                .subMajor(dto.getSubMajor())
+                .email(dto.getEmail())
+                .githubId(dto.getGithubId())
+                .phoneNumber(dto.getPhoneNumber())
+                .answers(dto.getAnswers())
+                .build();
+
+        application.update(command);
+        return applicationMapper.toResponseDto(application);
+    }
+
+    @Transactional
+    public void delete(Long id, String password) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+
+        validatePassword(password, application.getPassword());
+
+        applicationRepository.delete(application);
+    }
+
+    @Transactional(readOnly = true)
+    public ApplicationResponse search(ApplicationSearchQuery query) {
+        Application application = applicationRepository.findFirstByNameAndEmailOrderByCreatedAtDesc(query.getName(), query.getEmail())
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+        return applicationMapper.toResponseDto(application);
+    }
+
+    @Transactional
+    public void cancelWithPassword(Long id, String password) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+
+        validatePassword(password, application.getPassword());
+
+        if (application.getStatus() != ApplicationStatus.APPLIED) {
+            throw new IllegalStateException("Can only cancel applications in APPLIED status");
+        }
+
+        application.updateStatus(ApplicationStatus.CANCELED);
     }
 
     @Transactional
@@ -109,6 +184,12 @@ public class ApplicationService {
             }
         } else {
             throw new IllegalStateException("Cannot change status after review");
+        }
+    }
+
+    private void validatePassword(String rawPassword, String encodedPassword) {
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+            throw new IllegalArgumentException("Invalid password");
         }
     }
 }

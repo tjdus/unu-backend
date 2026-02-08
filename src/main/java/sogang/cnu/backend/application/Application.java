@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Type;
 import sogang.cnu.backend.application.command.ApplicationCreateCommand;
+import sogang.cnu.backend.application.command.ApplicationUpdateCommand;
 import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.recruitment.Recruitment;
 
@@ -63,6 +64,8 @@ public class Application extends BaseEntity {
     @Column(columnDefinition = "json", nullable = false)
     private JsonNode formSnapshot;
 
+    private String password;
+
     public void updateStatus(ApplicationStatus newStatus) {
         if (this.status == ApplicationStatus.APPLIED &&
             (newStatus == ApplicationStatus.PASSED || newStatus == ApplicationStatus.REJECTED)) {
@@ -85,7 +88,18 @@ public class Application extends BaseEntity {
                 .submittedAt(LocalDateTime.now())
                 .answers(command.getAnswers())
                 .formSnapshot(command.getFormSnapshot())
+                .password(command.getPassword())
                 .build();
+    }
+
+    public void update(ApplicationUpdateCommand command) {
+        this.name = command.getName();
+        this.studentId = command.getStudentId();
+        this.major = command.getMajor();
+        this.subMajor = command.getSubMajor();
+        this.email = command.getEmail();
+        this.githubId = command.getGithubId();
+        this.phoneNumber = command.getPhoneNumber();
     }
 }
 
