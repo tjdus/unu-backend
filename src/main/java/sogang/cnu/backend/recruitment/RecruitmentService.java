@@ -64,6 +64,13 @@ public class RecruitmentService {
         recruitmentRepository.delete(recruitment);
     }
 
+    @Transactional
+    public RecruitmentResponseDto getActiveRecruitment() {
+        Recruitment recruitment = recruitmentRepository.findFirstByActiveIsTrueOrderByCreatedAtDesc()
+                .orElseThrow(() -> new NotFoundException("Active recruitment not found"));
+        return recruitmentMapper.toResponseDto(recruitment);
+    }
+
     private void validateDates(java.time.LocalDateTime startAt, java.time.LocalDateTime endAt) {
         if (startAt != null && endAt != null && startAt.isAfter(endAt)) {
             throw new IllegalArgumentException("Start date must be before end date");

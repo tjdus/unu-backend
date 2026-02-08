@@ -39,5 +39,10 @@ public class RecruitmentController {
         recruitmentService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/active" )
+    public ResponseEntity<RecruitmentResponseDto> getActiveRecruitment() {
+        return ResponseEntity.ok(recruitmentService.getActiveRecruitment());
+    }
 }
 
