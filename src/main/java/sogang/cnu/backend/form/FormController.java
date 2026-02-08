@@ -2,17 +2,9 @@ package sogang.cnu.backend.form;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.form.dto.FormRequestDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
-
 import java.util.List;
 
 @RestController
@@ -27,24 +19,26 @@ public class FormController {
     }
 
     @PostMapping("")
-    public ResponseEntity<FormResponseDto> create(@RequestBody FormRequestDto requestDto) {
-        return ResponseEntity.ok(formService.create(requestDto));
+    public ResponseEntity<FormResponseDto> create(@RequestBody FormRequestDto formRequestDto) {
+        return ResponseEntity.ok(formService.create(formRequestDto));
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<FormResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(formService.getById(id));
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<FormResponseDto> update(@PathVariable Long id, @RequestBody FormRequestDto requestDto) {
-        return ResponseEntity.ok(formService.update(id, requestDto));
+    @PutMapping("/{id}")
+    public ResponseEntity<FormResponseDto> update(@PathVariable Long id, @RequestBody FormRequestDto formRequestDto) {
+        return ResponseEntity.ok(formService.update(id, formRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable Long id) {
         formService.delete(id);
         return ResponseEntity.noContent().build();
     }
-}
 
+
+}
