@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/signup", "/api/auth/login","/oauth/kakao/callback","/oauth/google/callback",
+                        .requestMatchers("/api/auth/signup", "/api/auth/login",
                                 "/api/public/**")
                         .permitAll()// 회원가입, 로그인은 인증 없이해야함
                         .anyRequest().authenticated()

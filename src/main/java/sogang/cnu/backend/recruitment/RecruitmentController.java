@@ -27,12 +27,13 @@ public class RecruitmentController {
         return ResponseEntity.ok(recruitmentService.create(request));
     }
 
-    @GetMapping("/public/recruitments/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<RecruitmentResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(recruitmentService.getById(id));
     }
 
-    @PutMapping("/recruitments/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PutMapping("/{id}")
     public ResponseEntity<RecruitmentResponseDto> update(@PathVariable Long id, @RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.update(id, request));
     }

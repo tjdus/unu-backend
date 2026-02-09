@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class ApplicationSearchQuery {
+public class ApplicationLookupRequestDto {
     private String name;
     private String email;
 }

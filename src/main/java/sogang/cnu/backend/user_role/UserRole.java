@@ -2,6 +2,7 @@ package sogang.cnu.backend.user_role;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.user.User;
 
@@ -12,7 +13,7 @@ import sogang.cnu.backend.user.User;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRole {
+public class UserRole extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

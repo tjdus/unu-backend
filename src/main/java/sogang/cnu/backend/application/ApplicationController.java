@@ -2,62 +2,49 @@ package sogang.cnu.backend.application;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.application.dto.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/applications")
 @RequiredArgsConstructor
 public class ApplicationController {
     private final ApplicationService applicationService;
 
-    @PostMapping("/public/applications/search")
-    public ResponseEntity<ApplicationResponse> search(@RequestBody ApplicationSearchQuery query) {
-        return ResponseEntity.ok(applicationService.search(query));
-    }
-
-    @PostMapping("/public/applications")
-    public ResponseEntity<ApplicationResponse> create(@RequestBody ApplicationRequestDto request) {
-        return ResponseEntity.ok(applicationService.create(request));
-    }
-
-    @PutMapping("/public/applications/{id}")
-    public ResponseEntity<ApplicationResponse> update(@PathVariable Long id, @RequestBody ApplicationRequestDto request) {
-        return ResponseEntity.ok(applicationService.update(id, request));
-    }
-
-    @PatchMapping("/public/applications/{id}/cancel")
-    public ResponseEntity<String> cancelWithPassword(@PathVariable Long id, @RequestBody PasswordRequestDto request) {
-        applicationService.cancelWithPassword(id, request.getPassword());
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/public/applications/{id}/verify")
-    public ResponseEntity<ApplicationResponse> getByIdWithPassword(@PathVariable Long id, @RequestBody PasswordRequestDto request) {
-        return ResponseEntity.ok(applicationService.getByIdWithPassword(id, request.getPassword()));
-    }
-
-    @GetMapping("/admin/applications/{id}")
+    @PreAuthorize("hasAnyRole('MANAGER')")
+    @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(applicationService.getById(id));
     }
 
-    @GetMapping("/admin/recruitments/{recruitmentId}/applications")
+    @PreAuthorize("hasAnyRole('MANAGER')")
+    @GetMapping("/{recruitmentId}/applications")
     public ResponseEntity<List<ApplicationResponse>> getByRecruitmentId(@PathVariable Long recruitmentId) {
         return ResponseEntity.ok(applicationService.getByRecruitmentId(recruitmentId));
     }
 
-    @PatchMapping("/admin/applications/{id}/review")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PatchMapping("/{id}/review")
     public ResponseEntity<ApplicationResponse> review(@PathVariable Long id, @RequestBody ApplicationReviewRequest request) {
         return ResponseEntity.ok(applicationService.updateStatus(id, request.getStatus()));
     }
 
-    @PostMapping("/admin/applications/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancel(@PathVariable Long id) {
         applicationService.cancel(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> delete(@PathVariable Long id){
+        applicationService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }
 

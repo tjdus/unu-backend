@@ -9,7 +9,7 @@ import sogang.cnu.backend.application.command.ApplicationCreateCommand;
 import sogang.cnu.backend.application.command.ApplicationUpdateCommand;
 import sogang.cnu.backend.application.dto.ApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationResponse;
-import sogang.cnu.backend.application.dto.ApplicationSearchQuery;
+import sogang.cnu.backend.application.dto.ApplicationLookupRequestDto;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.recruitment.Recruitment;
 import sogang.cnu.backend.recruitment.RecruitmentRepository;
@@ -105,17 +105,15 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void delete(Long id, String password) {
+    public void delete(Long id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
-
-        validatePassword(password, application.getPassword());
 
         applicationRepository.delete(application);
     }
 
     @Transactional(readOnly = true)
-    public ApplicationResponse search(ApplicationSearchQuery query) {
+    public ApplicationResponse lookup(ApplicationLookupRequestDto query) {
         Application application = applicationRepository.findFirstByNameAndEmailOrderByCreatedAtDesc(query.getName(), query.getEmail())
                 .orElseThrow(() -> new NotFoundException("Application not found"));
         return applicationMapper.toResponseDto(application);
