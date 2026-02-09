@@ -22,11 +22,6 @@ public class ActivityParticipantController {
         return ResponseEntity.ok(activityParticipantService.getAll());
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<String> test(@CurrentUser CustomUserDetails user) {
-        return ResponseEntity.ok(user.getEmail() + " " + user.getId());
-    }
-
     @PostMapping("")
     public ResponseEntity<ActivityParticipantResponseDto> create(@RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
         return ResponseEntity.ok(activityParticipantService.create(activityParticipantRequestDto));
@@ -70,6 +65,12 @@ public class ActivityParticipantController {
             @CurrentUser CustomUserDetails user,
             @PathVariable("id") Long activityId) {
         return ResponseEntity.ok(activityParticipantService.createWithUserIdAndActivityId(user.getId(), activityId));
+    }
+
+    @GetMapping("/users/{id}")
+    public ResponseEntity<List<ActivityParticipantResponseDto>> getByUserId(
+            @PathVariable("id") Long userId) {
+        return ResponseEntity.ok(activityParticipantService.getByUserId(userId));
     }
 
 

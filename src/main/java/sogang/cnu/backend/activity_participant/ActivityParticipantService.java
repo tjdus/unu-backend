@@ -99,6 +99,13 @@ public class ActivityParticipantService {
         return activityParticipantMapper.toResponseDto(participant);
     }
 
+    public List<ActivityParticipantResponseDto> getByUserId(Long userId) {
+        List<ActivityParticipant> participants = activityParticipantRepository.findByUserId(userId);
+        return participants.stream()
+                .map(activityParticipantMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
     private Activity findActivity(Long activityId) {
         return activityRepository.findById(activityId)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));

@@ -8,21 +8,10 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/public/users")
 @RequiredArgsConstructor
-public class UserController {
+public class UserPublicController {
     private final UserService userService;
-
-    @GetMapping("")
-    public ResponseEntity<List<UserResponseDto>> getAll() {
-        return ResponseEntity.ok(userService.getAll());
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDto> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getById(id));
-    }
-
 
     @GetMapping("/studentId/{studentId}")
     public ResponseEntity<UserResponseDto> getByStudentId(@PathVariable String studentId) {
@@ -31,14 +20,11 @@ public class UserController {
 
     @GetMapping("/search")
     public ResponseEntity<List<UserResponseDto>> searchUsers(
-            @RequestParam(name = "role", required = false) String role,
-            @RequestParam(name = "is-active", required = false) Boolean isActive,
-            @RequestParam(name = "joined-quarter", required = false) String joinedQuarter,
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "student-id", required = false) String studentId
     ) {
         return ResponseEntity.ok(
-                userService.search(role, isActive, joinedQuarter, name, studentId)
+                userService.search(null, null, null, name, studentId)
         );
     }
 

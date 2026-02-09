@@ -25,6 +25,14 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public UserResponseDto getById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        return userMapper.toResponseDto(user);
+    }
+
+    @Transactional(readOnly = true)
     public List<UserResponseDto> getAll() {
         return userRepository.findAll().stream()
                 .map(userMapper::toResponseDto)
