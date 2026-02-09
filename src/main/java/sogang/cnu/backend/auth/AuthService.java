@@ -8,13 +8,11 @@ import sogang.cnu.backend.auth.dto.LoginResponseDto;
 import sogang.cnu.backend.auth.dto.SignUpRequestDto;
 import sogang.cnu.backend.auth.dto.SignUpResponseDto;
 import sogang.cnu.backend.role.Role;
-import sogang.cnu.backend.role_permission.RolePermissionRepository;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.user.command.UserCreateCommand;
-import sogang.cnu.backend.user.dto.UserRequestDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
@@ -26,7 +24,6 @@ import java.util.List;
 public class AuthService {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
-    private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
@@ -56,9 +53,7 @@ public class AuthService {
 
         List<String> roles = getUserRoles(user.getId());
 
-        List<String> permissions = getPermissionsFromRoles(roles);
-
-        String token = jwtTokenProvider.generateAccessToken(user.getId(), roles, permissions);
+        String token = jwtTokenProvider.generateAccessToken(user.getId(), roles);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
         return LoginResponseDto.builder()
                 .token(token)
@@ -82,9 +77,8 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
         List<String> roles = getUserRoles(user.getId());
-        List<String> permissions = getPermissionsFromRoles(roles);
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), roles, permissions);
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), roles);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
         return LoginResponseDto.builder()
@@ -104,16 +98,6 @@ public class AuthService {
             }
         }
         return roles;
-    }
-
-    private List<String> getPermissionsFromRoles(List<String> roles) {
-        if (roles.isEmpty()) {
-            return new ArrayList<>();
-        }
-        return rolePermissionRepository.findByRoleNameIn(roles)
-                .stream()
-                .map(rolePermission -> rolePermission.getPermission().getName())
-                .toList();
     }
 
     private UserCreateCommand toCreateCommand(SignUpRequestDto dto) {

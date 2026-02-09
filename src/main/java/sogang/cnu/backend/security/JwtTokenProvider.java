@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 public class JwtTokenProvider {
 
     private static final String ROLES_CLAIM = "roles";
-    private static final String PERMISSIONS_CLAIM = "permissions";
     private static final String TOKEN_TYPE_CLAIM = "tokenType";
     private static final String ACCESS_TOKEN_TYPE = "access";
     private static final String REFRESH_TOKEN_TYPE = "refresh";
@@ -62,12 +61,8 @@ public class JwtTokenProvider {
 
         List<String> roles = getStringListClaim(claims, ROLES_CLAIM);
 
-        List<String> permissions = getStringListClaim(claims, PERMISSIONS_CLAIM);
-
-        List<SimpleGrantedAuthority> authorities = Stream.concat(
-                roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)),
-                permissions.stream().map(SimpleGrantedAuthority::new)
-        ).toList();
+        List<SimpleGrantedAuthority> authorities =
+                roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
 
         CustomUserDetails principal =
                 new CustomUserDetails(userId, email, authorities);
@@ -75,21 +70,20 @@ public class JwtTokenProvider {
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 
-    public String generateAccessToken(Long id, List<String> roles, List<String> permissions) {
-        return generateToken(id, roles, permissions, accessTokenExpireTime, ACCESS_TOKEN_TYPE);
+    public String generateAccessToken(Long id, List<String> roles) {
+        return generateToken(id, roles, accessTokenExpireTime, ACCESS_TOKEN_TYPE);
     }
 
     public String generateRefreshToken(Long id) {
-        return generateToken(id, List.of(), List.of(), refreshTokenExpireTime, REFRESH_TOKEN_TYPE);
+        return generateToken(id, List.of(), refreshTokenExpireTime, REFRESH_TOKEN_TYPE);
     }
 
-    private String generateToken(Long id, List<String> roles, List<String> permissions, long expireTime, String tokenType) {
+    private String generateToken(Long id, List<String> roles, long expireTime, String tokenType) {
         long now = System.currentTimeMillis();
         Date expiration = new Date(now + expireTime);
 
         Claims claims = Jwts.claims().setSubject(String.valueOf(id));
         claims.put(ROLES_CLAIM, roles);
-        claims.put(PERMISSIONS_CLAIM, permissions);
         claims.put(TOKEN_TYPE_CLAIM, tokenType);
 
         return Jwts.builder()
