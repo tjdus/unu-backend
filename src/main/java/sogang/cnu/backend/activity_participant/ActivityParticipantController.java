@@ -52,6 +52,11 @@ public class ActivityParticipantController {
         activityParticipantService.delete(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/activities/{id}")
+    public ResponseEntity<List<ActivityParticipantResponseDto>> getByActivityId(
+            @PathVariable("id") Long activityId) {
+        return ResponseEntity.ok(activityParticipantService.getByActivityId(activityId));
+    }
 
     @GetMapping("/activities/{id}/me")
     public ResponseEntity<ActivityParticipantResponseDto> getMyParticipant(

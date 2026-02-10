@@ -93,6 +93,12 @@ public class ActivityParticipantService {
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
         activityParticipantRepository.delete(activity);
     }
+    public List<ActivityParticipantResponseDto> getByActivityId(Long activityId) {
+        List<ActivityParticipant> participants = activityParticipantRepository.findByActivityId(activityId);
+        return participants.stream()
+                .map(activityParticipantMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
 
     public ActivityParticipantResponseDto getByUserIdAndActivityId(Long userId, Long activityId) {
         ActivityParticipant participant = activityParticipantRepository.findByUserIdAndActivityId(userId, activityId).orElse(null);

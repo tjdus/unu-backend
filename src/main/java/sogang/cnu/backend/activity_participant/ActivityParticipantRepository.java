@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface ActivityParticipantRepository extends JpaRepository<ActivityParticipant, Long> {
     Optional<ActivityParticipant> findByUserIdAndActivityId(Long userId, Long activityId);
     List<ActivityParticipant> findByUserId(Long userId);
+    List<ActivityParticipant> findByActivityId(Long activityId);
 }
