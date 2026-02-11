@@ -9,4 +9,3 @@ public interface ActivitySessionMapper {
     ActivitySessionResponseDto toResponseDto(ActivitySession activitySession);
 }
 
-

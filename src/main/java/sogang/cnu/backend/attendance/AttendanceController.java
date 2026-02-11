@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.attendance.dto.AttendanceBulkRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
+import sogang.cnu.backend.attendance.dto.AttendanceStatsResponseDto;
+
 import java.util.List;
 
 @RestController
@@ -54,5 +56,15 @@ public class AttendanceController {
     @PostMapping("/bulk")
     public ResponseEntity<List<AttendanceResponseDto>> bulkCreate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
         return ResponseEntity.ok(attendanceService.bulkCreate(attendanceBulkRequestDto));
+    }
+
+    @PatchMapping("/bulk")
+    public ResponseEntity<List<AttendanceResponseDto>> bulkUpdate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
+        return ResponseEntity.ok(attendanceService.bulkUpdate(attendanceBulkRequestDto));
+    }
+
+    @GetMapping("/stats/participants/{id}")
+    public ResponseEntity<AttendanceStatsResponseDto> getAttendanceStatsByParticipantId(@PathVariable Long id) {
+        return ResponseEntity.ok(attendanceService.countStatusParticipantId(id));
     }
 }

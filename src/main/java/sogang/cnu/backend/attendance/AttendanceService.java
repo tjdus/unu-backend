@@ -13,6 +13,7 @@ import sogang.cnu.backend.attendance.command.AttendanceUpdateCommand;
 import sogang.cnu.backend.attendance.dto.AttendanceBulkRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
+import sogang.cnu.backend.attendance.dto.AttendanceStatsResponseDto;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.user.UserRepository;
@@ -174,6 +175,137 @@ public class AttendanceService {
         return savedAttendances.stream()
                 .map(attendanceMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<AttendanceResponseDto> bulkUpdate(AttendanceBulkRequestDto dto) {
+        // 세션 존재 확인
+        ActivitySession session = activitySessionRepository.findById(dto.getSessionId())
+                .orElseThrow(() -> new NotFoundException("Activity session not found"));
+
+        // 모든 participant ID 수집
+        Set<Long> allParticipantIds = new HashSet<>();
+        List<Long> presentIds = dto.getPresentParticipantIds() != null ? dto.getPresentParticipantIds() : new ArrayList<>();
+        List<Long> absentIds = dto.getAbsentParticipantIds() != null ? dto.getAbsentParticipantIds() : new ArrayList<>();
+        List<Long> excusedIds = dto.getExcusedParticipantIds() != null ? dto.getExcusedParticipantIds() : new ArrayList<>();
+
+        // 중복 ID 체크
+        for (Long id : presentIds) {
+            if (!allParticipantIds.add(id)) {
+                throw new BadRequestException("Duplicate participant ID found: " + id);
+            }
+        }
+        for (Long id : absentIds) {
+            if (!allParticipantIds.add(id)) {
+                throw new BadRequestException("Duplicate participant ID found: " + id);
+            }
+        }
+        for (Long id : excusedIds) {
+            if (!allParticipantIds.add(id)) {
+                throw new BadRequestException("Duplicate participant ID found: " + id);
+            }
+        }
+
+        // 해당 세션의 기존 출석 기록 조회
+        List<Attendance> existingAttendances = attendanceRepository.findBySessionId(dto.getSessionId());
+
+        // Participant ID별로 기존 출석 기록을 맵으로 변환
+        java.util.Map<Long, Attendance> attendanceMap = existingAttendances.stream()
+                .collect(Collectors.toMap(
+                        attendance -> attendance.getParticipant().getId(),
+                        attendance -> attendance
+                ));
+
+        List<Attendance> updatedAttendances = new ArrayList<>();
+
+        // PRESENT 상태 업데이트
+        for (Long participantId : presentIds) {
+            Attendance attendance = attendanceMap.get(participantId);
+            if (attendance != null) {
+                AttendanceUpdateCommand command = AttendanceUpdateCommand.builder()
+                        .status(AttendanceStatus.PRESENT)
+                        .build();
+                attendance.update(command);
+                updatedAttendances.add(attendance);
+            } else {
+                // 기존 출석 기록이 없으면 새로 생성
+                ActivityParticipant participant = activityParticipantRepository.findById(participantId)
+                        .orElseThrow(() -> new NotFoundException("Activity participant not found: " + participantId));
+
+                AttendanceCreateCommand command = AttendanceCreateCommand.builder()
+                        .session(session)
+                        .participant(participant)
+                        .status(AttendanceStatus.PRESENT)
+                        .build();
+                Attendance newAttendance = Attendance.create(command);
+                updatedAttendances.add(attendanceRepository.save(newAttendance));
+            }
+        }
+
+        // ABSENT 상태 업데이트
+        for (Long participantId : absentIds) {
+            Attendance attendance = attendanceMap.get(participantId);
+            if (attendance != null) {
+                AttendanceUpdateCommand command = AttendanceUpdateCommand.builder()
+                        .status(AttendanceStatus.ABSENT)
+                        .build();
+                attendance.update(command);
+                updatedAttendances.add(attendance);
+            } else {
+                // 기존 출석 기록이 없으면 새로 생성
+                ActivityParticipant participant = activityParticipantRepository.findById(participantId)
+                        .orElseThrow(() -> new NotFoundException("Activity participant not found: " + participantId));
+
+                AttendanceCreateCommand command = AttendanceCreateCommand.builder()
+                        .session(session)
+                        .participant(participant)
+                        .status(AttendanceStatus.ABSENT)
+                        .build();
+                Attendance newAttendance = Attendance.create(command);
+                updatedAttendances.add(attendanceRepository.save(newAttendance));
+            }
+        }
+
+        // EXCUSED 상태 업데이트
+        for (Long participantId : excusedIds) {
+            Attendance attendance = attendanceMap.get(participantId);
+            if (attendance != null) {
+                AttendanceUpdateCommand command = AttendanceUpdateCommand.builder()
+                        .status(AttendanceStatus.EXCUSED)
+                        .build();
+                attendance.update(command);
+                updatedAttendances.add(attendance);
+            } else {
+                // 기존 출석 기록이 없으면 새로 생성
+                ActivityParticipant participant = activityParticipantRepository.findById(participantId)
+                        .orElseThrow(() -> new NotFoundException("Activity participant not found: " + participantId));
+
+                AttendanceCreateCommand command = AttendanceCreateCommand.builder()
+                        .session(session)
+                        .participant(participant)
+                        .status(AttendanceStatus.EXCUSED)
+                        .build();
+                Attendance newAttendance = Attendance.create(command);
+                updatedAttendances.add(attendanceRepository.save(newAttendance));
+            }
+        }
+
+        return updatedAttendances.stream()
+                .map(attendanceMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public AttendanceStatsResponseDto countStatusParticipantId(Long participantId) {
+        Long presentCount = attendanceRepository.countByParticipantIdAndStatus(participantId, AttendanceStatus.PRESENT);
+        Long absentCount = attendanceRepository.countByParticipantIdAndStatus(participantId, AttendanceStatus.ABSENT);
+        Long excusedCount = attendanceRepository.countByParticipantIdAndStatus(participantId, AttendanceStatus.EXCUSED);
+
+        return AttendanceStatsResponseDto.builder()
+                .presentCount(presentCount)
+                .absentCount(absentCount)
+                .excusedCount(excusedCount)
+                .build();
+
     }
 
 }
