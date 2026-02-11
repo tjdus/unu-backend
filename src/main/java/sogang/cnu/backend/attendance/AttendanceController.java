@@ -3,6 +3,7 @@ package sogang.cnu.backend.attendance;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sogang.cnu.backend.attendance.dto.AttendanceBulkRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
 import java.util.List;
@@ -50,4 +51,8 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getByParticipantId(id));
     }
 
+    @PostMapping("/bulk")
+    public ResponseEntity<List<AttendanceResponseDto>> bulkCreate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
+        return ResponseEntity.ok(attendanceService.bulkCreate(attendanceBulkRequestDto));
+    }
 }
