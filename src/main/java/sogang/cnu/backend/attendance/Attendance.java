@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import sogang.cnu.backend.activity_participant.ActivityParticipant;
 import sogang.cnu.backend.activity_session.ActivitySession;
+import sogang.cnu.backend.attendance.command.AttendanceCreateCommand;
+import sogang.cnu.backend.attendance.command.AttendanceUpdateCommand;
 import sogang.cnu.backend.common.domain.BaseEntity;
 
 @Entity
@@ -37,4 +39,16 @@ public class Attendance extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AttendanceStatus status;
+
+    public void update(AttendanceUpdateCommand command) {
+        this.status = command.getStatus();
+    }
+
+    public static Attendance create(AttendanceCreateCommand command) {
+        return Attendance.builder()
+                .session(command.getSession())
+                .participant(command.getParticipant())
+                .status(command.getStatus())
+                .build();
+    }
 }
