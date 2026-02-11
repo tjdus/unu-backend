@@ -1,0 +1,40 @@
+package sogang.cnu.backend.attendance;
+
+import jakarta.persistence.*;
+import lombok.*;
+import sogang.cnu.backend.activity_participant.ActivityParticipant;
+import sogang.cnu.backend.activity_session.ActivitySession;
+import sogang.cnu.backend.common.domain.BaseEntity;
+
+@Entity
+@Table(
+        name = "attendances",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_attendance_session_participant",
+                        columnNames = {"session_id", "participant_id"}
+                )
+        }
+)
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Attendance extends BaseEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", nullable = false)
+    private ActivitySession session;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "participant_id", nullable = false)
+    private ActivityParticipant participant;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AttendanceStatus status;
+}
