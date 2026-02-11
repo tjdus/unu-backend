@@ -78,4 +78,18 @@ public class AttendanceService {
         attendanceRepository.delete(attendance);
     }
 
+    @Transactional(readOnly = true)
+    public List<AttendanceResponseDto> getBySessionId(Long sessionId) {
+        return attendanceRepository.findBySessionId(sessionId).stream()
+                .map(attendanceMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceResponseDto> getByParticipantId(Long participantId) {
+        return attendanceRepository.findByParticipantId(participantId).stream()
+                .map(attendanceMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
 }

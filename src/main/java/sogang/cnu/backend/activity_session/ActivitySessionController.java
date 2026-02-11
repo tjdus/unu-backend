@@ -6,9 +6,6 @@ import org.springframework.web.bind.annotation.*;
 
 import sogang.cnu.backend.activity_session.dto.ActivitySessionRequestDto;
 import sogang.cnu.backend.activity_session.dto.ActivitySessionResponseDto;
-import sogang.cnu.backend.security.CurrentUser;
-import sogang.cnu.backend.security.CustomUserDetails;
-
 import java.util.List;
 
 @RestController
@@ -41,6 +38,11 @@ public class ActivitySessionController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
         activitySessionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/activities/{id}")
+    public ResponseEntity<List<ActivitySessionResponseDto>> getByActivityId(@PathVariable Long id) {
+        return ResponseEntity.ok(activitySessionService.getByActivityId(id));
     }
 
 }

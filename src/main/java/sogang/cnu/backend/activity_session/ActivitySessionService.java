@@ -76,4 +76,11 @@ public class ActivitySessionService {
                 .orElseThrow(() -> new NotFoundException("ActivitySession not found"));
         activitySessionRepository.delete(activitySession);
     }
+
+    @Transactional(readOnly = true)
+    public List<ActivitySessionResponseDto> getByActivityId(Long activityId) {
+        return activitySessionRepository.findByActivityId(activityId).stream()
+                .map(activitySessionMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
 }

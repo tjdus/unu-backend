@@ -40,4 +40,14 @@ public class AttendanceController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/sessions/{id}")
+    public ResponseEntity<List<AttendanceResponseDto>> getBySessionId(@PathVariable Long id) {
+        return ResponseEntity.ok(attendanceService.getBySessionId(id));
+    }
+
+    @GetMapping("/participants/{id}")
+    public ResponseEntity<List<AttendanceResponseDto>> getByParticipantId(@PathVariable Long id) {
+        return ResponseEntity.ok(attendanceService.getByParticipantId(id));
+    }
+
 }
