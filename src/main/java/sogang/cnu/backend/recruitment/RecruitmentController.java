@@ -15,13 +15,11 @@ import java.util.List;
 public class RecruitmentController {
     private final RecruitmentService recruitmentService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @GetMapping("")
     public ResponseEntity<List<RecruitmentResponseDto>> getAll() {
         return ResponseEntity.ok(recruitmentService.getAll());
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @PostMapping("")
     public ResponseEntity<RecruitmentResponseDto> create(@RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.create(request));
@@ -32,13 +30,11 @@ public class RecruitmentController {
         return ResponseEntity.ok(recruitmentService.getById(id));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @PutMapping("/{id}")
     public ResponseEntity<RecruitmentResponseDto> update(@PathVariable Long id, @RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.update(id, request));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         recruitmentService.delete(id);

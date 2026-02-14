@@ -1,6 +1,7 @@
 package sogang.cnu.backend.recruitment;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -16,6 +17,7 @@ import sogang.cnu.backend.recruitment.dto.RecruitmentResponseDto;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecruitmentService {
@@ -26,8 +28,10 @@ public class RecruitmentService {
 
     @Transactional(readOnly = true)
     public RecruitmentResponseDto getById(Long id) {
+        log.debug("getById" + id);
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
+        log.debug("getById" + recruitment);
         return recruitmentMapper.toResponseDto(recruitment);
     }
 
