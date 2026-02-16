@@ -78,6 +78,12 @@ public class ActivityParticipantController {
         return ResponseEntity.ok(activityParticipantService.getByUserId(userId));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<List<ActivityParticipantResponseDto>> getMy(
+          @CurrentUser CustomUserDetails user) {
+        return ResponseEntity.ok(activityParticipantService.getByUserId(user.getId()));
+    }
+
 
 
 

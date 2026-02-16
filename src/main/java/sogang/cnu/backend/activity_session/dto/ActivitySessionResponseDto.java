@@ -3,6 +3,7 @@ package sogang.cnu.backend.activity_session.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import sogang.cnu.backend.activity.dto.ActivityResponseDto;
 import sogang.cnu.backend.activity_type.dto.ActivityTypeResponseDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 import sogang.cnu.backend.user.dto.UserResponseDto;
@@ -12,7 +13,7 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 @Builder
 public class ActivitySessionResponseDto {
     private Long id;
-    private Long activityId;
+    private ActivityResponseDto activity;
     private Integer sessionNumber;
     private String date;
     private String description;
