@@ -3,6 +3,8 @@ package sogang.cnu.backend.user.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
+import sogang.cnu.backend.user_role.dto.UserRoleResponseDto;
 
 @Getter
 @Setter
@@ -15,4 +17,7 @@ public class UserResponseDto {
     private String email;
     private String phoneNumber;
     private String githubId;
+    private Boolean isActive;
+    private QuarterResponseDto joinedQuarter;
+    private UserRoleResponseDto[] userRoles;
 }

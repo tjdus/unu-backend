@@ -11,6 +11,5 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 @Builder
 public class UserRoleResponseDto {
     private Long id;
-    private UserResponseDto user;
     private RoleResponseDto role;
 }

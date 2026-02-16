@@ -2,9 +2,14 @@ package sogang.cnu.backend.user;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sogang.cnu.backend.quarter.Quarter;
+import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.user.command.UserCreateCommand;
+import sogang.cnu.backend.user_role.UserRole;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -41,16 +46,12 @@ public class User {
     @Builder.Default
     private Boolean isActive = true;
 
-//    @Column(name = "joined_at", nullable = false)
-//    private LocalDateTime joinedAt;priv
+    @ManyToOne
+    @JoinColumn(name = "joined_quarter_id", nullable = false)
+    private Quarter joinedQuarter;
 
-//    @ManyToOne
-//    @JoinColumn(name = "joined_quarter", nullable = false)
-//    private Quarter joinedQuarter;
-
-    //TODO
-    //department
-    //joinedQuarter
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRole> userRoles = new ArrayList<>();
 
     public static User create(UserCreateCommand command) {
         return User.builder()

@@ -15,6 +15,9 @@ public class ActivityParticipantResponseDto {
     private ActivityResponseDto activity;
     private UserResponseDto user;
     private ActivityParticipantStatus status;
+    private Boolean completed;
+    private String completedAt;
+    private String joinedAt;
     private String createdAt;
     private String modifiedAt;
     private String createdBy;

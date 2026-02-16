@@ -38,7 +38,7 @@ public class ActivityParticipantController {
     }
 
     @PatchMapping("/{id}/completed")
-    public ResponseEntity<ActivityParticipantResponseDto> updateCompleted(@PathVariable Long id, @RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
+    public ResponseEntity<ActivityParticipantResponseDto> updateCompleted(@PathVariable Long id) {
         return ResponseEntity.ok(activityParticipantService.updateCompleted(id));
     }
 

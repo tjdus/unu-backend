@@ -67,10 +67,6 @@ public class Application extends BaseEntity {
     private String password;
 
     public void updateStatus(ApplicationStatus newStatus) {
-        if (this.status == ApplicationStatus.APPLIED &&
-            (newStatus == ApplicationStatus.PASSED || newStatus == ApplicationStatus.REJECTED)) {
-            this.reviewedAt = LocalDateTime.now();
-        }
         this.status = newStatus;
     }
 

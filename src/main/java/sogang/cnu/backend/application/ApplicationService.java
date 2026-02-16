@@ -10,6 +10,7 @@ import sogang.cnu.backend.application.command.ApplicationUpdateCommand;
 import sogang.cnu.backend.application.dto.ApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationResponse;
 import sogang.cnu.backend.application.dto.ApplicationLookupRequestDto;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.recruitment.Recruitment;
 import sogang.cnu.backend.recruitment.RecruitmentRepository;
@@ -176,12 +177,14 @@ public class ApplicationService {
     }
 
     private void validateStatusTransition(ApplicationStatus currentStatus, ApplicationStatus newStatus) {
-        if (currentStatus == ApplicationStatus.APPLIED) {
-            if (newStatus != ApplicationStatus.PASSED && newStatus != ApplicationStatus.REJECTED) {
-                throw new IllegalStateException("Can only transition from APPLIED to PASSED or REJECTED");
-            }
-        } else {
-            throw new IllegalStateException("Cannot change status after review");
+        // 같은 상태로는 변경 불가
+        if (currentStatus == newStatus) {
+            throw new BadRequestException("Cannot transition to the same status");
+        }
+
+        // CANCELED 상태에서는 어떤 상태로도 변경 불가
+        if (currentStatus == ApplicationStatus.CANCELED) {
+            throw new BadRequestException("Cannot change status from CANCELED");
         }
     }
 
