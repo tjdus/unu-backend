@@ -1,14 +1,11 @@
-package sogang.cnu.backend.user.command;
+package sogang.cnu.backend.auth.dto;
 
-import lombok.Builder;
 import lombok.Getter;
-import sogang.cnu.backend.quarter.Season;
-
-import java.time.LocalDate;
+import lombok.Setter;
 
 @Getter
-@Builder
-public class UserUpdateCommand {
+@Setter
+public class UserInfoRequestDto {
     private String name;
     private String username;
     private String studentId;
@@ -16,4 +13,3 @@ public class UserUpdateCommand {
     private String phoneNumber;
     private String email;
 }
-

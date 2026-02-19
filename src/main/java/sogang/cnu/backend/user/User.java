@@ -5,6 +5,7 @@ import lombok.*;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.user.command.UserCreateCommand;
+import sogang.cnu.backend.user.command.UserUpdateCommand;
 import sogang.cnu.backend.user_role.UserRole;
 
 import java.time.LocalDateTime;
@@ -52,6 +53,19 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles = new ArrayList<>();
+
+    public void update(UserUpdateCommand command) {
+        this.name = command.getName();
+        this.username = command.getUsername();
+        this.studentId = command.getStudentId();
+        this.githubId = command.getGithubId();
+        this.phoneNumber = command.getPhoneNumber();
+        this.email = command.getEmail();
+    }
+
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
+    }
 
     public static User create(UserCreateCommand command) {
         return User.builder()

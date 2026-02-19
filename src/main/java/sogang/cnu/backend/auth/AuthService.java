@@ -3,16 +3,15 @@ package sogang.cnu.backend.auth;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import sogang.cnu.backend.auth.dto.LoginRequestDto;
-import sogang.cnu.backend.auth.dto.LoginResponseDto;
-import sogang.cnu.backend.auth.dto.SignUpRequestDto;
-import sogang.cnu.backend.auth.dto.SignUpResponseDto;
+import sogang.cnu.backend.auth.dto.*;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.user.command.UserCreateCommand;
+import sogang.cnu.backend.user.command.UserUpdateCommand;
+import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
@@ -98,6 +97,41 @@ public class AuthService {
             }
         }
         return roles;
+    }
+
+    public UserResponseDto update(Long id, UserInfoRequestDto dto) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.update(UserUpdateCommand.builder()
+                        .name(dto.getName())
+                        .username(dto.getUsername())
+                        .studentId(dto.getStudentId())
+                        .githubId(dto.getGithubId())
+                        .phoneNumber(dto.getPhoneNumber())
+                        .email(dto.getEmail())
+                .build());
+        userRepository.save(user);
+
+        return userMapper.toResponseDto(user);
+    }
+
+    public void updatePassword(Long id, PasswordUpdateRequestDto dto) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("비밀번호가 올바르지 않습니다.");
+        }
+
+        String encodedPassword = passwordEncoder.encode(dto.getNewPassword());
+        user.updatePassword(encodedPassword);
+        userRepository.save(user);
+    }
+
+    public UserInfoResponseDto getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return userMapper.toInfoResponseDto(user);
     }
 
     private UserCreateCommand toCreateCommand(SignUpRequestDto dto) {

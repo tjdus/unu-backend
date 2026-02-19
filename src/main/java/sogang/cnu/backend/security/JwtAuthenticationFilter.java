@@ -15,7 +15,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
 
     private final List<String> whiteList = List.of(
-            "/auth/", "/oauth/", "/public/", "/api/auth/"
+            "/public/", "/api/auth/signup", "/api/auth/login", "/api/auth/refresh"
     );
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
