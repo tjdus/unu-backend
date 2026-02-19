@@ -59,6 +59,10 @@ public class Activity extends BaseEntity {
         this.quarter = command.getQuarter();
     }
 
+    public void updateStatus(ActivityStatus newStatus) {
+        this.status = newStatus;
+    }
+
     @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ActivityParticipant> participants = new java.util.ArrayList<>();

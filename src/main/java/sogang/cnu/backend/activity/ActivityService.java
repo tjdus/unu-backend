@@ -72,6 +72,15 @@ public class ActivityService {
     }
 
     @Transactional
+    public ActivityResponseDto updateStatus(Long id, String status) {
+        Activity activity = activityRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Activity not found"));
+
+        activity.updateStatus(ActivityStatus.valueOf(status));
+        return activityMapper.toResponseDto(activity);
+    }
+
+    @Transactional
     public void delete(Long id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
