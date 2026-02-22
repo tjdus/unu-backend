@@ -17,6 +17,7 @@ import sogang.cnu.backend.recruitment.RecruitmentRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,14 +30,14 @@ public class ApplicationService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
-    public ApplicationResponse getById(Long id) {
+    public ApplicationResponse getById(UUID id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
         return applicationMapper.toResponseDto(application);
     }
 
     @Transactional(readOnly = true)
-    public ApplicationResponse getByIdWithPassword(Long id, String password) {
+    public ApplicationResponse getByIdWithPassword(UUID id, String password) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -46,7 +47,7 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ApplicationResponse> getByRecruitmentId(Long recruitmentId) {
+    public List<ApplicationResponse> getByRecruitmentId(UUID recruitmentId) {
         return applicationRepository.findByRecruitmentId(recruitmentId).stream()
                 .map(applicationMapper::toResponseDto)
                 .collect(Collectors.toList());
@@ -79,7 +80,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse update(Long id, ApplicationRequestDto dto) {
+    public ApplicationResponse update(UUID id, ApplicationRequestDto dto) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -106,7 +107,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -121,7 +122,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void cancelWithPassword(Long id, String password) {
+    public void cancelWithPassword(UUID id, String password) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -135,7 +136,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse updateStatus(Long id, String status) {
+    public ApplicationResponse updateStatus(UUID id, String status) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -147,7 +148,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void cancel(Long id) {
+    public void cancel(UUID id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -158,7 +159,7 @@ public class ApplicationService {
         application.updateStatus(ApplicationStatus.CANCELED);
     }
 
-    private Recruitment findRecruitment(Long recruitmentId) {
+    private Recruitment findRecruitment(UUID recruitmentId) {
         return recruitmentRepository.findById(recruitmentId)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
     }

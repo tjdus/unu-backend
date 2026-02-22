@@ -5,11 +5,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
 public class ApplicationRequestDto {
-    private Long recruitmentId;
+    private UUID recruitmentId;
     private String name;
     private String studentId;
     private String major;

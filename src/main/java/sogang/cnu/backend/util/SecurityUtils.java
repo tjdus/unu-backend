@@ -4,6 +4,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import sogang.cnu.backend.security.CustomUserDetails;
 
+import java.util.UUID;
+
 public final class SecurityUtils {
 
     private SecurityUtils() {}
@@ -21,7 +23,7 @@ public final class SecurityUtils {
         return (CustomUserDetails) authentication.getPrincipal();
     }
 
-    public static Long getCurrentUserId() {
+    public static UUID getCurrentUserId() {
         return getCurrentUser().getId();
     }
 }

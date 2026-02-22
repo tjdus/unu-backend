@@ -3,6 +3,8 @@ package sogang.cnu.backend.auth.dto;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public class SignUpRequestDto {
@@ -13,5 +15,5 @@ public class SignUpRequestDto {
     private String githubId;
     private String phoneNumber;
     private String email;
-    private Long joinedQuarterId;
+    private UUID joinedQuarterId;
 }

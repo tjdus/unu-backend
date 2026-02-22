@@ -8,6 +8,7 @@ import sogang.cnu.backend.recruitment.dto.RecruitmentRequestDto;
 import sogang.cnu.backend.recruitment.dto.RecruitmentResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/recruitments")
@@ -26,17 +27,17 @@ public class RecruitmentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RecruitmentResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<RecruitmentResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(recruitmentService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RecruitmentResponseDto> update(@PathVariable Long id, @RequestBody RecruitmentRequestDto request) {
+    public ResponseEntity<RecruitmentResponseDto> update(@PathVariable UUID id, @RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
         recruitmentService.delete(id);
         return ResponseEntity.noContent().build();
     }

@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.application.dto.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/public/applications")
 @RequiredArgsConstructor
@@ -22,18 +24,18 @@ public class ApplicationPublicController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApplicationResponse> update(@PathVariable Long id, @RequestBody ApplicationRequestDto request) {
+    public ResponseEntity<ApplicationResponse> update(@PathVariable UUID id, @RequestBody ApplicationRequestDto request) {
         return ResponseEntity.ok(applicationService.update(id, request));
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<String> cancelWithPassword(@PathVariable Long id, @RequestBody PasswordRequestDto request) {
+    public ResponseEntity<String> cancelWithPassword(@PathVariable UUID id, @RequestBody PasswordRequestDto request) {
         applicationService.cancelWithPassword(id, request.getPassword());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/verify")
-    public ResponseEntity<ApplicationResponse> getByIdWithPassword(@PathVariable Long id, @RequestBody PasswordRequestDto request) {
+    public ResponseEntity<ApplicationResponse> getByIdWithPassword(@PathVariable UUID id, @RequestBody PasswordRequestDto request) {
         return ResponseEntity.ok(applicationService.getByIdWithPassword(id, request.getPassword()));
     }
 }

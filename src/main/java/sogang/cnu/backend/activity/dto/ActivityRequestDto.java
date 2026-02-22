@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -13,9 +14,9 @@ public class ActivityRequestDto {
     private String title;
     private String description;
     private String status;
-    private Integer activityTypeId;
-    private Long assigneeId;
-    private Long quarterId;
+    private UUID activityTypeId;
+    private UUID assigneeId;
+    private UUID quarterId;
     private LocalDate startDate;
     private LocalDate endDate;
 }

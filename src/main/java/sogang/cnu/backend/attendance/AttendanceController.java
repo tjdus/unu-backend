@@ -9,6 +9,7 @@ import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
 import sogang.cnu.backend.attendance.dto.AttendanceStatsResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/attendances")
@@ -28,28 +29,28 @@ public class AttendanceController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<AttendanceResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<AttendanceResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AttendanceResponseDto> update(@PathVariable Long id, @RequestBody AttendanceRequestDto attendanceRequestDto) {
+    public ResponseEntity<AttendanceResponseDto> update(@PathVariable UUID id, @RequestBody AttendanceRequestDto attendanceRequestDto) {
         return ResponseEntity.ok(attendanceService.update(id, attendanceRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable UUID id) {
         attendanceService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/sessions/{id}")
-    public ResponseEntity<List<AttendanceResponseDto>> getBySessionId(@PathVariable Long id) {
+    public ResponseEntity<List<AttendanceResponseDto>> getBySessionId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getBySessionId(id));
     }
 
     @GetMapping("/participants/{id}")
-    public ResponseEntity<List<AttendanceResponseDto>> getByParticipantId(@PathVariable Long id) {
+    public ResponseEntity<List<AttendanceResponseDto>> getByParticipantId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getByParticipantId(id));
     }
 
@@ -64,7 +65,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/stats/participants/{id}")
-    public ResponseEntity<AttendanceStatsResponseDto> getAttendanceStatsByParticipantId(@PathVariable Long id) {
+    public ResponseEntity<AttendanceStatsResponseDto> getAttendanceStatsByParticipantId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.countStatusParticipantId(id));
     }
 }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.application.dto.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/applications")
@@ -15,28 +16,28 @@ public class ApplicationController {
     private final ApplicationService applicationService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApplicationResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<ApplicationResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(applicationService.getById(id));
     }
 
     @GetMapping("/recruitments/{recruitmentId}")
-    public ResponseEntity<List<ApplicationResponse>> getByRecruitmentId(@PathVariable Long recruitmentId) {
+    public ResponseEntity<List<ApplicationResponse>> getByRecruitmentId(@PathVariable UUID recruitmentId) {
         return ResponseEntity.ok(applicationService.getByRecruitmentId(recruitmentId));
     }
 
     @PatchMapping("/{id}/review")
-    public ResponseEntity<ApplicationResponse> review(@PathVariable Long id, @RequestBody ApplicationReviewRequest request) {
+    public ResponseEntity<ApplicationResponse> review(@PathVariable UUID id, @RequestBody ApplicationReviewRequest request) {
         return ResponseEntity.ok(applicationService.updateStatus(id, request.getStatus()));
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<Void> cancel(@PathVariable Long id) {
+    public ResponseEntity<Void> cancel(@PathVariable UUID id) {
         applicationService.cancel(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id){
+    public ResponseEntity<String> delete(@PathVariable UUID id){
         applicationService.delete(id);
         return ResponseEntity.noContent().build();
     }

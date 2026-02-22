@@ -5,11 +5,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
 public class FormRequestDto {
-    private Long templateId;
+    private UUID templateId;
     private String title;
     private JsonNode schema;
 }

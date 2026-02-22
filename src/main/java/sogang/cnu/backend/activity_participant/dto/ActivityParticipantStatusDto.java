@@ -5,11 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
 public class ActivityParticipantStatusDto {
-    private Long id;
+    private UUID id;
     private ActivityParticipantStatus status;
     private String createdAt;
     private String modifiedAt;

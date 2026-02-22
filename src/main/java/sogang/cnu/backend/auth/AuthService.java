@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sogang.cnu.backend.auth.dto.*;
+import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
@@ -17,6 +18,7 @@ import sogang.cnu.backend.user_role.UserRoleRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
+    private final QuarterRepository quarterRepository;
 
     public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto){
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
@@ -87,7 +90,7 @@ public class AuthService {
                 .build();
     }
 
-    private List<String> getUserRoles(Long userId) {
+    private List<String> getUserRoles(UUID userId) {
         List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
         List<String> roles = new ArrayList<>();
         for (UserRole userRole : userRoles) {
@@ -99,7 +102,7 @@ public class AuthService {
         return roles;
     }
 
-    public UserResponseDto update(Long id, UserInfoRequestDto dto) {
+    public UserResponseDto update(UUID id, UserInfoRequestDto dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.update(UserUpdateCommand.builder()
@@ -115,7 +118,7 @@ public class AuthService {
         return userMapper.toResponseDto(user);
     }
 
-    public void updatePassword(Long id, PasswordUpdateRequestDto dto) {
+    public void updatePassword(UUID id, PasswordUpdateRequestDto dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -128,13 +131,14 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public UserInfoResponseDto getUserInfo(Long userId) {
+    public UserInfoResponseDto getUserInfo(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return userMapper.toInfoResponseDto(user);
     }
 
     private UserCreateCommand toCreateCommand(SignUpRequestDto dto) {
+
         return UserCreateCommand.builder()
                 .name(dto.getName())
                 .username(dto.getUsername())
@@ -142,6 +146,8 @@ public class AuthService {
                 .studentId(dto.getStudentId())
                 .githubId(dto.getGithubId())
                 .phoneNumber(dto.getPhoneNumber())
+                .joinedQuarter(quarterRepository.findById(dto.getJoinedQuarterId())
+                        .orElseThrow(() -> new RuntimeException("존재하지 않는 분기입니다.")))
                 .email(dto.getEmail())
                 .isActive(true)
                 .build();

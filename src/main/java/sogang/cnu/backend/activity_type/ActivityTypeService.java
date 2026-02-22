@@ -10,6 +10,7 @@ import sogang.cnu.backend.activity_type.dto.ActivityTypeResponseDto;
 import sogang.cnu.backend.common.exception.NotFoundException;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,7 +20,7 @@ public class ActivityTypeService {
     private final ActivityTypeMapper activityTypeMapper;
 
     @Transactional(readOnly = true)
-    public ActivityTypeResponseDto getById(Integer id) {
+    public ActivityTypeResponseDto getById(UUID id) {
         ActivityType activityType = activityTypeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityType not found"));
 
@@ -41,7 +42,7 @@ public class ActivityTypeService {
     }
 
     @Transactional
-    public ActivityTypeResponseDto update(Integer id, ActivityTypeRequestDto dto) {
+    public ActivityTypeResponseDto update(UUID id, ActivityTypeRequestDto dto) {
         ActivityType activityType = activityTypeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityType not found"));
 
@@ -51,7 +52,7 @@ public class ActivityTypeService {
     }
 
     @Transactional
-    public void delete(Integer id) {
+    public void delete(UUID id) {
         ActivityType activityType = activityTypeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityType not found"));
 

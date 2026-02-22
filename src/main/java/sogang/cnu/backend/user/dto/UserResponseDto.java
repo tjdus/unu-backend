@@ -4,13 +4,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
+
+import java.util.UUID;
 import sogang.cnu.backend.user_role.dto.UserRoleResponseDto;
 
 @Getter
 @Setter
 @Builder
 public class UserResponseDto {
-    private Long id;
+    private UUID id;
     private String name;
     private String username;
     private String studentId;

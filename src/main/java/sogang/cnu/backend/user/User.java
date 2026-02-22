@@ -11,6 +11,7 @@ import sogang.cnu.backend.user_role.UserRole;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -20,8 +21,8 @@ import java.util.List;
 @Builder
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false)
     private String name;
@@ -51,6 +52,7 @@ public class User {
     @JoinColumn(name = "joined_quarter_id", nullable = false)
     private Quarter joinedQuarter;
 
+    @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles = new ArrayList<>();
 
@@ -77,6 +79,7 @@ public class User {
                 .phoneNumber(command.getPhoneNumber())
                 .email(command.getEmail())
                 .isActive(true)
+                .joinedQuarter(command.getJoinedQuarter())
                 .build();
     }
 }

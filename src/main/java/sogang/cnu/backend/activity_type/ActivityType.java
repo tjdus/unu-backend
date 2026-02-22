@@ -2,6 +2,8 @@ package sogang.cnu.backend.activity_type;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.UUID;
 import sogang.cnu.backend.activity_type.command.ActivityTypeCreateCommand;
 import sogang.cnu.backend.activity_type.command.ActivityTypeUpdateCommand;
 
@@ -14,8 +16,8 @@ import sogang.cnu.backend.activity_type.command.ActivityTypeUpdateCommand;
 @AllArgsConstructor
 public class ActivityType {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false)
     private String name;

@@ -11,6 +11,7 @@ import sogang.cnu.backend.security.CurrentUser;
 import sogang.cnu.backend.security.CustomUserDetails;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/activities")
@@ -34,31 +35,31 @@ public class ActivityController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ActivityResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<ActivityResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(activityService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ActivityResponseDto> update(@PathVariable Long id, @RequestBody ActivityRequestDto activityRequestDto) {
+    public ResponseEntity<ActivityResponseDto> update(@PathVariable UUID id, @RequestBody ActivityRequestDto activityRequestDto) {
         return ResponseEntity.ok(activityService.update(id, activityRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable UUID id) {
         activityService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ActivityResponseDto> updateStatus(@PathVariable Long id, @RequestBody ActivityStatusRequestDto request) {
+    public ResponseEntity<ActivityResponseDto> updateStatus(@PathVariable UUID id, @RequestBody ActivityStatusRequestDto request) {
         return ResponseEntity.ok(activityService.updateStatus(id, request.getStatus()));
     }
 
                                                             @GetMapping("/search")
     public ResponseEntity<List<ActivityResponseDto>> search(@RequestParam(required = false) String title,
                                                             @RequestParam(required = false) String status,
-                                                            @RequestParam(required = false) Integer activityTypeId,
-                                                            @RequestParam(required = false) Long quarterId) {
+                                                            @RequestParam(required = false) UUID activityTypeId,
+                                                            @RequestParam(required = false) UUID quarterId) {
         ActivitySearchQuery query = ActivitySearchQuery.builder()
                 .title(title)
                 .status(status)

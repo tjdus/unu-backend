@@ -7,6 +7,8 @@ import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.dto.CurrentQuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class CurrentQuarterService {
@@ -14,10 +16,12 @@ public class CurrentQuarterService {
     private final QuarterRepository quarterRepository;
     private final QuarterMapper quarterMapper;
 
+    private UUID FIXED_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private CurrentQuarter getOne() {
-        return currentQuarterRepository.findById(1L)
+        return currentQuarterRepository.findById(FIXED_ID)
                 .orElseGet(() -> {
-                    CurrentQuarter cq = new CurrentQuarter(1L, null);
+                    CurrentQuarter cq = new CurrentQuarter(FIXED_ID, null);
                     return currentQuarterRepository.save(cq);
                 });
     }

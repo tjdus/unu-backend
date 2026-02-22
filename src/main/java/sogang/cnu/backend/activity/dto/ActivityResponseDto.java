@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.activity_type.dto.ActivityTypeResponseDto;
+
+import java.util.UUID;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 
@@ -11,7 +13,7 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 @Setter
 @Builder
 public class ActivityResponseDto {
-    private Long id;
+    private UUID id;
     private String title;
     private String description;
     private String status;

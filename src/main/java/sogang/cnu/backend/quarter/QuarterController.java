@@ -7,6 +7,7 @@ import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/quarters")
@@ -25,17 +26,17 @@ public class QuarterController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<QuarterResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<QuarterResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(quarterService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<QuarterResponseDto> update(@PathVariable Long id, @RequestBody QuarterRequestDto quarterRequestDto) {
+    public ResponseEntity<QuarterResponseDto> update(@PathVariable UUID id, @RequestBody QuarterRequestDto quarterRequestDto) {
         return ResponseEntity.ok(quarterService.update(id, quarterRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable UUID id) {
         quarterService.delete(id);
         return ResponseEntity.noContent().build();
     }

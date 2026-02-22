@@ -11,6 +11,7 @@ import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.recruitment.Recruitment;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "applications")
@@ -21,8 +22,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Application extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruitment_id", nullable = false)

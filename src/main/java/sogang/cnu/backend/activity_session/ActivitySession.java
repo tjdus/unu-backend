@@ -8,6 +8,7 @@ import sogang.cnu.backend.activity_session.command.ActivitySessionUpdateCommand;
 import sogang.cnu.backend.common.domain.BaseEntity;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(
@@ -30,8 +31,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ActivitySession extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_id", nullable = false)

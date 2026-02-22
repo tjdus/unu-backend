@@ -7,6 +7,7 @@ import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +26,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponseDto getById(Long id) {
+    public UserResponseDto getById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 

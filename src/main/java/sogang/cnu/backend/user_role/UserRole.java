@@ -3,6 +3,8 @@ package sogang.cnu.backend.user_role;
 import jakarta.persistence.*;
 import lombok.*;
 import sogang.cnu.backend.common.domain.BaseEntity;
+
+import java.util.UUID;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.user.User;
 
@@ -16,8 +18,8 @@ import sogang.cnu.backend.user.User;
 public class UserRole extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

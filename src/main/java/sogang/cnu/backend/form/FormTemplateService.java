@@ -8,6 +8,7 @@ import sogang.cnu.backend.form.dto.FormTemplateRequestDto;
 import sogang.cnu.backend.form.dto.FormTemplateResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,7 +18,7 @@ public class FormTemplateService {
     private final FormTemplateMapper formTemplateMapper;
 
     @Transactional(readOnly = true)
-    public FormTemplateResponseDto getById(Long id) {
+    public FormTemplateResponseDto getById(UUID id) {
         FormTemplate formTemplate = formTemplateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
         return formTemplateMapper.toResponseDto(formTemplate);
@@ -38,7 +39,7 @@ public class FormTemplateService {
     }
 
     @Transactional
-    public FormTemplateResponseDto update(Long id, FormTemplateRequestDto dto) {
+    public FormTemplateResponseDto update(UUID id, FormTemplateRequestDto dto) {
         FormTemplate formTemplate = formTemplateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
 
@@ -47,7 +48,7 @@ public class FormTemplateService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         FormTemplate formTemplate = formTemplateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
         formTemplateRepository.delete(formTemplate);

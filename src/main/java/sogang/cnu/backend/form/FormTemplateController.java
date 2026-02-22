@@ -7,6 +7,7 @@ import sogang.cnu.backend.form.dto.FormTemplateRequestDto;
 import sogang.cnu.backend.form.dto.FormTemplateResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/form-templates")
@@ -26,17 +27,17 @@ public class FormTemplateController {
     
 
     @GetMapping("/{id}")
-    public ResponseEntity<FormTemplateResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<FormTemplateResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(formTemplateService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FormTemplateResponseDto> update(@PathVariable Long id, @RequestBody FormTemplateRequestDto formTemplateRequestDto) {
+    public ResponseEntity<FormTemplateResponseDto> update(@PathVariable UUID id, @RequestBody FormTemplateRequestDto formTemplateRequestDto) {
         return ResponseEntity.ok(formTemplateService.update(id, formTemplateRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable UUID id) {
         formTemplateService.delete(id);
         return ResponseEntity.noContent().build();
     }

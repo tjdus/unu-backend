@@ -10,6 +10,7 @@ import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,7 +20,7 @@ public class QuarterService {
     private final QuarterMapper quarterMapper;
 
     @Transactional(readOnly = true)
-    public QuarterResponseDto getById(Long id) {
+    public QuarterResponseDto getById(UUID id) {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
 
@@ -41,7 +42,7 @@ public class QuarterService {
     }
 
     @Transactional
-    public QuarterResponseDto update(Long id, QuarterRequestDto dto) {
+    public QuarterResponseDto update(UUID id, QuarterRequestDto dto) {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
         QuarterUpdateCommand updateCommand = toUpdateCommand(dto);
@@ -51,7 +52,7 @@ public class QuarterService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
 

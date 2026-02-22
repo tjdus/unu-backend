@@ -8,6 +8,8 @@ import lombok.*;
 import org.hibernate.annotations.Type;
 import sogang.cnu.backend.common.domain.BaseEntity;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "forms")
 @Getter
@@ -17,8 +19,8 @@ import sogang.cnu.backend.common.domain.BaseEntity;
 @AllArgsConstructor
 public class Form extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "template_id", nullable = false)

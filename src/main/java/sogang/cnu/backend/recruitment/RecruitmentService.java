@@ -15,6 +15,7 @@ import sogang.cnu.backend.recruitment.dto.RecruitmentRequestDto;
 import sogang.cnu.backend.recruitment.dto.RecruitmentResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,7 +28,7 @@ public class RecruitmentService {
     private final QuarterRepository quarterRepository;
 
     @Transactional(readOnly = true)
-    public RecruitmentResponseDto getById(Long id) {
+    public RecruitmentResponseDto getById(UUID id) {
         log.debug("getById" + id);
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
@@ -52,7 +53,7 @@ public class RecruitmentService {
     }
 
     @Transactional
-    public RecruitmentResponseDto update(Long id, RecruitmentRequestDto dto) {
+    public RecruitmentResponseDto update(UUID id, RecruitmentRequestDto dto) {
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
 
@@ -62,7 +63,7 @@ public class RecruitmentService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
         recruitmentRepository.delete(recruitment);
@@ -81,12 +82,12 @@ public class RecruitmentService {
         }
     }
 
-    private Form findForm(Long formId) {
+    private Form findForm(UUID formId) {
         return formRepository.findById(formId)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
     }
 
-    private Quarter findQuarter(Long quarterId) {
+    private Quarter findQuarter(UUID quarterId) {
         if (quarterId == null) {
             return null;
         }

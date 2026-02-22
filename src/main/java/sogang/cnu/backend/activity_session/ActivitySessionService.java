@@ -15,6 +15,7 @@ import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.user.UserRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +26,7 @@ public class ActivitySessionService {
     private final ActivityRepository activityRepository;
 
     @Transactional(readOnly = true)
-    public ActivitySessionResponseDto getById(Long id) {
+    public ActivitySessionResponseDto getById(UUID id) {
         ActivitySession activitySession = activitySessionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivitySession not found"));
 
@@ -58,7 +59,7 @@ public class ActivitySessionService {
 
 
     @Transactional
-    public ActivitySessionResponseDto update(Long id, ActivitySessionRequestDto dto) {
+    public ActivitySessionResponseDto update(UUID id, ActivitySessionRequestDto dto) {
         ActivitySession activitySession = activitySessionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivitySession not found"));
         ActivitySessionUpdateCommand updateCommand = ActivitySessionUpdateCommand.builder()
@@ -71,14 +72,14 @@ public class ActivitySessionService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         ActivitySession activitySession = activitySessionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivitySession not found"));
         activitySessionRepository.delete(activitySession);
     }
 
     @Transactional(readOnly = true)
-    public List<ActivitySessionResponseDto> getByActivityId(Long activityId) {
+    public List<ActivitySessionResponseDto> getByActivityId(UUID activityId) {
         return activitySessionRepository.findByActivityId(activityId).stream()
                 .map(activitySessionMapper::toResponseDto)
                 .collect(Collectors.toList());

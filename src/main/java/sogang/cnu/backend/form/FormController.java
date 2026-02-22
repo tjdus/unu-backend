@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.form.dto.FormRequestDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/forms")
@@ -25,17 +26,17 @@ public class FormController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<FormResponseDto> getById(@PathVariable Long id) {
+    public ResponseEntity<FormResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(formService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FormResponseDto> update(@PathVariable Long id, @RequestBody FormRequestDto formRequestDto) {
+    public ResponseEntity<FormResponseDto> update(@PathVariable UUID id, @RequestBody FormRequestDto formRequestDto) {
         return ResponseEntity.ok(formService.update(id, formRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@PathVariable UUID id) {
         formService.delete(id);
         return ResponseEntity.noContent().build();
     }

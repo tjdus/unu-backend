@@ -9,6 +9,7 @@ import sogang.cnu.backend.recruitment.command.RecruitmentCreateCommand;
 import sogang.cnu.backend.recruitment.command.RecruitmentUpdateCommand;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "recruitments")
@@ -19,8 +20,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Recruitment extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false)
     private String title;

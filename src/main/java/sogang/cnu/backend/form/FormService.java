@@ -9,6 +9,7 @@ import sogang.cnu.backend.form.dto.FormRequestDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,7 +20,7 @@ public class FormService {
     private final FormMapper formMapper;
 
     @Transactional(readOnly = true)
-    public FormResponseDto getById(Long id) {
+    public FormResponseDto getById(UUID id) {
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
         return formMapper.toResponseDto(form);
@@ -46,7 +47,7 @@ public class FormService {
     }
 
     @Transactional
-    public FormResponseDto update(Long id, FormRequestDto dto) {
+    public FormResponseDto update(UUID id, FormRequestDto dto) {
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
 
@@ -55,7 +56,7 @@ public class FormService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
         formRepository.delete(form);

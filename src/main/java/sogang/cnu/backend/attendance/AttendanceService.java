@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,7 +35,7 @@ public class AttendanceService {
     private final ActivityParticipantRepository activityParticipantRepository;
 
     @Transactional(readOnly = true)
-    public AttendanceResponseDto getById(Long id) {
+    public AttendanceResponseDto getById(UUID id) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Attendance not found"));
 
@@ -66,7 +67,7 @@ public class AttendanceService {
     }
 
     @Transactional
-    public AttendanceResponseDto update(Long id, AttendanceRequestDto dto) {
+    public AttendanceResponseDto update(UUID id, AttendanceRequestDto dto) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Attendance not found"));
         AttendanceUpdateCommand updateCommand = AttendanceUpdateCommand.builder()
@@ -78,21 +79,21 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Attendance not found"));
         attendanceRepository.delete(attendance);
     }
 
     @Transactional(readOnly = true)
-    public List<AttendanceResponseDto> getBySessionId(Long sessionId) {
+    public List<AttendanceResponseDto> getBySessionId(UUID sessionId) {
         return attendanceRepository.findBySessionId(sessionId).stream()
                 .map(attendanceMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<AttendanceResponseDto> getByParticipantId(Long participantId) {
+    public List<AttendanceResponseDto> getByParticipantId(UUID participantId) {
         return attendanceRepository.findByParticipantId(participantId).stream()
                 .map(attendanceMapper::toResponseDto)
                 .collect(Collectors.toList());
@@ -105,23 +106,23 @@ public class AttendanceService {
                 .orElseThrow(() -> new NotFoundException("Activity session not found"));
 
         // 모든 participant ID 수집
-        Set<Long> allParticipantIds = new HashSet<>();
-        List<Long> presentIds = dto.getPresentParticipantIds() != null ? dto.getPresentParticipantIds() : new ArrayList<>();
-        List<Long> absentIds = dto.getAbsentParticipantIds() != null ? dto.getAbsentParticipantIds() : new ArrayList<>();
-        List<Long> excusedIds = dto.getExcusedParticipantIds() != null ? dto.getExcusedParticipantIds() : new ArrayList<>();
+        Set<UUID> allParticipantIds = new HashSet<>();
+        List<UUID> presentIds = dto.getPresentParticipantIds() != null ? dto.getPresentParticipantIds() : new ArrayList<>();
+        List<UUID> absentIds = dto.getAbsentParticipantIds() != null ? dto.getAbsentParticipantIds() : new ArrayList<>();
+        List<UUID> excusedIds = dto.getExcusedParticipantIds() != null ? dto.getExcusedParticipantIds() : new ArrayList<>();
 
         // 중복 ID 체크
-        for (Long id : presentIds) {
+        for (UUID id : presentIds) {
             if (!allParticipantIds.add(id)) {
                 throw new BadRequestException("Duplicate participant ID found: " + id);
             }
         }
-        for (Long id : absentIds) {
+        for (UUID id : absentIds) {
             if (!allParticipantIds.add(id)) {
                 throw new BadRequestException("Duplicate participant ID found: " + id);
             }
         }
-        for (Long id : excusedIds) {
+        for (UUID id : excusedIds) {
             if (!allParticipantIds.add(id)) {
                 throw new BadRequestException("Duplicate participant ID found: " + id);
             }
@@ -131,7 +132,7 @@ public class AttendanceService {
         List<Attendance> attendances = new ArrayList<>();
 
         // PRESENT 상태 생성
-        for (Long participantId : presentIds) {
+        for (UUID participantId : presentIds) {
             ActivityParticipant participant = activityParticipantRepository.findById(participantId)
                     .orElseThrow(() -> new NotFoundException("Activity participant not found: " + participantId));
 
@@ -144,7 +145,7 @@ public class AttendanceService {
         }
 
         // ABSENT 상태 생성
-        for (Long participantId : absentIds) {
+        for (UUID participantId : absentIds) {
             ActivityParticipant participant = activityParticipantRepository.findById(participantId)
                     .orElseThrow(() -> new NotFoundException("Activity participant not found: " + participantId));
 
@@ -157,7 +158,7 @@ public class AttendanceService {
         }
 
         // EXCUSED 상태 생성
-        for (Long participantId : excusedIds) {
+        for (UUID participantId : excusedIds) {
             ActivityParticipant participant = activityParticipantRepository.findById(participantId)
                     .orElseThrow(() -> new NotFoundException("Activity participant not found: " + participantId));
 
@@ -184,23 +185,23 @@ public class AttendanceService {
                 .orElseThrow(() -> new NotFoundException("Activity session not found"));
 
         // 모든 participant ID 수집
-        Set<Long> allParticipantIds = new HashSet<>();
-        List<Long> presentIds = dto.getPresentParticipantIds() != null ? dto.getPresentParticipantIds() : new ArrayList<>();
-        List<Long> absentIds = dto.getAbsentParticipantIds() != null ? dto.getAbsentParticipantIds() : new ArrayList<>();
-        List<Long> excusedIds = dto.getExcusedParticipantIds() != null ? dto.getExcusedParticipantIds() : new ArrayList<>();
+        Set<UUID> allParticipantIds = new HashSet<>();
+        List<UUID> presentIds = dto.getPresentParticipantIds() != null ? dto.getPresentParticipantIds() : new ArrayList<>();
+        List<UUID> absentIds = dto.getAbsentParticipantIds() != null ? dto.getAbsentParticipantIds() : new ArrayList<>();
+        List<UUID> excusedIds = dto.getExcusedParticipantIds() != null ? dto.getExcusedParticipantIds() : new ArrayList<>();
 
         // 중복 ID 체크
-        for (Long id : presentIds) {
+        for (UUID id : presentIds) {
             if (!allParticipantIds.add(id)) {
                 throw new BadRequestException("Duplicate participant ID found: " + id);
             }
         }
-        for (Long id : absentIds) {
+        for (UUID id : absentIds) {
             if (!allParticipantIds.add(id)) {
                 throw new BadRequestException("Duplicate participant ID found: " + id);
             }
         }
-        for (Long id : excusedIds) {
+        for (UUID id : excusedIds) {
             if (!allParticipantIds.add(id)) {
                 throw new BadRequestException("Duplicate participant ID found: " + id);
             }
@@ -210,7 +211,7 @@ public class AttendanceService {
         List<Attendance> existingAttendances = attendanceRepository.findBySessionId(dto.getSessionId());
 
         // Participant ID별로 기존 출석 기록을 맵으로 변환
-        java.util.Map<Long, Attendance> attendanceMap = existingAttendances.stream()
+        java.util.Map<UUID, Attendance> attendanceMap = existingAttendances.stream()
                 .collect(Collectors.toMap(
                         attendance -> attendance.getParticipant().getId(),
                         attendance -> attendance
@@ -219,7 +220,7 @@ public class AttendanceService {
         List<Attendance> updatedAttendances = new ArrayList<>();
 
         // PRESENT 상태 업데이트
-        for (Long participantId : presentIds) {
+        for (UUID participantId : presentIds) {
             Attendance attendance = attendanceMap.get(participantId);
             if (attendance != null) {
                 AttendanceUpdateCommand command = AttendanceUpdateCommand.builder()
@@ -243,7 +244,7 @@ public class AttendanceService {
         }
 
         // ABSENT 상태 업데이트
-        for (Long participantId : absentIds) {
+        for (UUID participantId : absentIds) {
             Attendance attendance = attendanceMap.get(participantId);
             if (attendance != null) {
                 AttendanceUpdateCommand command = AttendanceUpdateCommand.builder()
@@ -267,7 +268,7 @@ public class AttendanceService {
         }
 
         // EXCUSED 상태 업데이트
-        for (Long participantId : excusedIds) {
+        for (UUID participantId : excusedIds) {
             Attendance attendance = attendanceMap.get(participantId);
             if (attendance != null) {
                 AttendanceUpdateCommand command = AttendanceUpdateCommand.builder()
@@ -295,7 +296,7 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
-    public AttendanceStatsResponseDto countStatusParticipantId(Long participantId) {
+    public AttendanceStatsResponseDto countStatusParticipantId(UUID participantId) {
         Long presentCount = attendanceRepository.countByParticipantIdAndStatus(participantId, AttendanceStatus.PRESENT);
         Long absentCount = attendanceRepository.countByParticipantIdAndStatus(participantId, AttendanceStatus.ABSENT);
         Long excusedCount = attendanceRepository.countByParticipantIdAndStatus(participantId, AttendanceStatus.EXCUSED);

@@ -4,11 +4,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
 public class AttendanceRequestDto {
-    private Long sessionId;
-    private Long participantId;
+    private UUID sessionId;
+    private UUID participantId;
     private String status;
 }

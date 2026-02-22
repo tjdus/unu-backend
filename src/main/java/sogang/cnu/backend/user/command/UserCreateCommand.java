@@ -3,6 +3,7 @@ package sogang.cnu.backend.user.command;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.Season;
 
 import java.time.LocalDate;
@@ -19,5 +20,6 @@ public class UserCreateCommand {
     private String phoneNumber;
     private String email;
     private Boolean isActive;
+    private Quarter joinedQuarter;
 }
 

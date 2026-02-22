@@ -13,6 +13,7 @@ import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +26,7 @@ public class ActivityParticipantService {
 
 
     @Transactional(readOnly = true)
-    public ActivityParticipantResponseDto getById(Long id) {
+    public ActivityParticipantResponseDto getById(UUID id) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
@@ -48,7 +49,7 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public ActivityParticipantResponseDto createWithUserIdAndActivityId(Long userId, Long activityId) {
+    public ActivityParticipantResponseDto createWithUserIdAndActivityId(UUID userId, UUID activityId) {
         ActivityParticipantRequestDto dto = ActivityParticipantRequestDto.builder()
                 .userId(userId)
                 .activityId(activityId)
@@ -61,7 +62,7 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public ActivityParticipantResponseDto update(Long id, ActivityParticipantRequestDto dto) {
+    public ActivityParticipantResponseDto update(UUID id, ActivityParticipantRequestDto dto) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
@@ -70,7 +71,7 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public ActivityParticipantResponseDto updateStatus(Long id, ActivityParticipantRequestDto dto) {
+    public ActivityParticipantResponseDto updateStatus(UUID id, ActivityParticipantRequestDto dto) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
@@ -79,7 +80,7 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public ActivityParticipantResponseDto updateCompleted(Long id) {
+    public ActivityParticipantResponseDto updateCompleted(UUID id) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
@@ -88,36 +89,36 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
         activityParticipantRepository.delete(activity);
     }
-    public List<ActivityParticipantResponseDto> getByActivityId(Long activityId) {
+    public List<ActivityParticipantResponseDto> getByActivityId(UUID activityId) {
         List<ActivityParticipant> participants = activityParticipantRepository.findByActivityId(activityId);
         return participants.stream()
                 .map(activityParticipantMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
-    public ActivityParticipantResponseDto getByUserIdAndActivityId(Long userId, Long activityId) {
+    public ActivityParticipantResponseDto getByUserIdAndActivityId(UUID userId, UUID activityId) {
         ActivityParticipant participant = activityParticipantRepository.findByUserIdAndActivityId(userId, activityId).orElse(null);
         return activityParticipantMapper.toResponseDto(participant);
     }
 
-    public List<ActivityParticipantResponseDto> getByUserId(Long userId) {
+    public List<ActivityParticipantResponseDto> getByUserId(UUID userId) {
         List<ActivityParticipant> participants = activityParticipantRepository.findByUserId(userId);
         return participants.stream()
                 .map(activityParticipantMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
-    private Activity findActivity(Long activityId) {
+    private Activity findActivity(UUID activityId) {
         return activityRepository.findById(activityId)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
     }
 
-    private User findUser(Long userId) {
+    private User findUser(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }

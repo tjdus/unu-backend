@@ -18,6 +18,7 @@ import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +31,7 @@ public class ActivityService {
     private final QuarterRepository quarterRepository;
 
     @Transactional(readOnly = true)
-    public ActivityResponseDto getById(Long id) {
+    public ActivityResponseDto getById(UUID id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
@@ -53,7 +54,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public ActivityResponseDto createWithAssignee(Long userId, ActivityRequestDto dto) {
+    public ActivityResponseDto createWithAssignee(UUID userId, ActivityRequestDto dto) {
         dto.setAssigneeId(userId);
         dto.setStatus(String.valueOf(ActivityStatus.CREATED));
         ActivityCreateCommand createCommand = toCreateCommand(dto);
@@ -63,7 +64,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public ActivityResponseDto update(Long id, ActivityRequestDto dto) {
+    public ActivityResponseDto update(UUID id, ActivityRequestDto dto) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
@@ -72,7 +73,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public ActivityResponseDto updateStatus(Long id, String status) {
+    public ActivityResponseDto updateStatus(UUID id, String status) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
@@ -81,7 +82,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(UUID id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
         activityRepository.delete(activity);
@@ -94,15 +95,15 @@ public class ActivityService {
                 .collect(Collectors.toList());
     }
 
-    private ActivityType findActivityType(Integer activityTypeId) {
+    private ActivityType findActivityType(UUID activityTypeId) {
         return activityTypeRepository.findById(activityTypeId)
                 .orElseThrow(() -> new NotFoundException("Activity type not found"));
     }
-    private User findAssignee(Long userId) {
+    private User findAssignee(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Assignee not found"));
     }
-    private Quarter findQuarter(Long quarterId) {
+    private Quarter findQuarter(UUID quarterId) {
         return quarterRepository.findById(quarterId)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
     }

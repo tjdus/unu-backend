@@ -5,12 +5,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
 public class ApplicationResponse {
-    private Long id;
-    private Long recruitmentId;
+    private UUID id;
+    private UUID recruitmentId;
     private String name;
     private String studentId;
     private String major;

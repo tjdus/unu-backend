@@ -4,13 +4,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Setter
 @Builder
 public class ActivityParticipantRequestDto {
-    private Long activityId;
-    private Long userId;
+    private UUID activityId;
+    private UUID userId;
     private String status;
 }

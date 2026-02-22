@@ -11,6 +11,7 @@ import sogang.cnu.backend.quarter.command.QuarterUpdateCommand;
 import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(
@@ -24,8 +25,8 @@ import java.time.LocalDate;
 @Builder
 public class Quarter extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     private Integer year;
 

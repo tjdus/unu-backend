@@ -12,6 +12,7 @@ import sogang.cnu.backend.user.User;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "activities")
@@ -22,8 +23,8 @@ import java.util.List;
 @AllArgsConstructor
 public class Activity extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     private String title;
 

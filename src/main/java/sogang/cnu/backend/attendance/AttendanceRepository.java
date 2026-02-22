@@ -6,12 +6,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
-    List<Attendance> findBySessionId(Long sessionId);
-    List<Attendance> findByParticipantId(Long participantId);
+public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
+    List<Attendance> findBySessionId(UUID sessionId);
+    List<Attendance> findByParticipantId(UUID participantId);
 
-    Long countByParticipantIdAndStatus(Long participantId, AttendanceStatus status);
+    Long countByParticipantIdAndStatus(UUID participantId, AttendanceStatus status);
 
 }

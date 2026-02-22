@@ -9,6 +9,7 @@ import sogang.cnu.backend.common.domain.BaseEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "form_templates")
@@ -19,8 +20,8 @@ import java.util.List;
 @AllArgsConstructor
 public class FormTemplate extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false)
     private String title;

@@ -16,6 +16,7 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -56,7 +57,7 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
-        Long userId = Long.valueOf(claims.getSubject());
+        UUID userId = UUID.fromString(claims.getSubject());
         String email = claims.getSubject();
 
         List<String> roles = getStringListClaim(claims, ROLES_CLAIM);
@@ -70,15 +71,15 @@ public class JwtTokenProvider {
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 
-    public String generateAccessToken(Long id, List<String> roles) {
+    public String generateAccessToken(UUID id, List<String> roles) {
         return generateToken(id, roles, accessTokenExpireTime, ACCESS_TOKEN_TYPE);
     }
 
-    public String generateRefreshToken(Long id) {
+    public String generateRefreshToken(UUID id) {
         return generateToken(id, List.of(), refreshTokenExpireTime, REFRESH_TOKEN_TYPE);
     }
 
-    private String generateToken(Long id, List<String> roles, long expireTime, String tokenType) {
+    private String generateToken(UUID id, List<String> roles, long expireTime, String tokenType) {
         long now = System.currentTimeMillis();
         Date expiration = new Date(now + expireTime);
 

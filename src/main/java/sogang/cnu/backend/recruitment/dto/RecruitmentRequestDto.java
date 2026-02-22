@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,8 +15,8 @@ public class RecruitmentRequestDto {
     private String description;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private Long quarterId;
+    private UUID quarterId;
     private Boolean active;
-    private Long formId;
+    private UUID formId;
 }
 
