@@ -4,7 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.role.Role;
+import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.user.dto.UserResponseDto;
+import sogang.cnu.backend.user.dto.UserRoleUpdateRequestDto;
+import sogang.cnu.backend.user_role.UserRole;
+import sogang.cnu.backend.user_role.UserRoleRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +21,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserRepositoryCustom userRepositoryCustom;
     private final UserMapper userMapper;
+    private final UserRoleRepository userRoleRepository;
+    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public UserResponseDto getByStudentId(String studentId) {
@@ -48,5 +55,24 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public UserResponseDto changeUserRole(UserRoleUpdateRequestDto request) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        List<Role> newRoles = request.getRoles().stream()
+                .map(roleName -> roleRepository.findByName(roleName)
+                        .orElseThrow(() -> new NotFoundException("Role not found: " + roleName)))
+                .collect(Collectors.toList());
+
+        userRoleRepository.deleteAll(userRoleRepository.findByUserId(user.getId()));
+
+        List<UserRole> userRoles = newRoles.stream()
+                .map(role -> UserRole.builder().user(user).role(role).build())
+                .collect(Collectors.toList());
+        userRoleRepository.saveAll(userRoles);
+
+        return userMapper.toResponseDto(user);
+    }
 
 }

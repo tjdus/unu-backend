@@ -88,11 +88,11 @@ public class DataInitializer implements ApplicationRunner {
     private void initRoles() {
         if (roleRepository.count() > 0) return;
 
-        for (String name : List.of("member", "manager", "admin")) {
+        for (String name : List.of("MEMBER", "MANAGER", "ADMIN")) {
             roleRepository.save(Role.builder().name(name).build());
         }
 
-        log.info("Seeded roles: member, manager, admin");
+        log.info("Seeded roles: MEMBER, MANAGER, ADMIN");
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────
@@ -101,18 +101,15 @@ public class DataInitializer implements ApplicationRunner {
         if (userRepository.count() > 0) return;
 
         Role managerRole = roleRepository.findAll().stream()
-                .filter(r -> r.getName().equals("manager"))
+                .filter(r -> r.getName().equals("MANAGER"))
                 .findFirst().orElseThrow();
         Role adminRole = roleRepository.findAll().stream()
-                .filter(r -> r.getName().equals("admin"))
+                .filter(r -> r.getName().equals("ADMIN"))
                 .findFirst().orElseThrow();
 
         record UserDef(String name, String username, String studentId, String email, Role role) {}
 
         List<UserDef> defs = List.of(
-            new UserDef("CNU Staff 1", "cnu-staff-1", "STAFF001", "cnu-staff-1@cnu.ac.kr", managerRole),
-            new UserDef("CNU Staff 2", "cnu-staff-2", "STAFF002", "cnu-staff-2@cnu.ac.kr", managerRole),
-            new UserDef("CNU Staff 3", "cnu-staff-3", "STAFF003", "cnu-staff-3@cnu.ac.kr", managerRole),
             new UserDef("CNU Admin",   "cnu-admin",   "ADMIN001", "cnu-admin@cnu.ac.kr",   adminRole)
         );
 
@@ -137,6 +134,6 @@ public class DataInitializer implements ApplicationRunner {
             );
         }
 
-        log.info("Seeded users: cnu-staff-1, cnu-staff-2, cnu-staff-3, cnu-admin");
+        log.info("Seeded users: cnu-admin");
     }
 }

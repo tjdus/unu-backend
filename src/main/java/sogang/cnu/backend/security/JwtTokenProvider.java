@@ -27,6 +27,8 @@ public class JwtTokenProvider {
     private static final String TOKEN_TYPE_CLAIM = "tokenType";
     private static final String ACCESS_TOKEN_TYPE = "access";
     private static final String REFRESH_TOKEN_TYPE = "refresh";
+    private static final String SIGNUP_TOKEN_TYPE = "signup";
+    private static final long SIGNUP_TOKEN_EXPIRE_TIME = 86400000L; // 24 hours
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -77,6 +79,24 @@ public class JwtTokenProvider {
 
     public String generateRefreshToken(UUID id) {
         return generateToken(id, List.of(), refreshTokenExpireTime, REFRESH_TOKEN_TYPE);
+    }
+
+    public String generateSignupToken() {
+        long now = System.currentTimeMillis();
+        Claims claims = Jwts.claims().setSubject("signup-invite");
+        claims.put(TOKEN_TYPE_CLAIM, SIGNUP_TOKEN_TYPE);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + SIGNUP_TOKEN_EXPIRE_TIME))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public boolean isSignupToken(String token) {
+        Claims claims = getClaims(token);
+        return SIGNUP_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
     }
 
     private String generateToken(UUID id, List<String> roles, long expireTime, String tokenType) {

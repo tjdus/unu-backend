@@ -17,8 +17,9 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<SignUpResponseDto> signup(@RequestBody SignUpRequestDto request) {
-        SignUpResponseDto signUpResponseDto = authService.signUp(request);
+    public ResponseEntity<SignUpResponseDto> signup(@RequestBody SignUpRequestDto request,
+                                                   @RequestParam String token) {
+        SignUpResponseDto signUpResponseDto = authService.signUp(request, token);
         return ResponseEntity.ok(signUpResponseDto);
     }
 
@@ -26,11 +27,6 @@ public class AuthController {
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto) {
         LoginResponseDto loginResponseDto = authService.login(loginRequestDto);
         return ResponseEntity.ok(loginResponseDto);
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
-        return ResponseEntity.ok("로그아웃 하셨습니다.");
     }
 
     @PostMapping("/refresh")

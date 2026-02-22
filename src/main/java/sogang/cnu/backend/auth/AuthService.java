@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import sogang.cnu.backend.auth.dto.*;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.role.Role;
+import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
@@ -16,6 +17,7 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -29,15 +31,32 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
     private final QuarterRepository quarterRepository;
+    private final RoleRepository roleRepository;
 
-    public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto){
+    public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto, String token){
+        if (!jwtTokenProvider.validateToken(token) || !jwtTokenProvider.isSignupToken(token)) {
+            throw new RuntimeException("유효하지 않은 회원가입 토큰입니다.");
+        }
+
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
 
         UserCreateCommand createCommand = toCreateCommand(signUpRequestDto);
         createCommand.setPassword(encodedPassword);
 
         User user = User.create(createCommand);
-        userRepository.save(user);
+
+        User savedUser = userRepository.save(user);
+
+        Role roleMember = roleRepository.findByName("MEMBER")
+                .orElseThrow(() -> new RuntimeException("권한이 존재하지 않습니다."));
+
+        userRoleRepository.save(
+                UserRole.builder()
+                        .user(savedUser)
+                        .role(roleMember)
+                        .build()
+        );
+
 
         return SignUpResponseDto.builder()
                 .id(user.getId())
@@ -135,6 +154,14 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return userMapper.toInfoResponseDto(user);
+    }
+
+    public SignupTokenResponseDto generateSignupToken() {
+        String token = jwtTokenProvider.generateSignupToken();
+        return SignupTokenResponseDto.builder()
+                .token(token)
+                .expiresAt(LocalDateTime.now().plusHours(24))
+                .build();
     }
 
     private UserCreateCommand toCreateCommand(SignUpRequestDto dto) {
