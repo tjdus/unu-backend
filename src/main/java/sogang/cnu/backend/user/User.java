@@ -49,7 +49,7 @@ public class User {
     private Boolean isActive = true;
 
     @ManyToOne
-    @JoinColumn(name = "joined_quarter_id", nullable = false)
+    @JoinColumn(name = "joined_quarter_id")
     private Quarter joinedQuarter;
 
     @Builder.Default
