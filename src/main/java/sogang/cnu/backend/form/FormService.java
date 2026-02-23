@@ -35,6 +35,12 @@ public class FormService {
 
     @Transactional
     public FormResponseDto create(FormRequestDto dto) {
+        if (dto.getTemplateId() == null) {
+            Form form = Form.create(dto.getTitle(), dto.getSchema());
+            Form savedForm = formRepository.save(form);
+            return formMapper.toResponseDto(savedForm);
+        }
+
         FormTemplate template = formTemplateRepository.findById(dto.getTemplateId())
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
 

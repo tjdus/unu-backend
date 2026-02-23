@@ -9,7 +9,9 @@ import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.user.User;
 
 @Entity
-@Table(name = "user_roles")
+@Table(name = "user_roles", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "role_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor

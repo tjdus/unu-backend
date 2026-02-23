@@ -69,6 +69,10 @@ public class User {
         this.password = newPassword;
     }
 
+    public void updateActiveStatus(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
     public static User create(UserCreateCommand command) {
         return User.builder()
                 .name(command.getName())

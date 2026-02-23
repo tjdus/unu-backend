@@ -7,6 +7,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.activity_type.ActivityType;
+import sogang.cnu.backend.activity_type.ActivityTypeRepository;
 import sogang.cnu.backend.quarter.CurrentQuarter;
 import sogang.cnu.backend.quarter.CurrentQuarterRepository;
 import sogang.cnu.backend.quarter.Quarter;
@@ -33,12 +35,14 @@ public class DataInitializer implements ApplicationRunner {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
+    private final ActivityTypeRepository activityTypeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         initQuarters();
+        initActivityTypes();
         initRoles();
         initUsers();
     }
@@ -81,6 +85,18 @@ public class DataInitializer implements ApplicationRunner {
         currentQuarterRepository.save(cq);
 
         log.info("Seeded {} quarters; current quarter set to 2026 SPRING", defs.size());
+    }
+
+    // ── Types ─────────────────────────────────────────────────────────────────
+
+    private void initActivityTypes() {
+        if (activityTypeRepository.count() > 0) return;
+
+        for (String name : List.of("프로젝트", "스터디")) {
+            activityTypeRepository.save(ActivityType.builder().name(name).build());
+        }
+
+        log.info("Seeded activity types: 프로젝트, 스터디");
     }
 
     // ── Roles ─────────────────────────────────────────────────────────────────

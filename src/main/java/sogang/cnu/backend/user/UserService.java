@@ -1,5 +1,6 @@
 package sogang.cnu.backend.user;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,7 +10,6 @@ import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user.dto.UserRoleUpdateRequestDto;
 import sogang.cnu.backend.user_role.UserRole;
-import sogang.cnu.backend.user_role.UserRoleRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,8 +21,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserRepositoryCustom userRepositoryCustom;
     private final UserMapper userMapper;
-    private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public UserResponseDto getByStudentId(String studentId) {
@@ -63,15 +63,31 @@ public class UserService {
         List<Role> newRoles = request.getRoles().stream()
                 .map(roleName -> roleRepository.findByName(roleName)
                         .orElseThrow(() -> new NotFoundException("Role not found: " + roleName)))
-                .collect(Collectors.toList());
+                .toList();
 
-        userRoleRepository.deleteAll(userRoleRepository.findByUserId(user.getId()));
+        user.getUserRoles().clear();
+        entityManager.flush();
 
         List<UserRole> userRoles = newRoles.stream()
                 .map(role -> UserRole.builder().user(user).role(role).build())
                 .collect(Collectors.toList());
-        userRoleRepository.saveAll(userRoles);
+        user.getUserRoles().addAll(userRoles);
 
+        return userMapper.toResponseDto(user);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        userRepository.delete(user);
+    }
+
+    @Transactional
+    public UserResponseDto updateUserActiveStatus(UUID id, boolean isActive) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        user.updateActiveStatus(isActive);
         return userMapper.toResponseDto(user);
     }
 

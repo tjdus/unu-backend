@@ -5,6 +5,7 @@ import lombok.*;
 import sogang.cnu.backend.activity.command.ActivityCreateCommand;
 import sogang.cnu.backend.activity.command.ActivityUpdateCommand;
 import sogang.cnu.backend.activity_participant.ActivityParticipant;
+import sogang.cnu.backend.activity_session.ActivitySession;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.quarter.Quarter;
@@ -67,6 +68,10 @@ public class Activity extends BaseEntity {
     @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ActivityParticipant> participants = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ActivitySession> sessions = new java.util.ArrayList<>();
 
     public void addParticipant(sogang.cnu.backend.activity_participant.ActivityParticipant participant) {
         participants.add(participant);
