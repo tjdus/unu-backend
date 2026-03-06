@@ -13,5 +13,6 @@ import java.time.LocalDate;
 @Builder
 public class ActivityTypeCreateCommand {
     private String name;
+    private String code;
 }
 

@@ -62,12 +62,14 @@ public class ActivityTypeService {
     private ActivityTypeCreateCommand toCreateCommand(ActivityTypeRequestDto dto) {
         return ActivityTypeCreateCommand.builder()
                 .name(dto.getName())
+                .code(dto.getCode())
                 .build();
     }
 
     private ActivityTypeUpdateCommand toUpdateCommand(ActivityTypeRequestDto dto) {
         return ActivityTypeUpdateCommand.builder()
                 .name(dto.getName())
+                .code(dto.getCode())
                 .build();
     }
 

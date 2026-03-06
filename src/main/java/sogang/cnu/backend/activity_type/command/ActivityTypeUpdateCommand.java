@@ -7,5 +7,6 @@ import lombok.Getter;
 @Builder
 public class ActivityTypeUpdateCommand {
     private String name;
+    private String code;
 }
 

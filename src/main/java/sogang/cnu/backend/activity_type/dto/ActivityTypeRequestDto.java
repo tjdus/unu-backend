@@ -11,4 +11,5 @@ import java.time.LocalDate;
 @Builder
 public class ActivityTypeRequestDto {
     private String name;
+    private String code;
 }

@@ -12,4 +12,5 @@ import java.util.UUID;
 public class ActivityTypeResponseDto {
     private UUID id;
     private String name;
+    private String code;
 }

@@ -22,14 +22,18 @@ public class ActivityType {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, unique = true)
+    private String code;
+
     public void update(ActivityTypeUpdateCommand command) {
         this.name = command.getName();
+        this.code = command.getCode();
     }
 
     public static ActivityType create(ActivityTypeCreateCommand command) {
-        ActivityType activityType = ActivityType.builder()
+        return ActivityType.builder()
                 .name(command.getName())
+                .code(command.getCode())
                 .build();
-        return activityType;
     }
 }

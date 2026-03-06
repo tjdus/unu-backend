@@ -92,11 +92,22 @@ public class DataInitializer implements ApplicationRunner {
     private void initActivityTypes() {
         if (activityTypeRepository.count() > 0) return;
 
-        for (String name : List.of("프로젝트", "스터디")) {
-            activityTypeRepository.save(ActivityType.builder().name(name).build());
+        record ActivityTypeDef(String name, String code) {}
+
+        List<ActivityTypeDef> defs = List.of(
+            new ActivityTypeDef("프로젝트", "PROJECT"),
+            new ActivityTypeDef("스터디", "STUDY"),
+            new ActivityTypeDef("온라인 강의", "ONLINE_COURSE")
+        );
+
+        for (ActivityTypeDef d : defs) {
+            activityTypeRepository.save(ActivityType.builder()
+                    .name(d.name)
+                    .code(d.code())
+                    .build());
         }
 
-        log.info("Seeded activity types: 프로젝트, 스터디");
+        log.info("Seeded activity types: 프로젝트, 스터디, 온라인 강의");
     }
 
     // ── Roles ─────────────────────────────────────────────────────────────────
