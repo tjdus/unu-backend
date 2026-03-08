@@ -15,8 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BaseDto {
-    private String createdBy;
+    private AuditorDto createdBy;
     private LocalDateTime createdAt;
-    private String modifiedBy;
+    private AuditorDto modifiedBy;
     private LocalDateTime modifiedAt;
 }

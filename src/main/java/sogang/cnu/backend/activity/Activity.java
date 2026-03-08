@@ -50,6 +50,10 @@ public class Activity extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_activity_id")
+    private Activity parentActivity;
+
     public void update(ActivityUpdateCommand command) {
         this.title = command.getTitle();
         this.description = command.getDescription();
@@ -59,6 +63,7 @@ public class Activity extends BaseEntity {
         this.activityType = command.getActivityType();
         this.assignee = command.getAssignee();
         this.quarter = command.getQuarter();
+        this.parentActivity = command.getParentActivity();
     }
 
     public void updateStatus(ActivityStatus newStatus) {
@@ -93,6 +98,7 @@ public class Activity extends BaseEntity {
                 .activityType(command.getActivityType())
                 .assignee(command.getAssignee())
                 .quarter(command.getQuarter())
+                .parentActivity(command.getParentActivity())
                 .build();
         return activity;
     }

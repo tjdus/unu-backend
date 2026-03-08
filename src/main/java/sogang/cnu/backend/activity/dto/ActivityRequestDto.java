@@ -19,4 +19,5 @@ public class ActivityRequestDto {
     private UUID quarterId;
     private LocalDate startDate;
     private LocalDate endDate;
+    private UUID parentActivityId;
 }

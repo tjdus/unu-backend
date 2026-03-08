@@ -41,6 +41,10 @@ public class User {
     @Column(name = "phone_number", unique = true)
     private String phoneNumber;
 
+    private String major;
+
+    private String subMajor;
+
     @Column(nullable = false, unique = true)
     private String email;
 

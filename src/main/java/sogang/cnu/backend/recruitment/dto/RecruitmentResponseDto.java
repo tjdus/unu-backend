@@ -3,6 +3,7 @@ package sogang.cnu.backend.recruitment.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import sogang.cnu.backend.common.domain.dto.AuditorDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
 
 import java.util.UUID;
@@ -22,7 +23,7 @@ public class RecruitmentResponseDto {
     private FormResponseDto form;
     private String createdAt;
     private String modifiedAt;
-    private String createdBy;
-    private String modifiedBy;
+    private AuditorDto createdBy;
+    private AuditorDto modifiedBy;
 }
 

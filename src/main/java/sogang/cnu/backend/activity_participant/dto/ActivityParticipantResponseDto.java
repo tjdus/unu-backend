@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.activity.dto.ActivityResponseDto;
+import sogang.cnu.backend.common.domain.dto.AuditorDto;
 
 import java.util.UUID;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
@@ -22,6 +23,6 @@ public class ActivityParticipantResponseDto {
     private String joinedAt;
     private String createdAt;
     private String modifiedAt;
-    private String createdBy;
-    private String modifiedBy;
+    private AuditorDto createdBy;
+    private AuditorDto modifiedBy;
 }

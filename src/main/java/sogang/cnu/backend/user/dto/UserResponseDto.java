@@ -18,6 +18,8 @@ public class UserResponseDto {
     private String studentId;
     private String email;
     private String phoneNumber;
+    private String major;
+    private String subMajor;
     private String githubId;
     private Boolean isActive;
     private QuarterResponseDto joinedQuarter;

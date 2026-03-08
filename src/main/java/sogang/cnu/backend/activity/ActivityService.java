@@ -108,6 +108,12 @@ public class ActivityService {
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
     }
 
+    private Activity findParentActivity(UUID parentActivityId) {
+        if (parentActivityId == null) return null;
+        return activityRepository.findById(parentActivityId)
+                .orElseThrow(() -> new NotFoundException("Parent activity not found"));
+    }
+
     private ActivityCreateCommand toCreateCommand(ActivityRequestDto dto) {
         return ActivityCreateCommand.builder()
                 .title(dto.getTitle())
@@ -118,6 +124,7 @@ public class ActivityService {
                 .quarter(findQuarter(dto.getQuarterId()))
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
+                .parentActivity(findParentActivity(dto.getParentActivityId()))
                 .build();
     }
 
@@ -131,6 +138,7 @@ public class ActivityService {
                 .quarter(findQuarter(dto.getQuarterId()))
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
+                .parentActivity(findParentActivity(dto.getParentActivityId()))
                 .build();
     }
 

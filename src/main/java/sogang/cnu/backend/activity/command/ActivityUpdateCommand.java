@@ -2,6 +2,7 @@ package sogang.cnu.backend.activity.command;
 
 import lombok.Builder;
 import lombok.Getter;
+import sogang.cnu.backend.activity.Activity;
 import sogang.cnu.backend.activity.ActivityStatus;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.quarter.Quarter;
@@ -20,5 +21,6 @@ public class ActivityUpdateCommand {
     private Quarter quarter;
     private LocalDate startDate;
     private LocalDate endDate;
+    private Activity parentActivity;
 }
 
