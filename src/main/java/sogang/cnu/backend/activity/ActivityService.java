@@ -8,10 +8,15 @@ import sogang.cnu.backend.activity.command.ActivityUpdateCommand;
 import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.activity_type.ActivityTypeRepository;
+import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.NotFoundException;
 
 import sogang.cnu.backend.activity.dto.ActivityRequestDto;
 import sogang.cnu.backend.activity.dto.ActivityResponseDto;
+import sogang.cnu.backend.activity_participant.ActivityParticipant;
+import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
+import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
+import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreateCommand;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.user.User;
@@ -29,6 +34,8 @@ public class ActivityService {
     private final UserRepository userRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final QuarterRepository quarterRepository;
+    private final ActivityParticipantRepository activityParticipantRepository;
+    private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
     public ActivityResponseDto getById(UUID id) {
@@ -60,14 +67,27 @@ public class ActivityService {
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
+
+        User assignee = findAssignee(userId);
+        ActivityParticipant participant = ActivityParticipant.create(
+                ActivityParticipantCreateCommand.builder()
+                        .activity(savedActivity)
+                        .user(assignee)
+                        .status(ActivityParticipantStatus.APPLIED)
+                        .build()
+        );
+        participant.updateStatus(ActivityParticipantStatus.APPROVED);
+        activityParticipantRepository.save(participant);
+
         return activityMapper.toResponseDto(savedActivity);
     }
 
     @Transactional
-    public ActivityResponseDto update(UUID id, ActivityRequestDto dto) {
+    public ActivityResponseDto update(UUID userId, UUID id, ActivityRequestDto dto) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
+        checkPermission(userId, activity);
         activity.update(toUpdateCommand(dto));
         return activityMapper.toResponseDto(activity);
     }
@@ -82,9 +102,11 @@ public class ActivityService {
     }
 
     @Transactional
-    public void delete(UUID id) {
+    public void delete(UUID userId, UUID id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
+
+        checkPermission(userId, activity);
         activityRepository.delete(activity);
     }
 
@@ -93,6 +115,12 @@ public class ActivityService {
         return activityRepository.search(query).stream()
                 .map(activityMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private void checkPermission(UUID userId, Activity activity) {
+        boolean isAssignee = activity.getAssignee().getId().equals(userId);
+        if (isAssignee) return;
+        permissionChecker.checkManagerOrAdmin(userId);
     }
 
     private ActivityType findActivityType(UUID activityTypeId) {

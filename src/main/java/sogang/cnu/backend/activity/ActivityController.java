@@ -40,13 +40,13 @@ public class ActivityController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ActivityResponseDto> update(@PathVariable UUID id, @RequestBody ActivityRequestDto activityRequestDto) {
-        return ResponseEntity.ok(activityService.update(id, activityRequestDto));
+    public ResponseEntity<ActivityResponseDto> update(@CurrentUser CustomUserDetails user, @PathVariable UUID id, @RequestBody ActivityRequestDto activityRequestDto) {
+        return ResponseEntity.ok(activityService.update(user.getId(), id, activityRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable UUID id) {
-        activityService.delete(id);
+    public ResponseEntity<String> delete(@CurrentUser CustomUserDetails user, @PathVariable UUID id) {
+        activityService.delete(user.getId(), id);
         return ResponseEntity.noContent().build();
     }
 

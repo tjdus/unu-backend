@@ -3,6 +3,7 @@ package sogang.cnu.backend.form;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.form.dto.FormTemplateRequestDto;
 import sogang.cnu.backend.form.dto.FormTemplateResponseDto;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public class FormTemplateService {
     private final FormTemplateRepository formTemplateRepository;
     private final FormTemplateMapper formTemplateMapper;
+    private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
     public FormTemplateResponseDto getById(UUID id) {
@@ -39,7 +41,8 @@ public class FormTemplateService {
     }
 
     @Transactional
-    public FormTemplateResponseDto update(UUID id, FormTemplateRequestDto dto) {
+    public FormTemplateResponseDto update(UUID userId, UUID id, FormTemplateRequestDto dto) {
+        permissionChecker.checkManagerOrAdmin(userId);
         FormTemplate formTemplate = formTemplateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
 
@@ -48,7 +51,8 @@ public class FormTemplateService {
     }
 
     @Transactional
-    public void delete(UUID id) {
+    public void delete(UUID userId, UUID id) {
+        permissionChecker.checkManagerOrAdmin(userId);
         FormTemplate formTemplate = formTemplateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
         formTemplateRepository.delete(formTemplate);

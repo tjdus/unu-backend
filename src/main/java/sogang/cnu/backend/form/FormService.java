@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.form.dto.FormRequestDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
@@ -18,6 +19,7 @@ public class FormService {
     private final FormRepository formRepository;
     private final FormTemplateRepository formTemplateRepository;
     private final FormMapper formMapper;
+    private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
     public FormResponseDto getById(UUID id) {
@@ -53,7 +55,8 @@ public class FormService {
     }
 
     @Transactional
-    public FormResponseDto update(UUID id, FormRequestDto dto) {
+    public FormResponseDto update(UUID userId, UUID id, FormRequestDto dto) {
+        permissionChecker.checkManagerOrAdmin(userId);
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
 
@@ -62,7 +65,8 @@ public class FormService {
     }
 
     @Transactional
-    public void delete(UUID id) {
+    public void delete(UUID userId, UUID id) {
+        permissionChecker.checkManagerOrAdmin(userId);
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
         formRepository.delete(form);

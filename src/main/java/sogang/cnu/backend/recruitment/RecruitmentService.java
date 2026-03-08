@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.form.Form;
 import sogang.cnu.backend.form.FormRepository;
@@ -26,6 +27,7 @@ public class RecruitmentService {
     private final RecruitmentMapper recruitmentMapper;
     private final FormRepository formRepository;
     private final QuarterRepository quarterRepository;
+    private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
     public RecruitmentResponseDto getById(UUID id) {
@@ -53,7 +55,8 @@ public class RecruitmentService {
     }
 
     @Transactional
-    public RecruitmentResponseDto update(UUID id, RecruitmentRequestDto dto) {
+    public RecruitmentResponseDto update(UUID userId, UUID id, RecruitmentRequestDto dto) {
+        permissionChecker.checkManagerOrAdmin(userId);
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
 
@@ -63,7 +66,8 @@ public class RecruitmentService {
     }
 
     @Transactional
-    public void delete(UUID id) {
+    public void delete(UUID userId, UUID id) {
+        permissionChecker.checkManagerOrAdmin(userId);
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
         recruitmentRepository.delete(recruitment);

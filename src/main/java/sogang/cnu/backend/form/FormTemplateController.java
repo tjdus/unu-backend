@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.form.dto.FormTemplateRequestDto;
 import sogang.cnu.backend.form.dto.FormTemplateResponseDto;
+import sogang.cnu.backend.security.CurrentUser;
+import sogang.cnu.backend.security.CustomUserDetails;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,13 +34,13 @@ public class FormTemplateController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FormTemplateResponseDto> update(@PathVariable UUID id, @RequestBody FormTemplateRequestDto formTemplateRequestDto) {
-        return ResponseEntity.ok(formTemplateService.update(id, formTemplateRequestDto));
+    public ResponseEntity<FormTemplateResponseDto> update(@CurrentUser CustomUserDetails user, @PathVariable UUID id, @RequestBody FormTemplateRequestDto formTemplateRequestDto) {
+        return ResponseEntity.ok(formTemplateService.update(user.getId(), id, formTemplateRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable UUID id) {
-        formTemplateService.delete(id);
+    public ResponseEntity<String> delete(@CurrentUser CustomUserDetails user, @PathVariable UUID id) {
+        formTemplateService.delete(user.getId(), id);
         return ResponseEntity.noContent().build();
     }
 
