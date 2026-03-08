@@ -23,7 +23,7 @@ import sogang.cnu.backend.user.UserRepository;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -164,10 +164,7 @@ public class CourseTimeReservationService {
     }
 
     private void validateDailyLimit(UUID userId, LocalDateTime newStart, LocalDateTime newEnd, UUID excludeId) {
-        // Determine the KST date of the new reservation's start
-        LocalDate kstDate = newStart.atOffset(ZoneOffset.UTC)
-                .atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul"))
-                .toLocalDate();
+        LocalDate kstDate = newStart.toLocalDate();
 
         long existingMinutes = reservationRepository.sumMinutesOnKstDate(userId, kstDate, excludeId);
         long newMinutes = Duration.between(newStart, newEnd).toMinutes();

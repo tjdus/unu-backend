@@ -34,9 +34,8 @@ public class CourseTimeReservationRepositoryImpl implements CourseTimeReservatio
 
     @Override
     public long sumMinutesOnKstDate(UUID userId, LocalDate kstDate, UUID excludeId) {
-        // Convert KST date to UTC range: KST = UTC+9
-        LocalDateTime utcStart = kstDate.atStartOfDay().minusHours(9);
-        LocalDateTime utcEnd = kstDate.plusDays(1).atStartOfDay().minusHours(9);
+        LocalDateTime utcStart = kstDate.atStartOfDay();
+        LocalDateTime utcEnd = kstDate.plusDays(1).atStartOfDay();
 
         List<CourseTimeReservation> reservations = queryFactory
                 .selectFrom(courseTimeReservation)
@@ -83,9 +82,9 @@ public class CourseTimeReservationRepositoryImpl implements CourseTimeReservatio
     }
 
     private com.querydsl.core.types.dsl.BooleanExpression dateFilter(LocalDate kstDate) {
-        LocalDateTime utcStart = kstDate.atStartOfDay().minusHours(9);
-        LocalDateTime utcEnd = kstDate.plusDays(1).atStartOfDay().minusHours(9);
-        return courseTimeReservation.startAt.goe(utcStart)
-                .and(courseTimeReservation.startAt.lt(utcEnd));
+        LocalDateTime dayStart = kstDate.atStartOfDay();
+        LocalDateTime dayEnd = kstDate.plusDays(1).atStartOfDay();
+        return courseTimeReservation.startAt.goe(dayStart)
+                .and(courseTimeReservation.startAt.lt(dayEnd));
     }
 }
