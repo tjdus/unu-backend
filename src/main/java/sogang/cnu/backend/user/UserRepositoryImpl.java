@@ -15,7 +15,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<User> search(String role, Boolean isActive, String joinedQuarter, String name, String studentId) {
+    public List<User> search(String role, Boolean isCurrentQuarterActive, String joinedQuarter, String name, String studentId) {
         QUser user = QUser.user;
         QUserRole userRole = QUserRole.userRole;
         QRole qRole = QRole.role;
@@ -27,7 +27,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .leftJoin(user.userRoles, userRole)
                 .leftJoin(userRole.role, qRole)
                 .where(
-                        isActive != null ? user.isActive.eq(isActive) : null,
+                        isCurrentQuarterActive != null ? user.isCurrentQuarterActive.eq(isCurrentQuarterActive) : null,
                         name != null ? user.name.containsIgnoreCase(name) : null,
                         studentId != null ? user.studentId.contains(studentId) : null,
                         joinedQuarter != null ? quarter.name.containsIgnoreCase(joinedQuarter) : null,

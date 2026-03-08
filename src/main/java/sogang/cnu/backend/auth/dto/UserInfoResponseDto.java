@@ -13,6 +13,6 @@ public class UserInfoResponseDto {
     private String email;
     private String phoneNumber;
     private String githubId;
-    private Boolean isActive;
+    private Boolean isCurrentQuarterActive;
     private QuarterResponseDto joinedQuarter;
 }

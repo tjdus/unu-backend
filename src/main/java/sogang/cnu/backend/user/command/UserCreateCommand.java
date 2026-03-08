@@ -19,7 +19,7 @@ public class UserCreateCommand {
     private String githubId;
     private String phoneNumber;
     private String email;
-    private Boolean isActive;
+    private Boolean isCurrentQuarterActive;
     private Quarter joinedQuarter;
 }
 

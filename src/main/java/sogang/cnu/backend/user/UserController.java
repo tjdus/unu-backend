@@ -33,13 +33,13 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<List<UserResponseDto>> searchUsers(
             @RequestParam(name = "role", required = false) String role,
-            @RequestParam(name = "is-active", required = false) Boolean isActive,
+            @RequestParam(name = "is-active", required = false) Boolean isCurrentQuarterActive,
             @RequestParam(name = "joined-quarter", required = false) String joinedQuarter,
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "student-id", required = false) String studentId
     ) {
         return ResponseEntity.ok(
-                userService.search(role, isActive, joinedQuarter, name, studentId)
+                userService.search(role, isCurrentQuarterActive, joinedQuarter, name, studentId)
         );
     }
 

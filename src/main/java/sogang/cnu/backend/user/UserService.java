@@ -48,8 +48,8 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponseDto> search(String role, Boolean isActive, String joinedQuarter, String name, String studentId) {
-        List<User> users = userRepositoryCustom.search(role, isActive, joinedQuarter, name, studentId);
+    public List<UserResponseDto> search(String role, Boolean isCurrentQuarterActive, String joinedQuarter, String name, String studentId) {
+        List<User> users = userRepositoryCustom.search(role, isCurrentQuarterActive, joinedQuarter, name, studentId);
         return users.stream()
                 .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
@@ -84,10 +84,10 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDto updateUserActiveStatus(UUID id, boolean isActive) {
+    public UserResponseDto updateUserActiveStatus(UUID id, boolean isCurrentQuarterActive) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        user.updateActiveStatus(isActive);
+        user.updateActiveStatus(isCurrentQuarterActive);
         return userMapper.toResponseDto(user);
     }
 

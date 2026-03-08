@@ -9,6 +9,7 @@ import sogang.cnu.backend.quarter.command.QuarterUpdateCommand;
 import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,6 +31,9 @@ public class QuarterService {
     @Transactional(readOnly = true)
     public List<QuarterResponseDto> getAll() {
         return quarterRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparingInt(Quarter::getYear).reversed()
+                        .thenComparingInt(q -> -q.getSeason().getOrder()))
                 .map(quarterMapper::toResponseDto)
                 .collect(Collectors.toList());
     }

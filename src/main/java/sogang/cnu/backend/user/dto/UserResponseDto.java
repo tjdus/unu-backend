@@ -21,7 +21,9 @@ public class UserResponseDto {
     private String major;
     private String subMajor;
     private String githubId;
-    private Boolean isActive;
+    private Boolean isCurrentQuarterActive;
     private QuarterResponseDto joinedQuarter;
+    private String memberStatus;
+    private Boolean isAlumni;
     private UserRoleResponseDto[] userRoles;
 }

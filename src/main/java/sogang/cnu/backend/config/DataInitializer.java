@@ -149,7 +149,7 @@ public class DataInitializer implements ApplicationRunner {
                     .password(passwordEncoder.encode(d.username()))
                     .studentId(d.studentId())
                     .email(d.email())
-                    .isActive(true)
+                    .isCurrentQuarterActive(true)
                     .build()
             );
 

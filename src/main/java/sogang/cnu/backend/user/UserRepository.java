@@ -10,4 +10,9 @@ public interface UserRepository extends JpaRepository<User, UUID>, QuerydslPredi
     Optional<User> findByStudentId(String studentId);
     Optional<User> findByUsername(String username);
 
+    boolean existsByUsernameAndIdNot(String username, UUID id);
+    boolean existsByStudentIdAndIdNot(String studentId, UUID id);
+    boolean existsByEmailAndIdNot(String email, UUID id);
+    boolean existsByGithubIdAndIdNot(String githubId, UUID id);
+    boolean existsByPhoneNumberAndIdNot(String phoneNumber, UUID id);
 }

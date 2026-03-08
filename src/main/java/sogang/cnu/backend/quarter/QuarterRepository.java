@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface QuarterRepository extends JpaRepository<Quarter, UUID> {
     List<Quarter> findByYearAndSeason(int year, Season season);
+    Optional<Quarter> findFirstByYearAndSeason(int year, Season season);
+
 }

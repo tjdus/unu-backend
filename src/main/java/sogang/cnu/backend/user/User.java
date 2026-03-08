@@ -45,16 +45,24 @@ public class User {
 
     private String subMajor;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
-    @Column(nullable = false, name="is_active")
+    @Column(nullable = false, name="is_current_quarter_active")
     @Builder.Default
-    private Boolean isActive = true;
+    private Boolean isCurrentQuarterActive = false;
 
     @ManyToOne
     @JoinColumn(name = "joined_quarter_id")
     private Quarter joinedQuarter;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private MemberStatus memberStatus = MemberStatus.MEMBER;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isAlumni = false;
 
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -73,8 +81,8 @@ public class User {
         this.password = newPassword;
     }
 
-    public void updateActiveStatus(Boolean isActive) {
-        this.isActive = isActive;
+    public void updateActiveStatus(Boolean isCurrentQuarterActive) {
+        this.isCurrentQuarterActive = isCurrentQuarterActive;
     }
 
     public static User create(UserCreateCommand command) {
@@ -86,7 +94,7 @@ public class User {
                 .githubId(command.getGithubId())
                 .phoneNumber(command.getPhoneNumber())
                 .email(command.getEmail())
-                .isActive(true)
+                .isCurrentQuarterActive(true)
                 .joinedQuarter(command.getJoinedQuarter())
                 .build();
     }

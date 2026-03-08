@@ -1,0 +1,25 @@
+package sogang.cnu.backend.migration;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import sogang.cnu.backend.migration.dto.UserMigrationResultDto;
+
+@RestController
+@RequestMapping("/api/admin/migrations")
+@RequiredArgsConstructor
+public class MigrationController {
+
+    private final MigrationService migrationService;
+
+    @PostMapping(value = "/users", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserMigrationResultDto> migrateUsers(
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(migrationService.migrateUsers(file));
+    }
+}

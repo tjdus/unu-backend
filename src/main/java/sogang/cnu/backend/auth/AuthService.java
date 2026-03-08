@@ -10,6 +10,7 @@ import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.user.command.UserCreateCommand;
 import sogang.cnu.backend.user.command.UserUpdateCommand;
@@ -124,6 +125,9 @@ public class AuthService {
     public UserResponseDto update(UUID id, UserInfoRequestDto dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        validateUpdate(id, dto);
+
         user.update(UserUpdateCommand.builder()
                         .name(dto.getName())
                         .username(dto.getUsername())
@@ -176,7 +180,29 @@ public class AuthService {
                 .joinedQuarter(quarterRepository.findById(dto.getJoinedQuarterId())
                         .orElseThrow(() -> new RuntimeException("존재하지 않는 분기입니다.")))
                 .email(dto.getEmail())
-                .isActive(true)
+                .isCurrentQuarterActive(true)
                 .build();
+    }
+
+    private void validateUpdate(UUID id, UserInfoRequestDto dto) {
+        if (dto.getName() == null || dto.getName().isBlank())
+            throw new BadRequestException("이름은 필수입니다.");
+        if (dto.getUsername() == null || dto.getUsername().isBlank())
+            throw new BadRequestException("사용자 이름은 필수입니다.");
+        if (dto.getStudentId() == null || dto.getStudentId().isBlank())
+            throw new BadRequestException("학번은 필수입니다.");
+
+        if (userRepository.existsByUsernameAndIdNot(dto.getUsername(), id))
+            throw new BadRequestException("이미 사용 중인 사용자 이름입니다.");
+        if (userRepository.existsByStudentIdAndIdNot(dto.getStudentId(), id))
+            throw new BadRequestException("이미 사용 중인 학번입니다.");
+        if (dto.getEmail() != null && userRepository.existsByEmailAndIdNot(dto.getEmail(), id))
+            throw new BadRequestException("이미 사용 중인 이메일입니다.");
+        if (dto.getGithubId() != null && !dto.getGithubId().isBlank()
+                && userRepository.existsByGithubIdAndIdNot(dto.getGithubId(), id))
+            throw new BadRequestException("이미 사용 중인 GitHub 아이디입니다.");
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()
+                && userRepository.existsByPhoneNumberAndIdNot(dto.getPhoneNumber(), id))
+            throw new BadRequestException("이미 사용 중인 전화번호입니다.");
     }
 }
