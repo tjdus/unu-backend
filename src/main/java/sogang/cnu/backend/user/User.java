@@ -56,6 +56,7 @@ public class User {
     @JoinColumn(name = "joined_quarter_id")
     private Quarter joinedQuarter;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private MemberStatus memberStatus = MemberStatus.MEMBER;
