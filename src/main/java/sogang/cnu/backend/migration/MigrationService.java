@@ -91,6 +91,7 @@ public class MigrationService {
                             .email(record.get("email"))
                             .isCurrentQuarterActive(false)
                             .joinedQuarter(quarter)
+                            .isAlumni((record.get("is_alumni")) != null && record.get("is_alumni").equalsIgnoreCase("true"))
                             .build();
 
                     User savedUser = userRepository.save(user);

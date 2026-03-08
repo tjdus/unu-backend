@@ -60,7 +60,7 @@ public class User {
     @Builder.Default
     private MemberStatus memberStatus = MemberStatus.MEMBER;
 
-    @Column(nullable = false)
+    @Column(name = "is_alumni", nullable = false)
     @Builder.Default
     private Boolean isAlumni = false;
 
