@@ -18,6 +18,7 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -158,6 +159,29 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return userMapper.toInfoResponseDto(user);
+    }
+
+    public ResetPasswordResponseDto resetPassword(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+
+        String temporaryPassword = generateTemporaryPassword();
+        user.updatePassword(passwordEncoder.encode(temporaryPassword));
+        userRepository.save(user);
+
+        return ResetPasswordResponseDto.builder()
+                .temporaryPassword(temporaryPassword)
+                .build();
+    }
+
+    private String generateTemporaryPassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(12);
+        for (int i = 0; i < 12; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     public SignupTokenResponseDto generateSignupToken() {
