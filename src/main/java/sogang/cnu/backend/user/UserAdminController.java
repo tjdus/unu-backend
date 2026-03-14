@@ -28,4 +28,10 @@ public class UserAdminController {
         ResetPasswordResponseDto response = authService.resetPassword(userId);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/calculate-active")
+    public ResponseEntity<Void> calculateCurrentQuarterActive() {
+        userService.calculateAndUpdateCurrentQuarterActive();
+        return ResponseEntity.noContent().build();
+    }
 }

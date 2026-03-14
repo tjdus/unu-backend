@@ -4,14 +4,23 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.activity_participant.ActivityParticipant;
+import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
+import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.quarter.CurrentQuarter;
+import sogang.cnu.backend.quarter.CurrentQuarterRepository;
+import sogang.cnu.backend.quarter.Quarter;
+import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user.dto.UserRoleUpdateRequestDto;
 import sogang.cnu.backend.user_role.UserRole;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -23,6 +32,8 @@ public class UserService {
     private final UserMapper userMapper;
     private final RoleRepository roleRepository;
     private final EntityManager entityManager;
+    private final CurrentQuarterRepository currentQuarterRepository;
+    private final ActivityParticipantRepository activityParticipantRepository;
 
     @Transactional(readOnly = true)
     public UserResponseDto getByStudentId(String studentId) {
@@ -81,6 +92,35 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
         userRepository.delete(user);
+    }
+
+    private UUID FIXED_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+    private CurrentQuarter getOne() {
+        return currentQuarterRepository.findById(FIXED_ID)
+                .orElseGet(() -> {
+                    CurrentQuarter cq = new CurrentQuarter(FIXED_ID, null);
+                    return currentQuarterRepository.save(cq);
+                });
+    }
+
+
+    @Transactional
+    public void calculateAndUpdateCurrentQuarterActive() {
+        Quarter currentQuarter = getOne().getQuarter();
+
+        List<ActivityParticipant> participants = activityParticipantRepository
+                .findByActivityQuarterId(currentQuarter.getId());
+
+        Set<UUID> activeUserIds = participants.stream()
+                .filter(ap -> ap.getStatus() == ActivityParticipantStatus.APPROVED || ap.getStatus() == ActivityParticipantStatus.APPLIED)
+                .map(ap -> ap.getUser().getId())
+                .collect(Collectors.toSet());
+
+        List<User> allUsers = userRepository.findAll();
+        for (User user : allUsers) {
+            user.updateActiveStatus(activeUserIds.contains(user.getId()));
+        }
     }
 
     @Transactional
