@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface FormSubmissionRepository extends JpaRepository<FormSubmission, UUID> {
     List<FormSubmission> findByFormId(UUID formId);
     List<FormSubmission> findByUserId(UUID userId);
+    void deleteByFormId(UUID formId);
 }

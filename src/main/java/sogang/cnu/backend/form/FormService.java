@@ -8,6 +8,7 @@ import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.form.dto.FormRequestDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
+import sogang.cnu.backend.form_submission.FormSubmissionRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class FormService {
     private final FormTemplateRepository formTemplateRepository;
     private final FormMapper formMapper;
     private final PermissionChecker permissionChecker;
+    private final FormSubmissionRepository formSubmissionRepository;
 
     @Transactional(readOnly = true)
     public FormResponseDto getById(UUID id) {
@@ -69,6 +71,7 @@ public class FormService {
         permissionChecker.checkManagerOrAdmin(userId);
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
+        formSubmissionRepository.deleteByFormId(id);
         formRepository.delete(form);
     }
 }
