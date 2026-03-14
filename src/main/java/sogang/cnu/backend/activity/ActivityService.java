@@ -17,6 +17,8 @@ import sogang.cnu.backend.activity_participant.ActivityParticipant;
 import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
 import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreateCommand;
+import sogang.cnu.backend.attendance.AttendanceRepository;
+import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepository;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.user.User;
@@ -35,6 +37,8 @@ public class ActivityService {
     private final ActivityTypeRepository activityTypeRepository;
     private final QuarterRepository quarterRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final CourseTimeReservationRepository courseTimeReservationRepository;
     private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
@@ -107,6 +111,10 @@ public class ActivityService {
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
         checkPermission(userId, activity);
+
+        attendanceRepository.deleteByActivityId(id);
+        courseTimeReservationRepository.deleteByActivityId(id);
+        activityRepository.detachChildActivities(id);
         activityRepository.delete(activity);
     }
 

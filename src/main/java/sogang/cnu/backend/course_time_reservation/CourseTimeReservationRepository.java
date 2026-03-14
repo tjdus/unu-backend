@@ -29,4 +29,6 @@ public interface CourseTimeReservationRepository
             @Param("newEnd") LocalDateTime newEnd,
             @Param("excludeId") UUID excludeId
     );
+
+    void deleteByActivityId(UUID activityId);
 }

@@ -78,16 +78,6 @@ public class Activity extends BaseEntity {
     @Builder.Default
     private List<ActivitySession> sessions = new java.util.ArrayList<>();
 
-    public void addParticipant(sogang.cnu.backend.activity_participant.ActivityParticipant participant) {
-        participants.add(participant);
-        participant.setActivity(this);
-    }
-
-    public void removeParticipant(sogang.cnu.backend.activity_participant.ActivityParticipant participant) {
-        participants.remove(participant);
-        participant.setActivity(null);
-    }
-
     public static Activity create(ActivityCreateCommand command) {
         Activity activity = Activity.builder()
                 .title(command.getTitle())
