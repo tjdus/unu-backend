@@ -3,6 +3,7 @@ package sogang.cnu.backend.form_submission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.form.Form;
 import sogang.cnu.backend.form.FormRepository;
@@ -12,6 +13,9 @@ import sogang.cnu.backend.form_submission.dto.FormSubmissionResponseDto;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +55,8 @@ public class FormSubmissionService {
         Form form = formRepository.findById(dto.getFormId())
                 .orElseThrow(() -> new NotFoundException("Form not found"));
 
+        validateFormPeriod(form);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
@@ -64,6 +70,24 @@ public class FormSubmissionService {
         FormSubmission submission = FormSubmission.create(command);
         FormSubmission saved = formSubmissionRepository.save(submission);
         return formSubmissionMapper.toResponseDto(saved);
+    }
+
+    private void validateFormPeriod(Form form) {
+        LocalDateTime startAt = form.getStartAt();
+        LocalDateTime endAt = form.getEndAt();
+
+        if (startAt == null && endAt == null) {
+            return;
+        }
+
+        LocalDateTime nowKst = ZonedDateTime.now(ZoneId.systemDefault()).toLocalDateTime();
+
+        if (startAt != null && nowKst.isBefore(startAt)) {
+            throw new BadRequestException("아직 제출 가능한 기간이 아닙니다.");
+        }
+        if (endAt != null && nowKst.isAfter(endAt)) {
+            throw new BadRequestException("제출 가능한 기간이 종료되었습니다.");
+        }
     }
 
     @Transactional

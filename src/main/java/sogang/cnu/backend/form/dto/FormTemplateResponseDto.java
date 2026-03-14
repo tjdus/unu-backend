@@ -14,6 +14,7 @@ import java.util.UUID;
 public class FormTemplateResponseDto {
     private UUID id;
     private String title;
+    private String description;
     private JsonNode schema;
     private String createdAt;
     private String modifiedAt;

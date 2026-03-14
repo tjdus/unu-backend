@@ -35,7 +35,7 @@ public class FormTemplateService {
 
     @Transactional
     public FormTemplateResponseDto create(FormTemplateRequestDto dto) {
-        FormTemplate formTemplate = FormTemplate.create(dto.getTitle(), dto.getSchema());
+        FormTemplate formTemplate = FormTemplate.create(dto.getTitle(), dto.getDescription(), dto.getSchema());
         FormTemplate savedFormTemplate = formTemplateRepository.save(formTemplate);
         return formTemplateMapper.toResponseDto(savedFormTemplate);
     }
@@ -46,7 +46,7 @@ public class FormTemplateService {
         FormTemplate formTemplate = formTemplateRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("FormTemplate not found"));
 
-        formTemplate.update(dto.getTitle(), dto.getSchema());
+        formTemplate.update(dto.getTitle(), dto.getDescription(), dto.getSchema());
         return formTemplateMapper.toResponseDto(formTemplate);
     }
 

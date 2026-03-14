@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.common.domain.dto.AuditorDto;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -15,7 +16,10 @@ public class FormResponseDto {
     private UUID id;
     private FormTemplateResponseDto template;
     private String title;
+    private String description;
     private JsonNode schema;
+    private LocalDateTime startAt;
+    private LocalDateTime endAt;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

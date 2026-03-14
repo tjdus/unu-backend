@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -13,6 +14,9 @@ import java.util.UUID;
 public class FormRequestDto {
     private UUID templateId;
     private String title;
+    private String description;
     private JsonNode schema;
+    private LocalDateTime startAt;
+    private LocalDateTime endAt;
 }
 

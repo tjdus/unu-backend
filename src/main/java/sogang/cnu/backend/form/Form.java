@@ -9,6 +9,7 @@ import org.hibernate.annotations.Type;
 import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.recruitment.Recruitment;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -36,27 +37,43 @@ public class Form extends BaseEntity {
     @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "text")
+    private String description;
+
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
     private JsonNode schema;
 
-    public void update(String title, JsonNode schema) {
+    private LocalDateTime startAt;
+
+    private LocalDateTime endAt;
+
+    public void update(String title, String description, JsonNode schema, LocalDateTime startAt, LocalDateTime endAt) {
         this.title = title;
+        this.description = description;
         this.schema = schema;
+        this.startAt = startAt;
+        this.endAt = endAt;
     }
 
-    public static Form create(FormTemplate template, String title, JsonNode schema) {
+    public static Form create(FormTemplate template, String title, String description, JsonNode schema, LocalDateTime startAt, LocalDateTime endAt) {
         return Form.builder()
                 .template(template)
                 .title(title)
+                .description(description)
                 .schema(schema)
+                .startAt(startAt)
+                .endAt(endAt)
                 .build();
     }
 
-    public static Form create(String title, JsonNode schema) {
+    public static Form create(String title, String description, JsonNode schema, LocalDateTime startAt, LocalDateTime endAt) {
         return Form.builder()
                 .title(title)
+                .description(description)
                 .schema(schema)
+                .startAt(startAt)
+                .endAt(endAt)
                 .build();
     }
 }

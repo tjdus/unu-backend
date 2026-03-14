@@ -38,7 +38,7 @@ public class FormService {
     @Transactional
     public FormResponseDto create(FormRequestDto dto) {
         if (dto.getTemplateId() == null) {
-            Form form = Form.create(dto.getTitle(), dto.getSchema());
+            Form form = Form.create(dto.getTitle(), dto.getDescription(), dto.getSchema(), dto.getStartAt(), dto.getEndAt());
             Form savedForm = formRepository.save(form);
             return formMapper.toResponseDto(savedForm);
         }
@@ -49,7 +49,7 @@ public class FormService {
         // If schema is not provided, copy from template
         JsonNode schema = dto.getSchema() != null ? dto.getSchema() : template.getSchema();
 
-        Form form = Form.create(template, dto.getTitle(), schema);
+        Form form = Form.create(template, dto.getTitle(), dto.getDescription(), schema, dto.getStartAt(), dto.getEndAt());
         Form savedForm = formRepository.save(form);
         return formMapper.toResponseDto(savedForm);
     }
@@ -60,7 +60,7 @@ public class FormService {
         Form form = formRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Form not found"));
 
-        form.update(dto.getTitle(), dto.getSchema());
+        form.update(dto.getTitle(), dto.getDescription(), dto.getSchema(), dto.getStartAt(), dto.getEndAt());
         return formMapper.toResponseDto(form);
     }
 

@@ -10,6 +10,7 @@ import lombok.Setter;
 @Builder
 public class FormTemplateRequestDto {
     private String title;
+    private String description;
     private JsonNode schema;
 }
 

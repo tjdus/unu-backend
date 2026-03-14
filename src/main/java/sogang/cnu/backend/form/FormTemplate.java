@@ -26,6 +26,9 @@ public class FormTemplate extends BaseEntity {
     @Column(nullable = false)
     private String title;
 
+    @Column(columnDefinition = "text")
+    private String description;
+
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
     private JsonNode schema;
@@ -34,14 +37,16 @@ public class FormTemplate extends BaseEntity {
     @Builder.Default
     private List<Form> forms = new ArrayList<>();
 
-    public void update(String title, JsonNode schema) {
+    public void update(String title, String description, JsonNode schema) {
         this.title = title;
+        this.description = description;
         this.schema = schema;
     }
 
-    public static FormTemplate create(String title, JsonNode schema) {
+    public static FormTemplate create(String title, String description, JsonNode schema) {
         return FormTemplate.builder()
                 .title(title)
+                .description(description)
                 .schema(schema)
                 .build();
     }
