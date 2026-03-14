@@ -18,6 +18,7 @@ import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
 import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreateCommand;
 import sogang.cnu.backend.attendance.AttendanceRepository;
+import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
 import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepository;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
@@ -38,6 +39,7 @@ public class ActivityService {
     private final QuarterRepository quarterRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
     private final AttendanceRepository attendanceRepository;
+    private final AttendanceReportRepository attendanceReportRepository;
     private final CourseTimeReservationRepository courseTimeReservationRepository;
     private final PermissionChecker permissionChecker;
 
@@ -112,6 +114,7 @@ public class ActivityService {
 
         checkPermission(userId, activity);
 
+        attendanceReportRepository.deleteByActivityId(id);
         attendanceRepository.deleteByActivityId(id);
         courseTimeReservationRepository.deleteByActivityId(id);
         activityRepository.detachChildActivities(id);
