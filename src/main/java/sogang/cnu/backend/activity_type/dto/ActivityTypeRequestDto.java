@@ -1,0 +1,15 @@
+package sogang.cnu.backend.activity_type.dto;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDate;
+
+@Getter
+@Setter
+@Builder
+public class ActivityTypeRequestDto {
+    private String name;
+    private String code;
+}

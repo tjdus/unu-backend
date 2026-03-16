@@ -1,0 +1,25 @@
+package sogang.cnu.backend.application.dto;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.UUID;
+
+@Getter
+@Setter
+@Builder
+public class ApplicationRequestDto {
+    private UUID recruitmentId;
+    private String name;
+    private String studentId;
+    private String major;
+    private String subMajor;
+    private String email;
+    private String githubId;
+    private String phoneNumber;
+    private JsonNode answers;
+
+    private String password;
+}
