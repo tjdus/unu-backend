@@ -1,0 +1,36 @@
+package sogang.cnu.backend.portfolio;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import sogang.cnu.backend.portfolio.dto.PortfolioListResponseDto;
+import sogang.cnu.backend.portfolio.dto.PortfolioRequestDto;
+import sogang.cnu.backend.portfolio.dto.PortfolioResponseDto;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/portfolios")
+@RequiredArgsConstructor
+public class PortfolioController {
+
+    private final PortfolioService portfolioService;
+
+    @PostMapping("")
+    public ResponseEntity<PortfolioResponseDto> create(@RequestBody PortfolioRequestDto dto) {
+        return ResponseEntity.ok(portfolioService.create(dto));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PortfolioResponseDto> update(
+            @PathVariable UUID id,
+            @RequestBody PortfolioRequestDto dto) {
+        return ResponseEntity.ok(portfolioService.update(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        portfolioService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
