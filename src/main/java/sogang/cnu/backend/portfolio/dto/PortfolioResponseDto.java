@@ -15,9 +15,20 @@ public class PortfolioResponseDto {
     private String title;
     private String description;
     private String thumbnailUrl;
-    private List<String> images;
-    private List<String> tags;
-    private String team;
-    private int year;
+    private String startQuarterId;
+    private String startQuarterName;
+    private String endQuarterId;
+    private String endQuarterName;
+    private List<ContributorDto> contributors;
+    private Boolean pinned;
     private String createdAt;
+    private String createdBy;
+
+    @Getter
+    @Builder
+    public static class ContributorDto {
+        private String id;
+        private String name;
+        private String role;
+    }
 }

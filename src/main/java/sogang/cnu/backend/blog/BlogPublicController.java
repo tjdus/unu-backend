@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.blog.dto.BlogListResponseDto;
-import sogang.cnu.backend.blog.dto.BlogRequestDto;
 import sogang.cnu.backend.blog.dto.BlogResponseDto;
 
 import java.util.UUID;

@@ -9,6 +9,9 @@ import sogang.cnu.backend.blog.dto.BlogListResponseDto;
 import sogang.cnu.backend.blog.dto.BlogRequestDto;
 import sogang.cnu.backend.blog.dto.BlogResponseDto;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.image.ImageService;
+import sogang.cnu.backend.image.PostType;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,13 +23,14 @@ public class BlogService {
 
     private final BlogRepository blogRepository;
     private final BlogMapper blogMapper;
+    private final ImageService imageService;
 
     @Transactional(readOnly = true)
     public BlogListResponseDto getAll(String category) {
         List<Blog> blogs;
         if (category != null && !category.isBlank()) {
-            BlogCategory blogCategory = BlogCategory.valueOf(category.toUpperCase());
-            blogs = blogRepository.findAllByCategoryOrderByCreatedAtDesc(blogCategory);
+            blogs = blogRepository.findAllByCategoryOrderByCreatedAtDesc(
+                    BlogCategory.valueOf(category.toUpperCase()));
         } else {
             blogs = blogRepository.findAllByOrderByCreatedAtDesc();
         }
@@ -48,9 +52,21 @@ public class BlogService {
 
     @Transactional
     public BlogResponseDto create(BlogRequestDto dto) {
-        BlogCreateCommand command = toCreateCommand(dto);
-        Blog blog = Blog.create(command);
+        String thumbnailUrl = imageService.syncImages(
+                null, PostType.BLOG, dto.getDescription(), dto.getThumbnailUrl()
+        );
+
+        Blog blog = Blog.create(BlogCreateCommand.builder()
+                .title(dto.getTitle())
+                .subtitle(dto.getSubtitle())
+                .description(dto.getDescription())
+                .thumbnailUrl(thumbnailUrl)
+                .category(dto.getCategory() != null ? BlogCategory.valueOf(dto.getCategory().toUpperCase()) : null)
+                .build());
         Blog saved = blogRepository.save(blog);
+
+        imageService.syncImages(saved.getId(), PostType.BLOG, dto.getDescription(), thumbnailUrl);
+
         return blogMapper.toResponseDto(saved);
     }
 
@@ -58,7 +74,20 @@ public class BlogService {
     public BlogResponseDto update(UUID id, BlogRequestDto dto) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Blog not found"));
-        blog.update(toUpdateCommand(dto));
+        SecurityUtils.requireOwner(blog.getCreatedBy(), "본인이 작성한 글만 수정할 수 있습니다.");
+
+        String thumbnailUrl = imageService.syncImages(
+                id, PostType.BLOG, dto.getDescription(), dto.getThumbnailUrl()
+        );
+
+        blog.update(BlogUpdateCommand.builder()
+                .title(dto.getTitle())
+                .subtitle(dto.getSubtitle())
+                .description(dto.getDescription())
+                .thumbnailUrl(thumbnailUrl)
+                .category(dto.getCategory() != null ? BlogCategory.valueOf(dto.getCategory().toUpperCase()) : null)
+                .build());
+
         return blogMapper.toResponseDto(blog);
     }
 
@@ -66,26 +95,8 @@ public class BlogService {
     public void delete(UUID id) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Blog not found"));
+        SecurityUtils.requireOwnerOrManager(blog.getCreatedBy(), "삭제 권한이 없습니다.");
+        imageService.deletePostImages(id, PostType.BLOG);
         blogRepository.delete(blog);
-    }
-
-    private BlogCreateCommand toCreateCommand(BlogRequestDto dto) {
-        return BlogCreateCommand.builder()
-                .title(dto.getTitle())
-                .subtitle(dto.getSubtitle())
-                .content(dto.getContent())
-                .thumbnailUrl(dto.getThumbnailUrl())
-                .category(BlogCategory.valueOf(dto.getCategory().toUpperCase()))
-                .build();
-    }
-
-    private BlogUpdateCommand toUpdateCommand(BlogRequestDto dto) {
-        return BlogUpdateCommand.builder()
-                .title(dto.getTitle())
-                .subtitle(dto.getSubtitle())
-                .content(dto.getContent())
-                .thumbnailUrl(dto.getThumbnailUrl())
-                .category(BlogCategory.valueOf(dto.getCategory().toUpperCase()))
-                .build();
     }
 }

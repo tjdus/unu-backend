@@ -25,7 +25,7 @@ public class Blog extends BaseEntity {
     private String subtitle;
 
     @Column(columnDefinition = "TEXT")
-    private String content;
+    private String description;
 
     private String thumbnailUrl;
 
@@ -35,7 +35,7 @@ public class Blog extends BaseEntity {
     public void update(BlogUpdateCommand command) {
         this.title = command.getTitle();
         this.subtitle = command.getSubtitle();
-        this.content = command.getContent();
+        this.description = command.getDescription();
         this.thumbnailUrl = command.getThumbnailUrl();
         this.category = command.getCategory();
     }
@@ -44,7 +44,7 @@ public class Blog extends BaseEntity {
         return Blog.builder()
                 .title(command.getTitle())
                 .subtitle(command.getSubtitle())
-                .content(command.getContent())
+                .description(command.getDescription())
                 .thumbnailUrl(command.getThumbnailUrl())
                 .category(command.getCategory())
                 .build();

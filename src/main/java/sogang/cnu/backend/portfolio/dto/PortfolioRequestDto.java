@@ -13,8 +13,15 @@ public class PortfolioRequestDto {
     private String title;
     private String description;
     private String thumbnailUrl;
-    private List<String> images;
-    private List<String> tags;
-    private String team;
-    private int year;
+    private String startQuarterId;
+    private String endQuarterId;
+    private List<ContributorRequestDto> contributors;
+
+    @Getter
+    @Setter
+    @Builder
+    public static class ContributorRequestDto {
+        private String userId;
+        private String role;
+    }
 }

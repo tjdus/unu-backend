@@ -4,29 +4,14 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import sogang.cnu.backend.portfolio.dto.PortfolioResponseDto;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Mapper(componentModel = "spring")
 public interface PortfolioMapper {
 
-    @Mapping(target = "images", source = "images")
-    @Mapping(target = "tags", source = "tags")
+    @Mapping(target = "startQuarterId", expression = "java(portfolio.getStartQuarter() != null ? portfolio.getStartQuarter().getId().toString() : null)")
+    @Mapping(target = "startQuarterName", source = "startQuarter.name")
+    @Mapping(target = "endQuarterId", expression = "java(portfolio.getEndQuarter() != null ? portfolio.getEndQuarter().getId().toString() : null)")
+    @Mapping(target = "endQuarterName", source = "endQuarter.name")
+    @Mapping(target = "contributors", ignore = true)
+    @Mapping(target = "createdAt", expression = "java(portfolio.getCreatedAt() != null ? portfolio.getCreatedAt().toString() : null)")
     PortfolioResponseDto toResponseDto(Portfolio portfolio);
-
-    default List<String> imagesToUrls(List<PortfolioImage> images) {
-        if (images == null) return null;
-        return images.stream()
-                .sorted(Comparator.comparingInt(PortfolioImage::getSortOrder))
-                .map(PortfolioImage::getUrl)
-                .collect(Collectors.toList());
-    }
-
-    default List<String> tagsToNames(List<PortfolioTag> tags) {
-        if (tags == null) return null;
-        return tags.stream()
-                .map(PortfolioTag::getName)
-                .collect(Collectors.toList());
-    }
 }

@@ -2,8 +2,8 @@ package sogang.cnu.backend.portfolio.command;
 
 import lombok.Builder;
 import lombok.Getter;
-import sogang.cnu.backend.portfolio.PortfolioImage;
-import sogang.cnu.backend.portfolio.PortfolioTag;
+import sogang.cnu.backend.portfolio.PortfolioContributor;
+import sogang.cnu.backend.quarter.Quarter;
 
 import java.util.List;
 
@@ -13,8 +13,7 @@ public class PortfolioCreateCommand {
     private String title;
     private String description;
     private String thumbnailUrl;
-    private List<PortfolioImage> images;
-    private List<PortfolioTag> tags;
-    private String team;
-    private int year;
+    private Quarter startQuarter;
+    private Quarter endQuarter;
+    private List<PortfolioContributor> contributors;
 }

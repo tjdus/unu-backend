@@ -9,7 +9,7 @@ import sogang.cnu.backend.blog.BlogCategory;
 public class BlogUpdateCommand {
     private String title;
     private String subtitle;
-    private String content;
+    private String description;
     private String thumbnailUrl;
     private BlogCategory category;
 }

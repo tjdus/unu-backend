@@ -10,7 +10,7 @@ import lombok.Setter;
 public class BlogRequestDto {
     private String title;
     private String subtitle;
-    private String content;
+    private String description;
     private String thumbnailUrl;
     private String category;
 }

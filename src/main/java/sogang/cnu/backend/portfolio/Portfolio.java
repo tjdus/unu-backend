@@ -5,6 +5,7 @@ import lombok.*;
 import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.portfolio.command.PortfolioCreateCommand;
 import sogang.cnu.backend.portfolio.command.PortfolioUpdateCommand;
+import sogang.cnu.backend.quarter.Quarter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,64 +30,46 @@ public class Portfolio extends BaseEntity {
     private String description;
 
     private String thumbnailUrl;
-    private String team;
-    private int year;
 
-    @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<PortfolioImage> images = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "start_quarter_id")
+    private Quarter startQuarter;
 
-    @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "end_quarter_id")
+    private Quarter endQuarter;
+
+    @ElementCollection
+    @CollectionTable(name = "portfolio_contributors", joinColumns = @JoinColumn(name = "portfolio_id"))
     @Builder.Default
-    private List<PortfolioTag> tags = new ArrayList<>();
+    private List<PortfolioContributor> contributors = new ArrayList<>();
+
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
+    @Builder.Default
+    private Boolean pinned = false;
 
     public void update(PortfolioUpdateCommand command) {
         this.title = command.getTitle();
         this.description = command.getDescription();
         this.thumbnailUrl = command.getThumbnailUrl();
-        this.team = command.getTeam();
-        this.year = command.getYear();
-
-        this.images.clear();
-        if (command.getImages() != null) {
-            command.getImages().forEach(img -> {
-                img.setPortfolio(this);
-                this.images.add(img);
-            });
-        }
-
-        this.tags.clear();
-        if (command.getTags() != null) {
-            command.getTags().forEach(tag -> {
-                tag.setPortfolio(this);
-                this.tags.add(tag);
-            });
+        this.startQuarter = command.getStartQuarter();
+        this.endQuarter = command.getEndQuarter();
+        this.contributors.clear();
+        if (command.getContributors() != null) {
+            this.contributors.addAll(command.getContributors());
         }
     }
 
     public static Portfolio create(PortfolioCreateCommand command) {
-        Portfolio portfolio = Portfolio.builder()
+        return Portfolio.builder()
                 .title(command.getTitle())
                 .description(command.getDescription())
                 .thumbnailUrl(command.getThumbnailUrl())
-                .team(command.getTeam())
-                .year(command.getYear())
+                .startQuarter(command.getStartQuarter())
+                .endQuarter(command.getEndQuarter())
+                .contributors(command.getContributors() != null
+                        ? new ArrayList<>(command.getContributors())
+                        : new ArrayList<>())
                 .build();
-
-        if (command.getImages() != null) {
-            command.getImages().forEach(img -> {
-                img.setPortfolio(portfolio);
-                portfolio.getImages().add(img);
-            });
-        }
-
-        if (command.getTags() != null) {
-            command.getTags().forEach(tag -> {
-                tag.setPortfolio(portfolio);
-                portfolio.getTags().add(tag);
-            });
-        }
-
-        return portfolio;
     }
 }
