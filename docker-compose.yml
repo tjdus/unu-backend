@@ -29,9 +29,6 @@ services:
       PGTZ: Asia/Seoul
     ports:
       - "8080:8080"
-    volumes:
-      - image_uploads:/app/uploads
 
 volumes:
   postgres_data:
-  image_uploads:
