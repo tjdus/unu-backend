@@ -19,7 +19,9 @@ FROM eclipse-temurin:21-jre-alpine AS runner
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 spring && \
-    adduser  --system --uid 1001 spring
+    adduser  --system --uid 1001 spring && \
+    mkdir -p /app/uploads && \
+    chown spring:spring /app/uploads
 
 COPY --from=builder --chown=spring:spring /app/build/libs/*.jar app.jar
 

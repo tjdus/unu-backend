@@ -33,7 +33,7 @@ public class QuarterService {
         return quarterRepository.findAll().stream()
                 .sorted(Comparator
                         .comparingInt(Quarter::getYear).reversed()
-                        .thenComparingInt(q -> -q.getSeason().getOrder()))
+                        .thenComparingInt(q -> q.getSeason().getOrder()))
                 .map(quarterMapper::toResponseDto)
                 .collect(Collectors.toList());
     }

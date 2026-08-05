@@ -3,6 +3,7 @@ package sogang.cnu.backend.portfolio;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.image.ImageService;
 import sogang.cnu.backend.image.PostType;
@@ -57,7 +58,9 @@ public class PortfolioService {
                 null, PostType.PORTFOLIO, dto.getDescription(), dto.getThumbnailUrl()
         );
 
-        Portfolio portfolio = Portfolio.create(buildCreateCommand(dto, thumbnailUrl));
+        PortfolioCreateCommand command = buildCreateCommand(dto, thumbnailUrl);
+        validateQuarterRange(command.getStartQuarter(), command.getEndQuarter());
+        Portfolio portfolio = Portfolio.create(command);
         Portfolio saved = portfolioRepository.save(portfolio);
 
         imageService.syncImages(saved.getId(), PostType.PORTFOLIO, dto.getDescription(), thumbnailUrl);
@@ -75,7 +78,9 @@ public class PortfolioService {
                 id, PostType.PORTFOLIO, dto.getDescription(), dto.getThumbnailUrl()
         );
 
-        portfolio.update(buildUpdateCommand(dto, thumbnailUrl));
+        PortfolioUpdateCommand command = buildUpdateCommand(dto, thumbnailUrl);
+        validateQuarterRange(command.getStartQuarter(), command.getEndQuarter());
+        portfolio.update(command);
         return toResponseDtoWithContributors(portfolio);
     }
 
@@ -121,6 +126,15 @@ public class PortfolioService {
     private Quarter resolveQuarter(String quarterId) {
         if (quarterId == null || quarterId.isBlank()) return null;
         return quarterRepository.findById(UUID.fromString(quarterId)).orElse(null);
+    }
+
+    private void validateQuarterRange(Quarter startQuarter, Quarter endQuarter) {
+        if (startQuarter == null || endQuarter == null) return;
+        int startOrder = startQuarter.getYear() * 10 + startQuarter.getSeason().getOrder();
+        int endOrder = endQuarter.getYear() * 10 + endQuarter.getSeason().getOrder();
+        if (endOrder < startOrder) {
+            throw new BadRequestException("종료 분기는 시작 분기보다 이전일 수 없습니다.");
+        }
     }
 
     private List<PortfolioContributor> resolveContributors(List<PortfolioRequestDto.ContributorRequestDto> contributors) {

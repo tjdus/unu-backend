@@ -1,7 +1,7 @@
 package sogang.cnu.backend.quarter;
 
 public enum Season {
-    WINTER(0), SPRING(1), SUMMER(2), FALL(3), PRECEDENCE(-1);
+    WINTER(0), SPRING(1), SUMMER(2), FALL(3), PRECEDENCE(4);
 
     private final int order;
 
