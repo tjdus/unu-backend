@@ -10,6 +10,7 @@ import sogang.cnu.backend.application.command.ApplicationUpdateCommand;
 import sogang.cnu.backend.application.dto.ApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationResponse;
 import sogang.cnu.backend.application.dto.ApplicationLookupRequestDto;
+import sogang.cnu.backend.application.dto.ApplicationLookupResponse;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.recruitment.Recruitment;
@@ -115,10 +116,18 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public ApplicationResponse lookup(ApplicationLookupRequestDto query) {
+    public ApplicationLookupResponse lookup(ApplicationLookupRequestDto query) {
         Application application = applicationRepository.findFirstByNameAndEmailOrderByCreatedAtDesc(query.getName(), query.getEmail())
                 .orElseThrow(() -> new NotFoundException("Application not found"));
-        return applicationMapper.toResponseDto(application);
+        // 비밀번호 검증 전 단계이므로 존재 확인에 필요한 최소 정보만 반환한다.
+        // 답변/학번/전화번호 등은 /verify(비밀번호 필요)에서만 노출된다.
+        return ApplicationLookupResponse.builder()
+                .id(application.getId())
+                .name(application.getName())
+                .email(application.getEmail())
+                .status(application.getStatus() != null ? application.getStatus().name() : null)
+                .createdAt(application.getCreatedAt() != null ? application.getCreatedAt().toString() : null)
+                .build();
     }
 
     @Transactional

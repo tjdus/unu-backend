@@ -2,6 +2,7 @@ package sogang.cnu.backend.activity_session;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import sogang.cnu.backend.activity_session.dto.ActivitySessionRequestDto;
@@ -15,12 +16,14 @@ import java.util.UUID;
 public class ActivitySessionController {
     private final ActivitySessionService activitySessionService;
 
+    // 회차 조회는 학회원 홈/활동 화면에서 쓰이므로 열어두고, 회차 생성·수정·삭제만 운영진으로 제한한다.
     @GetMapping("")
     public ResponseEntity<List<ActivitySessionResponseDto>> getAll() {
         return ResponseEntity.ok(activitySessionService.getAll());
     }
 
     @PostMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivitySessionResponseDto> create(@RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
         return ResponseEntity.ok(activitySessionService.create(activitySessionRequestDto));
     }
@@ -31,11 +34,13 @@ public class ActivitySessionController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivitySessionResponseDto> update(@PathVariable UUID id, @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
         return ResponseEntity.ok(activitySessionService.update(id, activitySessionRequestDto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> delete(@PathVariable UUID id) {
         activitySessionService.delete(id);
         return ResponseEntity.noContent().build();

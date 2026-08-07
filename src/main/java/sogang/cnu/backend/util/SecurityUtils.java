@@ -53,6 +53,17 @@ public final class SecurityUtils {
                 .anyMatch(a -> a.equals("ROLE_ADMIN"));
     }
 
+    /** 주어진 역할 중 하나라도 가지고 있는지. 인자는 "ADMIN"처럼 접두사 없이 넘긴다. */
+    public static boolean hasAnyRole(String... roles) {
+        var authorities = getCurrentUser().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        for (String role : roles) {
+            if (authorities.contains("ROLE_" + role)) return true;
+        }
+        return false;
+    }
+
     /** 게시물 수정/삭제 규칙: 작성자 본인이거나 ADMIN이어야 한다. MANAGER는 남의 글을 건드릴 수 없다. */
     public static void requireOwnerOrAdmin(String createdBy, String message) {
         if (!isOwner(createdBy) && !isAdmin()) {

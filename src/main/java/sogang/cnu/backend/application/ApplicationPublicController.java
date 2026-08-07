@@ -19,7 +19,7 @@ public class ApplicationPublicController {
     }
 
     @PostMapping("/lookup")
-    public ResponseEntity<ApplicationResponse> lookup(@RequestBody ApplicationLookupRequestDto query) {
+    public ResponseEntity<ApplicationLookupResponse> lookup(@RequestBody ApplicationLookupRequestDto query) {
         return ResponseEntity.ok(applicationService.lookup(query));
     }
 

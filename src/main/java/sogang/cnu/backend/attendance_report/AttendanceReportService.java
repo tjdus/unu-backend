@@ -16,7 +16,9 @@ import sogang.cnu.backend.attendance_report.command.AttendanceReportCreateComman
 import sogang.cnu.backend.attendance_report.dto.AttendanceReportRequestDto;
 import sogang.cnu.backend.attendance_report.dto.AttendanceReportResponseDto;
 import sogang.cnu.backend.common.exception.BadRequestException;
+import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -47,7 +49,12 @@ public class AttendanceReportService {
         ActivityParticipant participant = activityParticipantRepository.findById(dto.getParticipantId())
                 .orElseThrow(() -> new NotFoundException("Activity participant not found"));
 
-
+        // 본인 참가에 대해서만 보고서를 제출할 수 있다(운영진은 대리 제출 허용).
+        boolean isOwner = participant.getUser() != null
+                && participant.getUser().getId().equals(SecurityUtils.getCurrentUserId());
+        if (!isOwner && !SecurityUtils.isManagerOrAdmin()) {
+            throw new ForbiddenException("본인의 참가에 대해서만 보고서를 제출할 수 있습니다.");
+        }
 
         AttendanceStatus status = resolveStatus(session.getDate());
 

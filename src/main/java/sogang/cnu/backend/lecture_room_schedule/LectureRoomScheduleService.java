@@ -10,8 +10,10 @@ import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleRequestDt
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleResponseDto;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
+import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -87,6 +89,14 @@ public class LectureRoomScheduleService {
     public void delete(UUID id) {
         LectureRoomSchedule schedule = lectureRoomScheduleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("LectureRoomSchedule not found"));
+
+        // 본인 예약이거나 학회실 관리 권한이 있어야 삭제할 수 있다.
+        boolean isOwner = schedule.getUser() != null
+                && schedule.getUser().getId().equals(SecurityUtils.getCurrentUserId());
+        if (!isOwner && !SecurityUtils.hasAnyRole("ADMIN", "MANAGER", "LECTURE_ROOM_MANAGER")) {
+            throw new ForbiddenException("본인 예약이거나 학회실 관리자만 삭제할 수 있습니다.");
+        }
+
         lectureRoomScheduleRepository.delete(schedule);
     }
 

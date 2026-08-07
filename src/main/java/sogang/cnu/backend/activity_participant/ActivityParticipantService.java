@@ -8,9 +8,11 @@ import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreate
 import sogang.cnu.backend.activity_participant.command.ActivityParticipantUpdateCommand;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDto;
+import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +31,7 @@ public class ActivityParticipantService {
     public ActivityParticipantResponseDto getById(UUID id) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
+        requireOwnerOrManager(activity);
 
         return activityParticipantMapper.toResponseDto(activity);
     }
@@ -92,8 +95,19 @@ public class ActivityParticipantService {
     public void delete(UUID id) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
+        requireOwnerOrManager(activity);
         activityParticipantRepository.delete(activity);
     }
+
+    // 본인의 참가 기록이거나 MANAGER/ADMIN이어야 조회·삭제(참가 취소)할 수 있다.
+    private void requireOwnerOrManager(ActivityParticipant participant) {
+        boolean isOwner = participant.getUser() != null
+                && participant.getUser().getId().equals(SecurityUtils.getCurrentUserId());
+        if (!isOwner && !SecurityUtils.isManagerOrAdmin()) {
+            throw new ForbiddenException("본인의 참가 정보만 확인할 수 있습니다.");
+        }
+    }
+
     public List<ActivityParticipantResponseDto> getByActivityId(UUID activityId) {
         List<ActivityParticipant> participants = activityParticipantRepository.findByActivityId(activityId);
         return participants.stream()

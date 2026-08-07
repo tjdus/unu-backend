@@ -80,6 +80,14 @@ public class RecruitmentService {
         return recruitmentMapper.toResponseDto(recruitment);
     }
 
+    @Transactional(readOnly = true)
+    public RecruitmentResponseDto getClosestRecruitment() {
+        Recruitment recruitment = recruitmentRepository
+                .findFirstByEndAtAfterOrderByEndAtAsc(java.time.LocalDateTime.now())
+                .orElseThrow(() -> new NotFoundException("No upcoming or ongoing recruitment"));
+        return recruitmentMapper.toResponseDto(recruitment);
+    }
+
     private void validateDates(java.time.LocalDateTime startAt, java.time.LocalDateTime endAt) {
         if (startAt != null && endAt != null && startAt.isAfter(endAt)) {
             throw new IllegalArgumentException("Start date must be before end date");

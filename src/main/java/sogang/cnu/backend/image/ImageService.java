@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import sogang.cnu.backend.image.dto.ImageUploadResponseDto;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -120,6 +121,8 @@ public class ImageService {
     @Transactional
     public void deleteById(UUID id) {
         imageRepository.findById(id).ifPresent(img -> {
+            // 업로더 본인 또는 운영진만 삭제할 수 있다.
+            SecurityUtils.requireOwnerOrManager(img.getCreatedBy(), "본인이 업로드한 이미지만 삭제할 수 있습니다.");
             deleteFile(img.getFilename());
             imageRepository.delete(img);
         });

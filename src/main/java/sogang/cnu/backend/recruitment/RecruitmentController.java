@@ -2,6 +2,7 @@ package sogang.cnu.backend.recruitment;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.recruitment.dto.RecruitmentRequestDto;
 import sogang.cnu.backend.recruitment.dto.RecruitmentResponseDto;
@@ -22,7 +23,10 @@ public class RecruitmentController {
         return ResponseEntity.ok(recruitmentService.getAll());
     }
 
+    // update/delete는 서비스의 permissionChecker.checkManagerOrAdmin()으로 막혀 있는데
+    // create만 빠져 있었다. 같은 기준(MANAGER/ADMIN)으로 맞춘다.
     @PostMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<RecruitmentResponseDto> create(@RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.create(request));
     }
