@@ -83,6 +83,8 @@ public class UserService {
                 .map(role -> UserRole.builder().user(user).role(role).build())
                 .collect(Collectors.toList());
         user.getUserRoles().addAll(userRoles);
+        // flush 해야 UserRole의 생성 id가 발급된다. 없으면 응답의 userRoles[].id가 전부 null이다.
+        entityManager.flush();
 
         return userMapper.toResponseDto(user);
     }

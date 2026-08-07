@@ -14,12 +14,14 @@ import sogang.cnu.backend.portfolio.dto.PortfolioRequestDto;
 import sogang.cnu.backend.portfolio.dto.PortfolioResponseDto;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
+import sogang.cnu.backend.util.SecurityUtils;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
-import sogang.cnu.backend.util.SecurityUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -72,7 +74,7 @@ public class PortfolioService {
     public PortfolioResponseDto update(UUID id, PortfolioRequestDto dto) {
         Portfolio portfolio = portfolioRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Portfolio not found"));
-        SecurityUtils.requireOwner(portfolio.getCreatedBy(), "본인이 작성한 글만 수정할 수 있습니다.");
+        SecurityUtils.requireOwnerOrAdmin(portfolio.getCreatedBy(), "본인이 작성한 글만 수정할 수 있습니다.");
 
         String thumbnailUrl = imageService.syncImages(
                 id, PostType.PORTFOLIO, dto.getDescription(), dto.getThumbnailUrl()
@@ -88,7 +90,7 @@ public class PortfolioService {
     public void delete(UUID id) {
         Portfolio portfolio = portfolioRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Portfolio not found"));
-        SecurityUtils.requireOwnerOrManager(portfolio.getCreatedBy(), "삭제 권한이 없습니다.");
+        SecurityUtils.requireOwnerOrAdmin(portfolio.getCreatedBy(), "본인이 작성한 글만 삭제할 수 있습니다.");
         imageService.deletePostImages(id, PostType.PORTFOLIO);
         portfolioRepository.delete(portfolio);
     }
@@ -140,10 +142,17 @@ public class PortfolioService {
     private List<PortfolioContributor> resolveContributors(List<PortfolioRequestDto.ContributorRequestDto> contributors) {
         if (contributors == null) return List.of();
         return contributors.stream()
-                .map(c -> PortfolioContributor.builder()
-                        .userId(UUID.fromString(c.getUserId()))
-                        .role(c.getRole())
-                        .build())
+                .map(c -> {
+                    boolean isMember = c.getUserId() != null && !c.getUserId().isBlank();
+                    return PortfolioContributor.builder()
+                            .userId(isMember ? UUID.fromString(c.getUserId()) : null)
+                            .name(isMember ? null : c.getName())
+                            .role(c.getRole())
+                            .build();
+                })
+                // 학회원도 아니고 이름도 없는 빈 항목은 저장하지 않는다.
+                .filter(c -> c.getUserId() != null
+                        || (c.getName() != null && !c.getName().isBlank()))
                 .collect(Collectors.toList());
     }
 
@@ -154,16 +163,29 @@ public class PortfolioService {
         if (contributors != null && !contributors.isEmpty()) {
             List<UUID> ids = contributors.stream()
                     .map(PortfolioContributor::getUserId)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            Map<UUID, String> nameMap = userRepository.findAllById(ids).stream()
-                    .collect(Collectors.toMap(User::getId, User::getName));
-            dto.setContributors(contributors.stream()
-                    .map(c -> PortfolioResponseDto.ContributorDto.builder()
-                            .id(c.getUserId().toString())
-                            .name(nameMap.getOrDefault(c.getUserId(), "Unknown"))
-                            .role(c.getRole())
-                            .build())
-                    .collect(Collectors.toList()));
+            Map<UUID, String> nameMap = ids.isEmpty()
+                    ? Map.of()
+                    : userRepository.findAllById(ids).stream()
+                            .filter(u -> u.getName() != null)
+                            .collect(Collectors.toMap(User::getId, User::getName));
+
+            List<PortfolioResponseDto.ContributorDto> result = new ArrayList<>();
+            for (int i = 0; i < contributors.size(); i++) {
+                PortfolioContributor c = contributors.get(i);
+                boolean isMember = c.getUserId() != null;
+                result.add(PortfolioResponseDto.ContributorDto.builder()
+                        // 외부 인원은 userId가 없으므로 목록 내 위치로 키를 만든다.
+                        .id(isMember ? c.getUserId().toString() : "ext:" + i)
+                        .userId(isMember ? c.getUserId().toString() : null)
+                        .name(isMember
+                                ? nameMap.getOrDefault(c.getUserId(), "Unknown")
+                                : c.getName())
+                        .role(c.getRole())
+                        .build());
+            }
+            dto.setContributors(result);
         } else {
             dto.setContributors(List.of());
         }

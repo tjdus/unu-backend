@@ -74,7 +74,7 @@ public class BlogService {
     public BlogResponseDto update(UUID id, BlogRequestDto dto) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Blog not found"));
-        SecurityUtils.requireOwner(blog.getCreatedBy(), "본인이 작성한 글만 수정할 수 있습니다.");
+        SecurityUtils.requireOwnerOrAdmin(blog.getCreatedBy(), "본인이 작성한 글만 수정할 수 있습니다.");
 
         String thumbnailUrl = imageService.syncImages(
                 id, PostType.BLOG, dto.getDescription(), dto.getThumbnailUrl()
@@ -95,7 +95,7 @@ public class BlogService {
     public void delete(UUID id) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Blog not found"));
-        SecurityUtils.requireOwnerOrManager(blog.getCreatedBy(), "삭제 권한이 없습니다.");
+        SecurityUtils.requireOwnerOrAdmin(blog.getCreatedBy(), "본인이 작성한 글만 삭제할 수 있습니다.");
         imageService.deletePostImages(id, PostType.BLOG);
         blogRepository.delete(blog);
     }

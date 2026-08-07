@@ -22,6 +22,7 @@ public class PortfolioRequestDto {
     @Builder
     public static class ContributorRequestDto {
         private String userId;
+        private String name;
         private String role;
     }
 }

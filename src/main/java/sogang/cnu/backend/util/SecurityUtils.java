@@ -47,6 +47,19 @@ public final class SecurityUtils {
         }
     }
 
+    public static boolean isAdmin() {
+        return getCurrentUser().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN"));
+    }
+
+    /** 게시물 수정/삭제 규칙: 작성자 본인이거나 ADMIN이어야 한다. MANAGER는 남의 글을 건드릴 수 없다. */
+    public static void requireOwnerOrAdmin(String createdBy, String message) {
+        if (!isOwner(createdBy) && !isAdmin()) {
+            throw new ForbiddenException(message);
+        }
+    }
+
     private static boolean isOwner(String createdBy) {
         try {
             return createdBy != null && UUID.fromString(createdBy).equals(getCurrentUserId());

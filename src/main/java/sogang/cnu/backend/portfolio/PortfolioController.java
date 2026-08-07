@@ -18,11 +18,13 @@ public class PortfolioController {
     private final PortfolioService portfolioService;
 
     @PostMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PortfolioResponseDto> create(@RequestBody PortfolioRequestDto dto) {
         return ResponseEntity.ok(portfolioService.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PortfolioResponseDto> update(
             @PathVariable UUID id,
             @RequestBody PortfolioRequestDto dto) {
@@ -30,6 +32,7 @@ public class PortfolioController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         portfolioService.delete(id);
         return ResponseEntity.noContent().build();

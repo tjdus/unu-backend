@@ -22,6 +22,7 @@ import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -84,7 +85,7 @@ public class DataInitializer implements ApplicationRunner {
         cq.update(currentQuarter);
         currentQuarterRepository.save(cq);
 
-        log.info("Seeded {} quarters; current quarter set to 2026 SPRING", defs.size());
+        log.info("Seeded {} quarters; current quarter set to 2026 SUMMER", defs.size());
     }
 
     // ── Types ─────────────────────────────────────────────────────────────────
@@ -113,13 +114,21 @@ public class DataInitializer implements ApplicationRunner {
     // ── Roles ─────────────────────────────────────────────────────────────────
 
     private void initRoles() {
-        if (roleRepository.count() > 0) return;
+        // 전체 건수로 스킵하면 기존 DB에 새 역할을 추가할 수 없으므로 없는 것만 골라 넣는다.
+        List<String> names = List.of(
+            "MEMBER", "MANAGER", "ADMIN", "LECTURE_ROOM_MANAGER", "BLOG_MANAGER"
+        );
 
-        for (String name : List.of("MEMBER", "MANAGER", "ADMIN")) {
+        List<String> created = new ArrayList<>();
+        for (String name : names) {
+            if (roleRepository.findByName(name).isPresent()) continue;
             roleRepository.save(Role.builder().name(name).build());
+            created.add(name);
         }
 
-        log.info("Seeded roles: MEMBER, MANAGER, ADMIN");
+        if (!created.isEmpty()) {
+            log.info("Seeded roles: {}", String.join(", ", created));
+        }
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────

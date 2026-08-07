@@ -28,6 +28,8 @@ public class PortfolioResponseDto {
     @Builder
     public static class ContributorDto {
         private String id;
+        // 학회원이면 userId, 외부 인원이면 null
+        private String userId;
         private String name;
         private String role;
     }

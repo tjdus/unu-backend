@@ -2,6 +2,7 @@ package sogang.cnu.backend.common.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -30,6 +31,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReservationConflictException.class)
     public ResponseEntity<?> handleReservationConflict(ReservationConflictException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    }
+
+    // @PreAuthorize 거부도 RuntimeException이라, 이 핸들러가 없으면 아래 포괄 핸들러가 500으로 바꿔버린다.
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("권한이 없습니다.");
     }
 
     @ExceptionHandler(RuntimeException.class)
