@@ -98,7 +98,8 @@ public class DataInitializer implements ApplicationRunner {
         List<ActivityTypeDef> defs = List.of(
             new ActivityTypeDef("프로젝트", "PROJECT"),
             new ActivityTypeDef("스터디", "STUDY"),
-            new ActivityTypeDef("온라인 강의", "ONLINE_COURSE")
+            new ActivityTypeDef("온라인 강의", "ONLINE_COURSE"),
+            new ActivityTypeDef("인강", "LECTURE")
         );
 
         for (ActivityTypeDef d : defs) {
@@ -108,7 +109,7 @@ public class DataInitializer implements ApplicationRunner {
                     .build());
         }
 
-        log.info("Seeded activity types: 프로젝트, 스터디, 온라인 강의");
+        log.info("Seeded activity types: 프로젝트, 스터디, 온라인 강의, 인강");
     }
 
     // ── Roles ─────────────────────────────────────────────────────────────────
