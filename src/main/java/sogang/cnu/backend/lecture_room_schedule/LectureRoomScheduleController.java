@@ -20,6 +20,7 @@ public class LectureRoomScheduleController {
     private final LectureRoomScheduleService lectureRoomScheduleService;
 
     @GetMapping("/quarters/{quarterId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','LECTURE_ROOM_MANAGER')")
     public ResponseEntity<List<LectureRoomScheduleResponseDto>> getByQuarter(
             @PathVariable UUID quarterId,
             @RequestParam(required = false) String dayOfWeek) {
@@ -29,8 +30,7 @@ public class LectureRoomScheduleController {
         return ResponseEntity.ok(lectureRoomScheduleService.getByQuarter(quarterId));
     }
 
-    // 임의 사용자(dto.userId)를 배정하는 경로. 학회실 관리 권한이 있는 사람만 가능하다.
-    // 학회원 본인 예약은 아래 /me 경로를 쓴다.
+    // 임의 사용자(dto.userId)를 배정하는 경로.
     @PostMapping("")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','LECTURE_ROOM_MANAGER')")
     public ResponseEntity<LectureRoomScheduleResponseDto> create(@RequestBody LectureRoomScheduleRequestDto dto) {
@@ -38,14 +38,16 @@ public class LectureRoomScheduleController {
     }
 
     @PostMapping("/me")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','LECTURE_ROOM_MANAGER')")
     public ResponseEntity<LectureRoomScheduleResponseDto> createForMe(
             @CurrentUser CustomUserDetails user,
             @RequestBody LectureRoomScheduleRequestDto dto) {
         return ResponseEntity.ok(lectureRoomScheduleService.createForMe(user.getId(), dto));
     }
 
-    // 본인 예약 취소 또는 학회실 관리자가 배정 해제. 소유자/권한 확인은 서비스에서 한다.
+    // 본인 일정 취소 또는 다른 관리자의 배정 해제. 소유자 확인은 서비스에서 한다.
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','LECTURE_ROOM_MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         lectureRoomScheduleService.delete(id);
         return ResponseEntity.noContent().build();

@@ -16,6 +16,7 @@ import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user.dto.UserRoleUpdateRequestDto;
+import sogang.cnu.backend.user.dto.UserSummaryResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 
 import java.time.LocalDate;
@@ -64,6 +65,22 @@ public class UserService {
         return users.stream()
                 .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponseDto> searchSummaries(String name, String studentId) {
+        if ((name == null || name.isBlank()) && (studentId == null || studentId.isBlank())) {
+            return List.of();
+        }
+
+        return userRepositoryCustom.search(null, null, null, name, studentId).stream()
+                .limit(20)
+                .map(user -> UserSummaryResponseDto.builder()
+                        .id(user.getId())
+                        .name(user.getName())
+                        .studentId(user.getStudentId())
+                        .build())
+                .toList();
     }
 
     @Transactional
