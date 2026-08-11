@@ -83,6 +83,31 @@ public class UserService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponseDto> searchActiveSummaries(String query) {
+        if (query == null || query.trim().length() < 2) {
+            return List.of();
+        }
+
+        String normalized = query.trim();
+        boolean studentIdQuery = normalized.chars().allMatch(Character::isDigit);
+        return userRepositoryCustom.search(
+                        null,
+                        null,
+                        null,
+                        studentIdQuery ? null : normalized,
+                        studentIdQuery ? normalized : null
+                ).stream()
+                .filter(user -> user.getMemberStatus() == MemberStatus.MEMBER)
+                .limit(10)
+                .map(user -> UserSummaryResponseDto.builder()
+                        .id(user.getId())
+                        .name(user.getName())
+                        .studentId(user.getStudentId())
+                        .build())
+                .toList();
+    }
+
     @Transactional
     public UserResponseDto changeUserRole(UserRoleUpdateRequestDto request) {
         User user = userRepository.findById(request.getUserId())

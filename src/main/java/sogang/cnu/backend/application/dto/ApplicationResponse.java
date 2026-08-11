@@ -14,6 +14,7 @@ import java.util.UUID;
 public class ApplicationResponse {
     private UUID id;
     private UUID recruitmentId;
+    private UUID formId;
     private String name;
     private String studentId;
     private String major;
@@ -31,4 +32,3 @@ public class ApplicationResponse {
     private AuditorDto createdBy;
     private AuditorDto modifiedBy;
 }
-

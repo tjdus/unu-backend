@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.course_time_reservation.dto.CourseTimeReservationRequestDto;
 import sogang.cnu.backend.course_time_reservation.dto.CourseTimeReservationResponseDto;
+import sogang.cnu.backend.course_time_reservation.dto.CourseTimeReservationSlotResponseDto;
 import sogang.cnu.backend.security.CurrentUser;
 import sogang.cnu.backend.security.CustomUserDetails;
 
@@ -55,11 +56,10 @@ public class CourseTimeReservationController {
     }
 
     @GetMapping("/api/activities/{activityId}/course-reservations")
-    public ResponseEntity<List<CourseTimeReservationResponseDto>> getByActivity(
+    public ResponseEntity<List<CourseTimeReservationSlotResponseDto>> getByActivity(
             @PathVariable UUID activityId,
-            @RequestParam(required = false) UUID userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return ResponseEntity.ok(reservationService.getByActivity(activityId, userId, date));
+        return ResponseEntity.ok(reservationService.getByActivity(activityId, date));
     }
 }

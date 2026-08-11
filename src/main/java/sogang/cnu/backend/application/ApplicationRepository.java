@@ -13,5 +13,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
     List<Application> findByRecruitmentId(UUID recruitmentId);
     Optional<Application> findFirstByNameAndEmailOrderByCreatedAtDesc(String name, String email);
-
+    boolean existsByRecruitmentIdAndStudentIdAndStatusNot(UUID recruitmentId, String studentId, ApplicationStatus status);
+    boolean existsByRecruitmentIdAndEmailIgnoreCaseAndStatusNot(UUID recruitmentId, String email, ApplicationStatus status);
+    boolean existsByRecruitmentIdAndStudentIdAndStatusNotAndIdNot(
+            UUID recruitmentId, String studentId, ApplicationStatus status, UUID id);
+    boolean existsByRecruitmentIdAndEmailIgnoreCaseAndStatusNotAndIdNot(
+            UUID recruitmentId, String email, ApplicationStatus status, UUID id);
 }

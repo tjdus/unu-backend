@@ -2,6 +2,7 @@ package sogang.cnu.backend.form;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.form.dto.FormTemplateRequestDto;
 import sogang.cnu.backend.form.dto.FormTemplateResponseDto;
@@ -23,6 +24,7 @@ public class FormTemplateController {
     }
 
     @PostMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<FormTemplateResponseDto> create(@RequestBody FormTemplateRequestDto formTemplateRequestDto) {
         return ResponseEntity.ok(formTemplateService.create(formTemplateRequestDto));
     }

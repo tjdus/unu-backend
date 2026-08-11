@@ -21,5 +21,6 @@ public class ActivityCreateCommand {
     private LocalDate startDate;
     private LocalDate endDate;
     private Activity parentActivity;
+    private Boolean listed;
+    private Integer depositAmount;
 }
-

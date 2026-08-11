@@ -1,5 +1,6 @@
 package sogang.cnu.backend.attendance;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,52 +28,44 @@ public class AttendanceController {
     }
 
     @PostMapping("")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<AttendanceResponseDto> create(@RequestBody AttendanceRequestDto attendanceRequestDto) {
         return ResponseEntity.ok(attendanceService.create(attendanceRequestDto));
     }
 
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<AttendanceResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<AttendanceResponseDto> update(@PathVariable UUID id, @RequestBody AttendanceRequestDto attendanceRequestDto) {
         return ResponseEntity.ok(attendanceService.update(id, attendanceRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> delete(@PathVariable UUID id) {
         attendanceService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/sessions/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<AttendanceResponseDto>> getBySessionId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getBySessionId(id));
     }
 
     @GetMapping("/participants/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<AttendanceResponseDto>> getByParticipantId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getByParticipantId(id));
     }
 
     @PostMapping("/bulk")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<List<AttendanceResponseDto>> bulkCreate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
+    public ResponseEntity<List<AttendanceResponseDto>> bulkCreate(@Valid @RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
         return ResponseEntity.ok(attendanceService.bulkCreate(attendanceBulkRequestDto));
     }
 
     @PatchMapping("/bulk")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<List<AttendanceResponseDto>> bulkUpdate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
+    public ResponseEntity<List<AttendanceResponseDto>> bulkUpdate(@Valid @RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
         return ResponseEntity.ok(attendanceService.bulkUpdate(attendanceBulkRequestDto));
     }
 

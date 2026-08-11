@@ -9,14 +9,12 @@ import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.activity_type.ActivityTypeRepository;
 import sogang.cnu.backend.common.PermissionChecker;
+import sogang.cnu.backend.common.exception.ForbiddenException;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 
 import sogang.cnu.backend.activity.dto.ActivityRequestDto;
 import sogang.cnu.backend.activity.dto.ActivityResponseDto;
-import sogang.cnu.backend.activity_participant.ActivityParticipant;
-import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
-import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
-import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreateCommand;
 import sogang.cnu.backend.attendance.AttendanceRepository;
 import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
 import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepository;
@@ -24,6 +22,7 @@ import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,21 +31,29 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ActivityService {
+    private static final String MANAGER_ONLY_ACTIVITY_TYPE = "SPECIAL_LECTURE";
+    private static final int MAX_DEPOSIT_AMOUNT = 1_000_000;
+
     private final ActivityRepository activityRepository;
     private final ActivityMapper activityMapper;
     private final UserRepository userRepository;
     private final ActivityTypeRepository activityTypeRepository;
     private final QuarterRepository quarterRepository;
-    private final ActivityParticipantRepository activityParticipantRepository;
     private final AttendanceRepository attendanceRepository;
     private final AttendanceReportRepository attendanceReportRepository;
     private final CourseTimeReservationRepository courseTimeReservationRepository;
     private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
-    public ActivityResponseDto getById(UUID id) {
+    public ActivityResponseDto getById(UUID userId, UUID id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
+
+        if (!isListed(activity) &&
+                !activity.getAssignee().getId().equals(userId) &&
+                !SecurityUtils.isManagerOrAdmin()) {
+            throw new NotFoundException("Activity not found");
+        }
 
         return activityMapper.toResponseDto(activity);
     }
@@ -54,37 +61,24 @@ public class ActivityService {
     @Transactional(readOnly = true)
     public List<ActivityResponseDto> getAll() {
         return activityRepository.findAll().stream()
+                .filter(this::isListed)
+                .map(activityMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityResponseDto> getHostedByUserId(UUID userId) {
+        return activityRepository.findByAssigneeId(userId).stream()
                 .map(activityMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public ActivityResponseDto create(ActivityRequestDto dto) {
+        validateDepositAmount(dto.getDepositAmount());
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
-        return activityMapper.toResponseDto(savedActivity);
-    }
-
-    @Transactional
-    public ActivityResponseDto createWithAssignee(UUID userId, ActivityRequestDto dto) {
-        dto.setAssigneeId(userId);
-        dto.setStatus(String.valueOf(ActivityStatus.CREATED));
-        ActivityCreateCommand createCommand = toCreateCommand(dto);
-        Activity activity = Activity.create(createCommand);
-        Activity savedActivity = activityRepository.save(activity);
-
-        User assignee = findAssignee(userId);
-        ActivityParticipant participant = ActivityParticipant.create(
-                ActivityParticipantCreateCommand.builder()
-                        .activity(savedActivity)
-                        .user(assignee)
-                        .status(ActivityParticipantStatus.APPLIED)
-                        .build()
-        );
-        participant.updateStatus(ActivityParticipantStatus.APPROVED);
-        activityParticipantRepository.save(participant);
-
         return activityMapper.toResponseDto(savedActivity);
     }
 
@@ -94,7 +88,10 @@ public class ActivityService {
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
         checkPermission(userId, activity);
-        activity.update(toUpdateCommand(dto));
+        ActivityType activityType = findActivityType(dto.getActivityTypeId());
+        validateActivityTypeChange(activity, activityType);
+        Integer depositAmount = resolveDepositAmount(activity, activityType, dto.getDepositAmount());
+        activity.update(toUpdateCommand(dto, activityType, depositAmount));
         return activityMapper.toResponseDto(activity);
     }
 
@@ -122,16 +119,40 @@ public class ActivityService {
     }
 
     @Transactional(readOnly = true)
-    public List<ActivityResponseDto> search(ActivitySearchQuery query) {
+    public List<ActivityResponseDto> search(ActivitySearchQuery query, boolean includeUnlisted, UUID userId) {
         return activityRepository.search(query).stream()
+                .filter(activity -> isVisibleInSearch(activity, includeUnlisted, userId))
                 .map(activityMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isVisibleInSearch(Activity activity, boolean includeUnlisted, UUID userId) {
+        if (isListed(activity)) return true;
+        if (!includeUnlisted) return false;
+        return SecurityUtils.isManagerOrAdmin() || activity.getAssignee().getId().equals(userId);
+    }
+
+    private boolean isListed(Activity activity) {
+        return activity.getListed() == null || Boolean.TRUE.equals(activity.getListed());
     }
 
     private void checkPermission(UUID userId, Activity activity) {
         boolean isAssignee = activity.getAssignee().getId().equals(userId);
         if (isAssignee) return;
         permissionChecker.checkManagerOrAdmin(userId);
+    }
+
+    private void validateActivityTypeChange(Activity activity, ActivityType requestedType) {
+        boolean changesDepositPolicy = isDepositType(activity.getActivityType())
+                != isDepositType(requestedType);
+        if (changesDepositPolicy && !SecurityUtils.isManagerOrAdmin()) {
+            throw new ForbiddenException("보증금 적용 유형은 관리자 또는 운영자만 변경할 수 있습니다.");
+        }
+        boolean changingToManagerOnlyType = MANAGER_ONLY_ACTIVITY_TYPE.equals(requestedType.getCode())
+                && !MANAGER_ONLY_ACTIVITY_TYPE.equals(activity.getActivityType().getCode());
+        if (changingToManagerOnlyType && !SecurityUtils.isManagerOrAdmin()) {
+            throw new ForbiddenException("강의 유형은 관리자 또는 운영자만 지정할 수 있습니다.");
+        }
     }
 
     private ActivityType findActivityType(UUID activityTypeId) {
@@ -154,31 +175,69 @@ public class ActivityService {
     }
 
     private ActivityCreateCommand toCreateCommand(ActivityRequestDto dto) {
+        ActivityType activityType = findActivityType(dto.getActivityTypeId());
         return ActivityCreateCommand.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
                 .status(ActivityStatus.valueOf(dto.getStatus()))
-                .activityType(findActivityType(dto.getActivityTypeId()))
+                .activityType(activityType)
                 .assignee(findAssignee(dto.getAssigneeId()))
                 .quarter(findQuarter(dto.getQuarterId()))
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
                 .parentActivity(findParentActivity(dto.getParentActivityId()))
+                .depositAmount(depositAmountForType(
+                        activityType,
+                        dto.getDepositAmount()
+                ))
                 .build();
     }
 
-    private ActivityUpdateCommand toUpdateCommand(ActivityRequestDto dto) {
+    private ActivityUpdateCommand toUpdateCommand(
+            ActivityRequestDto dto,
+            ActivityType activityType,
+            Integer depositAmount
+    ) {
         return ActivityUpdateCommand.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
                 .status(ActivityStatus.valueOf(dto.getStatus()))
-                .activityType(findActivityType(dto.getActivityTypeId()))
+                .activityType(activityType)
                 .assignee(findAssignee(dto.getAssigneeId()))
                 .quarter(findQuarter(dto.getQuarterId()))
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
                 .parentActivity(findParentActivity(dto.getParentActivityId()))
+                .depositAmount(depositAmount)
                 .build();
+    }
+
+    private Integer resolveDepositAmount(
+            Activity activity,
+            ActivityType requestedType,
+            Integer requestedAmount
+    ) {
+        if (!SecurityUtils.isManagerOrAdmin()) {
+            return depositAmountForType(requestedType, activity.getDepositAmount());
+        }
+        validateDepositAmount(requestedAmount);
+        return depositAmountForType(requestedType, requestedAmount);
+    }
+
+    private Integer depositAmountForType(ActivityType activityType, Integer amount) {
+        if (!isDepositType(activityType)) return 0;
+        return amount == null ? 30_000 : amount;
+    }
+
+    private boolean isDepositType(ActivityType activityType) {
+        String code = activityType.getCode();
+        return "STUDY".equals(code) || "SPECIAL_LECTURE".equals(code);
+    }
+
+    private void validateDepositAmount(Integer amount) {
+        if (amount != null && (amount < 0 || amount > MAX_DEPOSIT_AMOUNT)) {
+            throw new BadRequestException("참여 보증금은 0원 이상 1,000,000원 이하로 설정해주세요.");
+        }
     }
 
 }

@@ -58,6 +58,24 @@ public class ActivityParticipant extends BaseEntity {
     @Column(name = "joined_at")
     private LocalDateTime joinedAt;
 
+    @Column(name = "refund_bank_name", length = 50)
+    private String refundBankName;
+
+    @Column(name = "refund_account_number", length = 20)
+    private String refundAccountNumber;
+
+    @Column(name = "refund_account_holder", length = 50)
+    private String refundAccountHolder;
+
+    @Column(name = "deposit_policy_agreed_at")
+    private LocalDateTime depositPolicyAgreedAt;
+
+    @Column(name = "deposit_payment_confirmed_at")
+    private LocalDateTime depositPaymentConfirmedAt;
+
+    @Column(name = "promotion_agreed_at")
+    private LocalDateTime promotionAgreedAt;
+
     public void updateStatus(ActivityParticipantStatus newStatus) {
         this.status = newStatus;
         if (newStatus == ActivityParticipantStatus.APPROVED) {
@@ -70,6 +88,21 @@ public class ActivityParticipant extends BaseEntity {
         this.completedAt = LocalDateTime.now();
     }
 
+    public void recordDepositApplication(
+            String bankName,
+            String accountNumber,
+            String accountHolder,
+            boolean promotionAgreed
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        this.refundBankName = bankName;
+        this.refundAccountNumber = accountNumber;
+        this.refundAccountHolder = accountHolder;
+        this.depositPolicyAgreedAt = now;
+        this.depositPaymentConfirmedAt = now;
+        this.promotionAgreedAt = promotionAgreed ? now : null;
+    }
+
     public void update(ActivityParticipantUpdateCommand command) {
         this.status = command.getStatus();
         this.completed = command.getCompleted();
@@ -80,6 +113,9 @@ public class ActivityParticipant extends BaseEntity {
                 .activity(command.getActivity())
                 .user(command.getUser())
                 .status(command.getStatus())
+                .joinedAt(command.getStatus() == ActivityParticipantStatus.APPROVED
+                        ? LocalDateTime.now()
+                        : null)
                 .build();
     }
 }

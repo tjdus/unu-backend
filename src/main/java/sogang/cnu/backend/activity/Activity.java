@@ -23,6 +23,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Activity extends BaseEntity {
+    private static final int DEFAULT_DEPOSIT_AMOUNT = 30_000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -50,6 +52,13 @@ public class Activity extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
+    @Column(name = "is_listed")
+    @Builder.Default
+    private Boolean listed = true;
+
+    @Column(name = "deposit_amount")
+    private Integer depositAmount;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_activity_id")
     private Activity parentActivity;
@@ -64,6 +73,7 @@ public class Activity extends BaseEntity {
         this.assignee = command.getAssignee();
         this.quarter = command.getQuarter();
         this.parentActivity = command.getParentActivity();
+        this.depositAmount = command.getDepositAmount();
     }
 
     public void updateStatus(ActivityStatus newStatus) {
@@ -85,11 +95,29 @@ public class Activity extends BaseEntity {
                 .status(command.getStatus())
                 .startDate(command.getStartDate())
                 .endDate(command.getEndDate())
+                .listed(command.getListed() == null ? true : command.getListed())
                 .activityType(command.getActivityType())
                 .assignee(command.getAssignee())
                 .quarter(command.getQuarter())
                 .parentActivity(command.getParentActivity())
+                .depositAmount(defaultDepositAmount(
+                        command.getActivityType(),
+                        command.getDepositAmount()
+                ))
                 .build();
         return activity;
+    }
+
+    public Integer getDepositAmount() {
+        return defaultDepositAmount(activityType, depositAmount);
+    }
+
+    private static Integer defaultDepositAmount(ActivityType activityType, Integer amount) {
+        if (amount != null) return amount;
+        if (activityType == null) return 0;
+        String code = activityType.getCode();
+        return "STUDY".equals(code) || "SPECIAL_LECTURE".equals(code)
+                ? DEFAULT_DEPOSIT_AMOUNT
+                : 0;
     }
 }

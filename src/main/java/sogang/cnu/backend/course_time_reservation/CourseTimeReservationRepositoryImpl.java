@@ -33,6 +33,26 @@ public class CourseTimeReservationRepositoryImpl implements CourseTimeReservatio
     }
 
     @Override
+    public boolean existsActivityOverlapping(
+            UUID activityId,
+            LocalDateTime newStart,
+            LocalDateTime newEnd,
+            UUID excludeId
+    ) {
+        Long count = queryFactory
+                .select(courseTimeReservation.count())
+                .from(courseTimeReservation)
+                .where(
+                        courseTimeReservation.activity.id.eq(activityId),
+                        excludeId != null ? courseTimeReservation.id.ne(excludeId) : null,
+                        courseTimeReservation.startAt.lt(newEnd),
+                        courseTimeReservation.endAt.gt(newStart)
+                )
+                .fetchOne();
+        return count != null && count > 0;
+    }
+
+    @Override
     public long sumMinutesOnKstDate(UUID userId, LocalDate kstDate, UUID excludeId) {
         LocalDateTime utcStart = kstDate.atStartOfDay();
         LocalDateTime utcEnd = kstDate.plusDays(1).atStartOfDay();

@@ -11,4 +11,9 @@ import java.util.UUID;
 public interface ActivitySessionRepository extends JpaRepository<ActivitySession, UUID> {
     List<ActivitySession> findByActivityId(UUID activityId);
 
+    boolean existsByActivityIdAndSessionNumber(UUID activityId, Integer sessionNumber);
+    boolean existsByActivityIdAndDate(UUID activityId, java.time.LocalDate date);
+    boolean existsByActivityIdAndSessionNumberAndIdNot(UUID activityId, Integer sessionNumber, UUID id);
+    boolean existsByActivityIdAndDateAndIdNot(UUID activityId, java.time.LocalDate date, UUID id);
+
 }

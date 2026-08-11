@@ -97,6 +97,6 @@ public class Application extends BaseEntity {
         this.email = command.getEmail();
         this.githubId = command.getGithubId();
         this.phoneNumber = command.getPhoneNumber();
+        this.answers = command.getAnswers();
     }
 }
-

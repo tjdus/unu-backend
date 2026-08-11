@@ -11,10 +11,13 @@ import sogang.cnu.backend.application.dto.ApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationResponse;
 import sogang.cnu.backend.application.dto.ApplicationLookupRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationLookupResponse;
+import sogang.cnu.backend.application.dto.ApplicationVerificationResponse;
 import sogang.cnu.backend.common.exception.BadRequestException;
+import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.recruitment.Recruitment;
 import sogang.cnu.backend.recruitment.RecruitmentRepository;
+import sogang.cnu.backend.security.JwtTokenProvider;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +32,8 @@ public class ApplicationService {
     private final ApplicationMapper applicationMapper;
     private final RecruitmentRepository recruitmentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationAnswerValidator answerValidator;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional(readOnly = true)
     public ApplicationResponse getById(UUID id) {
@@ -38,13 +43,16 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public ApplicationResponse getByIdWithPassword(UUID id, String password) {
+    public ApplicationVerificationResponse verify(UUID id, String password) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
         validatePassword(password, application.getPassword());
 
-        return applicationMapper.toResponseDto(application);
+        return ApplicationVerificationResponse.builder()
+                .application(applicationMapper.toResponseDto(application))
+                .accessToken(jwtTokenProvider.generateApplicationToken(application.getId()))
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -56,20 +64,25 @@ public class ApplicationService {
 
     @Transactional
     public ApplicationResponse create(ApplicationRequestDto dto) {
-        Recruitment recruitment = findRecruitment(dto.getRecruitmentId());
+        validateCreatePassword(dto.getPassword());
+        Recruitment recruitment = findRecruitmentForUpdate(dto.getRecruitmentId());
+        String studentId = dto.getStudentId().trim();
+        String email = dto.getEmail().trim();
 
         validateRecruitmentActive(recruitment);
         validateRecruitmentPeriod(recruitment);
+        validateNoDuplicate(recruitment.getId(), studentId, email, null);
+        answerValidator.validate(recruitment.getForm().getSchema(), dto.getAnswers());
 
         ApplicationCreateCommand command = ApplicationCreateCommand.builder()
                 .recruitment(recruitment)
-                .name(dto.getName())
-                .studentId(dto.getStudentId())
-                .major(dto.getMajor())
-                .subMajor(dto.getSubMajor())
-                .email(dto.getEmail())
-                .githubId(dto.getGithubId())
-                .phoneNumber(dto.getPhoneNumber())
+                .name(dto.getName().trim())
+                .studentId(studentId)
+                .major(dto.getMajor().trim())
+                .subMajor(trimToNull(dto.getSubMajor()))
+                .email(email)
+                .githubId(trimToNull(dto.getGithubId()))
+                .phoneNumber(dto.getPhoneNumber().trim())
                 .answers(dto.getAnswers())
                 .formSnapshot(recruitment.getForm().getSchema())
                 .password(passwordEncoder.encode(dto.getPassword()))
@@ -81,25 +94,36 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse update(UUID id, ApplicationRequestDto dto) {
+    public ApplicationResponse update(UUID id, ApplicationRequestDto dto, String accessToken) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
         // Only allow updates if the application is still in APPLIED status
         if (application.getStatus() != ApplicationStatus.APPLIED) {
-            throw new IllegalStateException("Can only update applications in APPLIED status");
+            throw new BadRequestException("검토가 시작된 지원서는 수정할 수 없습니다.");
         }
 
-        validatePassword(dto.getPassword(), application.getPassword());
+        authorizeApplicant(application, accessToken, dto.getPassword());
+        if (!application.getRecruitment().getId().equals(dto.getRecruitmentId())) {
+            throw new BadRequestException("지원서의 모집 정보를 변경할 수 없습니다.");
+        }
+
+        Recruitment recruitment = findRecruitmentForUpdate(application.getRecruitment().getId());
+        String studentId = dto.getStudentId().trim();
+        String email = dto.getEmail().trim();
+        validateRecruitmentActive(recruitment);
+        validateRecruitmentPeriod(recruitment);
+        validateNoDuplicate(recruitment.getId(), studentId, email, application.getId());
+        answerValidator.validate(application.getFormSnapshot(), dto.getAnswers());
 
         ApplicationUpdateCommand command = ApplicationUpdateCommand.builder()
-                .name(dto.getName())
-                .studentId(dto.getStudentId())
-                .major(dto.getMajor())
-                .subMajor(dto.getSubMajor())
-                .email(dto.getEmail())
-                .githubId(dto.getGithubId())
-                .phoneNumber(dto.getPhoneNumber())
+                .name(dto.getName().trim())
+                .studentId(studentId)
+                .major(dto.getMajor().trim())
+                .subMajor(trimToNull(dto.getSubMajor()))
+                .email(email)
+                .githubId(trimToNull(dto.getGithubId()))
+                .phoneNumber(dto.getPhoneNumber().trim())
                 .answers(dto.getAnswers())
                 .build();
 
@@ -131,14 +155,14 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void cancelWithPassword(UUID id, String password) {
+    public void cancelByApplicant(UUID id, String password, String accessToken) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
-        validatePassword(password, application.getPassword());
+        authorizeApplicant(application, accessToken, password);
 
         if (application.getStatus() != ApplicationStatus.APPLIED) {
-            throw new IllegalStateException("Can only cancel applications in APPLIED status");
+            throw new BadRequestException("제출 상태의 지원서만 취소할 수 있습니다.");
         }
 
         application.updateStatus(ApplicationStatus.CANCELED);
@@ -168,21 +192,21 @@ public class ApplicationService {
         application.updateStatus(ApplicationStatus.CANCELED);
     }
 
-    private Recruitment findRecruitment(UUID recruitmentId) {
-        return recruitmentRepository.findById(recruitmentId)
+    private Recruitment findRecruitmentForUpdate(UUID recruitmentId) {
+        return recruitmentRepository.findByIdForUpdate(recruitmentId)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
     }
 
     private void validateRecruitmentActive(Recruitment recruitment) {
         if (!recruitment.getActive()) {
-            throw new IllegalStateException("Recruitment is not active");
+            throw new BadRequestException("현재 지원할 수 없는 모집입니다.");
         }
     }
 
     private void validateRecruitmentPeriod(Recruitment recruitment) {
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(recruitment.getStartAt()) || now.isAfter(recruitment.getEndAt())) {
-            throw new IllegalStateException("Recruitment is not in the active period");
+            throw new BadRequestException("모집 기간에만 지원서를 제출하거나 수정할 수 있습니다.");
         }
     }
 
@@ -199,9 +223,49 @@ public class ApplicationService {
     }
 
     private void validatePassword(String rawPassword, String encodedPassword) {
-        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
-            throw new IllegalArgumentException("Invalid password");
+        if (rawPassword == null || !passwordEncoder.matches(rawPassword, encodedPassword)) {
+            throw new ForbiddenException("비밀번호가 올바르지 않습니다.");
         }
     }
-}
 
+    private void authorizeApplicant(Application application, String accessToken, String password) {
+        if (accessToken != null && !accessToken.isBlank()) {
+            if (!jwtTokenProvider.isApplicationTokenFor(accessToken, application.getId())) {
+                throw new ForbiddenException("지원서 인증이 만료되었거나 올바르지 않습니다.");
+            }
+            return;
+        }
+        validatePassword(password, application.getPassword());
+    }
+
+    private void validateCreatePassword(String password) {
+        if (password == null || password.isBlank() || password.length() < 6 || password.length() > 100) {
+            throw new BadRequestException("비밀번호는 6자 이상 100자 이하여야 합니다.");
+        }
+    }
+
+    private void validateNoDuplicate(UUID recruitmentId, String studentId, String email, UUID excludedId) {
+        boolean duplicate;
+        if (excludedId == null) {
+            duplicate = applicationRepository.existsByRecruitmentIdAndStudentIdAndStatusNot(
+                    recruitmentId, studentId, ApplicationStatus.CANCELED)
+                    || applicationRepository.existsByRecruitmentIdAndEmailIgnoreCaseAndStatusNot(
+                    recruitmentId, email, ApplicationStatus.CANCELED);
+        } else {
+            duplicate = applicationRepository.existsByRecruitmentIdAndStudentIdAndStatusNotAndIdNot(
+                    recruitmentId, studentId, ApplicationStatus.CANCELED, excludedId)
+                    || applicationRepository.existsByRecruitmentIdAndEmailIgnoreCaseAndStatusNotAndIdNot(
+                    recruitmentId, email, ApplicationStatus.CANCELED, excludedId);
+        }
+        if (duplicate) {
+            throw new BadRequestException("이미 제출한 지원서가 있습니다.");
+        }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+}

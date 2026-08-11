@@ -1,11 +1,12 @@
 package sogang.cnu.backend.activity_session;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import sogang.cnu.backend.activity_session.dto.ActivitySessionRequestDto;
+import sogang.cnu.backend.activity_session.dto.ActivitySessionBulkRequestDto;
 import sogang.cnu.backend.activity_session.dto.ActivitySessionResponseDto;
 import java.util.List;
 import java.util.UUID;
@@ -23,9 +24,15 @@ public class ActivitySessionController {
     }
 
     @PostMapping("")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<ActivitySessionResponseDto> create(@RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
+    public ResponseEntity<ActivitySessionResponseDto> create(@Valid @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
         return ResponseEntity.ok(activitySessionService.create(activitySessionRequestDto));
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<List<ActivitySessionResponseDto>> createBulk(
+            @Valid @RequestBody ActivitySessionBulkRequestDto request
+    ) {
+        return ResponseEntity.ok(activitySessionService.createBulk(request));
     }
 
     @GetMapping("/{id}")
@@ -34,13 +41,11 @@ public class ActivitySessionController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<ActivitySessionResponseDto> update(@PathVariable UUID id, @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
+    public ResponseEntity<ActivitySessionResponseDto> update(@PathVariable UUID id, @Valid @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
         return ResponseEntity.ok(activitySessionService.update(id, activitySessionRequestDto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> delete(@PathVariable UUID id) {
         activitySessionService.delete(id);
         return ResponseEntity.noContent().build();

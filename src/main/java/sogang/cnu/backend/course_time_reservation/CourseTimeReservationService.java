@@ -16,6 +16,7 @@ import sogang.cnu.backend.course_time_reservation.command.CourseTimeReservationC
 import sogang.cnu.backend.course_time_reservation.command.CourseTimeReservationUpdateCommand;
 import sogang.cnu.backend.course_time_reservation.dto.CourseTimeReservationRequestDto;
 import sogang.cnu.backend.course_time_reservation.dto.CourseTimeReservationResponseDto;
+import sogang.cnu.backend.course_time_reservation.dto.CourseTimeReservationSlotResponseDto;
 import sogang.cnu.backend.security.CustomUserDetails;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
@@ -43,7 +44,7 @@ public class CourseTimeReservationService {
 
     @Transactional
     public CourseTimeReservationResponseDto create(CourseTimeReservationRequestDto dto, CustomUserDetails currentUser) {
-        Activity activity = activityRepository.findById(dto.getActivityId())
+        Activity activity = activityRepository.findByIdForUpdate(dto.getActivityId())
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
         validateOnlineCourse(activity);
@@ -55,6 +56,7 @@ public class CourseTimeReservationService {
         validateTimeRange(dto.getStartAt(), dto.getEndAt());
         validateSingleDuration(dto.getStartAt(), dto.getEndAt());
         validateNoOverlap(user.getId(), dto.getStartAt(), dto.getEndAt(), null);
+        validateActivityNoOverlap(activity.getId(), dto.getStartAt(), dto.getEndAt(), null);
         validateDailyLimit(user.getId(), dto.getStartAt(), dto.getEndAt(), null);
 
         CourseTimeReservation reservation = CourseTimeReservation.create(
@@ -78,11 +80,13 @@ public class CourseTimeReservationService {
             throw new ForbiddenException("You are not the owner of this reservation");
         }
 
-        Activity activity = reservation.getActivity();
+        Activity activity = activityRepository.findByIdForUpdate(reservation.getActivity().getId())
+                .orElseThrow(() -> new NotFoundException("Activity not found"));
         validateOnlineCourse(activity);
         validateTimeRange(dto.getStartAt(), dto.getEndAt());
         validateSingleDuration(dto.getStartAt(), dto.getEndAt());
         validateNoOverlap(reservation.getUser().getId(), dto.getStartAt(), dto.getEndAt(), id);
+        validateActivityNoOverlap(activity.getId(), dto.getStartAt(), dto.getEndAt(), id);
         validateDailyLimit(reservation.getUser().getId(), dto.getStartAt(), dto.getEndAt(), id);
 
         reservation.update(CourseTimeReservationUpdateCommand.builder()
@@ -118,10 +122,10 @@ public class CourseTimeReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<CourseTimeReservationResponseDto> getByActivity(UUID activityId, UUID userId, LocalDate date) {
-        return reservationRepository.findByActivityAndFilters(activityId, userId, date)
+    public List<CourseTimeReservationSlotResponseDto> getByActivity(UUID activityId, LocalDate date) {
+        return reservationRepository.findByActivityAndFilters(activityId, null, date)
                 .stream()
-                .map(reservationMapper::toResponseDto)
+                .map(reservationMapper::toSlotResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -160,6 +164,17 @@ public class CourseTimeReservationService {
     private void validateNoOverlap(UUID userId, LocalDateTime newStart, LocalDateTime newEnd, UUID excludeId) {
         if (reservationRepository.existsOverlapping(userId, newStart, newEnd, excludeId)) {
             throw new ReservationConflictException("The requested time slot overlaps with an existing reservation");
+        }
+    }
+
+    private void validateActivityNoOverlap(
+            UUID activityId,
+            LocalDateTime newStart,
+            LocalDateTime newEnd,
+            UUID excludeId
+    ) {
+        if (reservationRepository.existsActivityOverlapping(activityId, newStart, newEnd, excludeId)) {
+            throw new ReservationConflictException("The requested time slot is already reserved");
         }
     }
 

@@ -22,5 +22,5 @@ public class ActivityUpdateCommand {
     private LocalDate startDate;
     private LocalDate endDate;
     private Activity parentActivity;
+    private Integer depositAmount;
 }
-

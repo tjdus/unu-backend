@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.PermissionChecker;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.form.Form;
 import sogang.cnu.backend.form.FormRepository;
@@ -75,7 +76,11 @@ public class RecruitmentService {
 
     @Transactional
     public RecruitmentResponseDto getActiveRecruitment() {
-        Recruitment recruitment = recruitmentRepository.findFirstByActiveIsTrueOrderByCreatedAtDesc()
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        Recruitment recruitment = recruitmentRepository
+                .findFirstByActiveIsTrueAndStartAtLessThanEqualAndEndAtGreaterThanEqualOrderByEndAtAsc(now, now)
+                .or(() -> recruitmentRepository.findFirstByActiveIsTrueAndStartAtGreaterThanOrderByStartAtAsc(now))
+                .or(() -> recruitmentRepository.findFirstByActiveIsTrueAndEndAtLessThanOrderByEndAtDesc(now))
                 .orElseThrow(() -> new NotFoundException("Active recruitment not found"));
         return recruitmentMapper.toResponseDto(recruitment);
     }
@@ -89,8 +94,8 @@ public class RecruitmentService {
     }
 
     private void validateDates(java.time.LocalDateTime startAt, java.time.LocalDateTime endAt) {
-        if (startAt != null && endAt != null && startAt.isAfter(endAt)) {
-            throw new IllegalArgumentException("Start date must be before end date");
+        if (startAt == null || endAt == null || !startAt.isBefore(endAt)) {
+            throw new BadRequestException("모집 종료 시각은 시작 시각보다 이후여야 합니다.");
         }
     }
 
@@ -131,4 +136,3 @@ public class RecruitmentService {
                 .build();
     }
 }
-

@@ -2,6 +2,7 @@ package sogang.cnu.backend.activity;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.activity.dto.ActivityRequestDto;
 import sogang.cnu.backend.activity.dto.ActivityResponseDto;
@@ -24,19 +25,21 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.getAll());
     }
 
+    @GetMapping("/hosted/me")
+    public ResponseEntity<List<ActivityResponseDto>> getMyHostedActivities(
+            @CurrentUser CustomUserDetails user) {
+        return ResponseEntity.ok(activityService.getHostedByUserId(user.getId()));
+    }
+
     @PostMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivityResponseDto> create(@RequestBody ActivityRequestDto activityRequestDto) {
         return ResponseEntity.ok(activityService.create(activityRequestDto));
     }
 
-    @PostMapping("/me")
-    public ResponseEntity<ActivityResponseDto> createForMe(@CurrentUser CustomUserDetails user, @RequestBody ActivityRequestDto activityRequestDto) {
-        return ResponseEntity.ok(activityService.createWithAssignee(user.getId(), activityRequestDto));
-    }
-
     @GetMapping("/{id}")
-    public ResponseEntity<ActivityResponseDto> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(activityService.getById(id));
+    public ResponseEntity<ActivityResponseDto> getById(@CurrentUser CustomUserDetails user, @PathVariable UUID id) {
+        return ResponseEntity.ok(activityService.getById(user.getId(), id));
     }
 
     @PutMapping("/{id}")
@@ -51,22 +54,25 @@ public class ActivityController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivityResponseDto> updateStatus(@PathVariable UUID id, @RequestBody ActivityStatusRequestDto request) {
         return ResponseEntity.ok(activityService.updateStatus(id, request.getStatus()));
     }
 
                                                             @GetMapping("/search")
-    public ResponseEntity<List<ActivityResponseDto>> search(@RequestParam(required = false) String title,
+    public ResponseEntity<List<ActivityResponseDto>> search(@CurrentUser CustomUserDetails user,
+                                                            @RequestParam(required = false) String title,
                                                             @RequestParam(required = false) String status,
                                                             @RequestParam(required = false) UUID activityTypeId,
-                                                            @RequestParam(required = false) UUID quarterId) {
+                                                            @RequestParam(required = false) UUID quarterId,
+                                                            @RequestParam(defaultValue = "false") boolean includeUnlisted) {
         ActivitySearchQuery query = ActivitySearchQuery.builder()
                 .title(title)
                 .status(status)
                 .activityTypeId(activityTypeId)
                 .quarterId(quarterId)
                 .build();
-        List<ActivityResponseDto> activities = activityService.search(query);
+        List<ActivityResponseDto> activities = activityService.search(query, includeUnlisted, user.getId());
         return ResponseEntity.ok(activities);
     }
 

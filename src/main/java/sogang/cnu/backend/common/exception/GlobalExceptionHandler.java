@@ -5,9 +5,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("요청 값이 올바르지 않습니다.");
+        return ResponseEntity.badRequest().body(message);
+    }
+
     @ExceptionHandler(DuplicateUserException.class)
     public ResponseEntity<?> handleDuplicateUser(DuplicateUserException e) {
         return ResponseEntity.badRequest().body(e.getMessage());

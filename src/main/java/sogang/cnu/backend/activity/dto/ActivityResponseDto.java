@@ -24,6 +24,8 @@ public class ActivityResponseDto {
     private String startDate;
     private String endDate;
     private UUID parentActivityId;
+    private Boolean listed;
+    private Integer depositAmount;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

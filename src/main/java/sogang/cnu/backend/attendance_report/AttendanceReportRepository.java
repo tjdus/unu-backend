@@ -13,6 +13,12 @@ import java.util.UUID;
 public interface AttendanceReportRepository extends JpaRepository<AttendanceReport, UUID> {
     Optional<AttendanceReport> findByAttendanceId(UUID attendanceId);
 
+    void deleteByAttendanceId(UUID attendanceId);
+
+    @Modifying
+    @Query("DELETE FROM AttendanceReport ar WHERE ar.attendance.session.id = :sessionId")
+    void deleteBySessionId(@Param("sessionId") UUID sessionId);
+
     @Modifying
     @Query("DELETE FROM AttendanceReport ar WHERE ar.attendance.participant.activity.id = :activityId")
     void deleteByActivityId(@Param("activityId") UUID activityId);
