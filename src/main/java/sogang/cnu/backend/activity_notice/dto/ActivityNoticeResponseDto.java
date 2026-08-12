@@ -1,4 +1,4 @@
-package sogang.cnu.backend.lecture_material.dto;
+package sogang.cnu.backend.activity_notice.dto;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -8,15 +8,11 @@ import java.util.UUID;
 
 @Getter
 @Builder
-public class LectureMaterialResponseDto {
+public class ActivityNoticeResponseDto {
     private UUID id;
     private String title;
-    private String description;
-    private String materialName;
-    private String driveUrl;
-    private Integer weekNumber;
+    private String content;
     private UUID activityId;
-    private String activityTitle;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
 }

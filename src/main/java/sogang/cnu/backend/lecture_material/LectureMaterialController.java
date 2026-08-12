@@ -3,7 +3,6 @@ package sogang.cnu.backend.lecture_material;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,8 +28,16 @@ public class LectureMaterialController {
         return ResponseEntity.ok(lectureMaterialService.getAll());
     }
 
+    @GetMapping("/activity/{activityId}")
+    public ResponseEntity<List<LectureMaterialResponseDto>> getByActivityId(
+            @PathVariable UUID activityId
+    ) {
+        return ResponseEntity.ok(lectureMaterialService.getByActivityId(activityId));
+    }
+
+    // 운영진 외에 활동 담당자(개설자)도 자기 활동의 자료를 관리할 수 있어야 해서,
+    // 역할만으로 거르지 않고 서비스에서 담당자 여부까지 확인한다.
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<LectureMaterialResponseDto> create(
             @Valid @RequestBody LectureMaterialRequestDto request
     ) {
@@ -38,7 +45,6 @@ public class LectureMaterialController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<LectureMaterialResponseDto> update(
             @PathVariable UUID id,
             @Valid @RequestBody LectureMaterialRequestDto request
@@ -47,7 +53,6 @@ public class LectureMaterialController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         lectureMaterialService.delete(id);
         return ResponseEntity.noContent().build();

@@ -3,6 +3,9 @@ package sogang.cnu.backend.lecture_material;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sogang.cnu.backend.activity.Activity;
+import sogang.cnu.backend.activity.ActivityAccessGuard;
+import sogang.cnu.backend.activity.ActivityRepository;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.lecture_material.dto.LectureMaterialRequestDto;
@@ -23,6 +26,8 @@ public class LectureMaterialService {
     );
 
     private final LectureMaterialRepository lectureMaterialRepository;
+    private final ActivityRepository activityRepository;
+    private final ActivityAccessGuard activityAccessGuard;
 
     @Transactional(readOnly = true)
     public List<LectureMaterialResponseDto> getAll() {
@@ -31,13 +36,25 @@ public class LectureMaterialService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<LectureMaterialResponseDto> getByActivityId(UUID activityId) {
+        return lectureMaterialRepository.findAllByActivityIdOrderByCreatedAtDesc(activityId).stream()
+                .map(this::toResponseDto)
+                .toList();
+    }
+
     @Transactional
     public LectureMaterialResponseDto create(LectureMaterialRequestDto request) {
         String driveUrl = validateAndNormalizeDriveUrl(request.getDriveUrl());
+        Activity activity = findActivity(request.getActivityId());
+        requireManageable(activity);
         LectureMaterial material = LectureMaterial.builder()
                 .title(request.getTitle().trim())
                 .description(normalizeDescription(request.getDescription()))
+                .materialName(normalizeMaterialName(request.getMaterialName()))
                 .driveUrl(driveUrl)
+                .weekNumber(request.getWeekNumber())
+                .activity(activity)
                 .build();
         return toResponseDto(lectureMaterialRepository.save(material));
     }
@@ -45,22 +62,40 @@ public class LectureMaterialService {
     @Transactional
     public LectureMaterialResponseDto update(UUID id, LectureMaterialRequestDto request) {
         LectureMaterial material = findOrThrow(id);
+        requireManageable(material.getActivity());
+        Activity activity = findActivity(request.getActivityId());
+        requireManageable(activity);
         material.update(
                 request.getTitle().trim(),
                 normalizeDescription(request.getDescription()),
-                validateAndNormalizeDriveUrl(request.getDriveUrl())
+                normalizeMaterialName(request.getMaterialName()),
+                validateAndNormalizeDriveUrl(request.getDriveUrl()),
+                request.getWeekNumber(),
+                activity
         );
         return toResponseDto(material);
     }
 
     @Transactional
     public void delete(UUID id) {
-        lectureMaterialRepository.delete(findOrThrow(id));
+        LectureMaterial material = findOrThrow(id);
+        requireManageable(material.getActivity());
+        lectureMaterialRepository.delete(material);
+    }
+
+    private void requireManageable(Activity activity) {
+        activityAccessGuard.requireManage(activity, "해당 자료를 관리할 권한이 없습니다.");
     }
 
     private LectureMaterial findOrThrow(UUID id) {
         return lectureMaterialRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("강의자료를 찾을 수 없습니다."));
+    }
+
+    private Activity findActivity(UUID activityId) {
+        if (activityId == null) return null;
+        return activityRepository.findById(activityId)
+                .orElseThrow(() -> new NotFoundException("연결할 활동을 찾을 수 없습니다."));
     }
 
     private String validateAndNormalizeDriveUrl(String value) {
@@ -85,12 +120,21 @@ public class LectureMaterialService {
         return description.trim();
     }
 
+    private String normalizeMaterialName(String materialName) {
+        if (materialName == null || materialName.isBlank()) return null;
+        return materialName.trim();
+    }
+
     private LectureMaterialResponseDto toResponseDto(LectureMaterial material) {
         return LectureMaterialResponseDto.builder()
                 .id(material.getId())
                 .title(material.getTitle())
                 .description(material.getDescription())
+                .materialName(material.getMaterialName())
                 .driveUrl(material.getDriveUrl())
+                .weekNumber(material.getWeekNumber())
+                .activityId(material.getActivity() == null ? null : material.getActivity().getId())
+                .activityTitle(material.getActivity() == null ? null : material.getActivity().getTitle())
                 .createdAt(material.getCreatedAt())
                 .modifiedAt(material.getModifiedAt())
                 .build();
