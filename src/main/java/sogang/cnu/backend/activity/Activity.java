@@ -24,6 +24,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Activity extends BaseEntity {
     private static final int DEFAULT_DEPOSIT_AMOUNT = 30_000;
+    private static final int DEFAULT_LECTURE_PARTICIPANT_LIMIT = 5;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -59,6 +60,9 @@ public class Activity extends BaseEntity {
     @Column(name = "deposit_amount")
     private Integer depositAmount;
 
+    @Column(name = "participant_limit")
+    private Integer participantLimit;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_activity_id")
     private Activity parentActivity;
@@ -74,6 +78,7 @@ public class Activity extends BaseEntity {
         this.quarter = command.getQuarter();
         this.parentActivity = command.getParentActivity();
         this.depositAmount = command.getDepositAmount();
+        this.participantLimit = command.getParticipantLimit();
     }
 
     public void updateStatus(ActivityStatus newStatus) {
@@ -104,12 +109,20 @@ public class Activity extends BaseEntity {
                         command.getActivityType(),
                         command.getDepositAmount()
                 ))
+                .participantLimit(defaultParticipantLimit(
+                        command.getActivityType(),
+                        command.getParticipantLimit()
+                ))
                 .build();
         return activity;
     }
 
     public Integer getDepositAmount() {
         return defaultDepositAmount(activityType, depositAmount);
+    }
+
+    public Integer getParticipantLimit() {
+        return defaultParticipantLimit(activityType, participantLimit);
     }
 
     private static Integer defaultDepositAmount(ActivityType activityType, Integer amount) {
@@ -119,5 +132,12 @@ public class Activity extends BaseEntity {
         return "STUDY".equals(code) || "SPECIAL_LECTURE".equals(code)
                 ? DEFAULT_DEPOSIT_AMOUNT
                 : 0;
+    }
+
+    private static Integer defaultParticipantLimit(ActivityType activityType, Integer limit) {
+        if (limit != null) return limit;
+        return activityType != null && "LECTURE".equals(activityType.getCode())
+                ? DEFAULT_LECTURE_PARTICIPANT_LIMIT
+                : null;
     }
 }

@@ -64,6 +64,7 @@ public class ActivityOpeningRequestService {
                 .endDate(dto.getEndDate())
                 .expectedMemberCount(dto.getExpectedMemberCount())
                 .acceptsNewMembers(dto.getAcceptsNewMembers())
+                .participantLimit(participantLimitForRequest(dto))
                 .personalProject(dto.getPersonalProject())
                 .parentActivity(references.parentActivity())
                 .initialMembers(references.initialMembers())
@@ -91,6 +92,7 @@ public class ActivityOpeningRequestService {
                 dto.getEndDate(),
                 dto.getExpectedMemberCount(),
                 dto.getAcceptsNewMembers(),
+                participantLimitForRequest(dto),
                 dto.getPersonalProject(),
                 references.parentActivity(),
                 references.initialMembers()
@@ -190,6 +192,7 @@ public class ActivityOpeningRequestService {
                 .endDate(request.getEndDate())
                 .parentActivity(request.getParentActivity())
                 .listed(!Boolean.TRUE.equals(request.getPersonalProject()))
+                .participantLimit(request.getParticipantLimit())
                 .build());
         Activity savedActivity = activityRepository.save(activity);
 
@@ -263,10 +266,20 @@ public class ActivityOpeningRequestService {
 
         long selectedMemberCount = references.initialMembers().stream()
                 .filter(member -> !member.getId().equals(applicantId))
-                .count() + 1;
+                .count();
         if (dto.getExpectedMemberCount() < selectedMemberCount) {
             throw new BadRequestException("예상 인원은 현재 선택한 참여 인원보다 적을 수 없습니다.");
         }
+        if (dto.getParticipantLimit() != null
+                && dto.getParticipantLimit() < selectedMemberCount) {
+            throw new BadRequestException("참여 정원은 함께 시작할 인원보다 적게 설정할 수 없습니다.");
+        }
+    }
+
+    private Integer participantLimitForRequest(ActivityOpeningRequestDto dto) {
+        return Boolean.TRUE.equals(dto.getAcceptsNewMembers())
+                ? dto.getParticipantLimit()
+                : null;
     }
 
     private User findApplicant(UUID applicantId) {
@@ -354,6 +367,7 @@ public class ActivityOpeningRequestService {
                 .endDate(request.getEndDate())
                 .expectedMemberCount(request.getExpectedMemberCount())
                 .acceptsNewMembers(request.getAcceptsNewMembers())
+                .participantLimit(request.getParticipantLimit())
                 .personalProject(Boolean.TRUE.equals(request.getPersonalProject()))
                 .parentActivityId(request.getParentActivity() == null ? null : request.getParentActivity().getId())
                 .parentActivityTitle(request.getParentActivity() == null ? null : request.getParentActivity().getTitle())

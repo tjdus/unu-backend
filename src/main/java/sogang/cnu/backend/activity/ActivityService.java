@@ -8,6 +8,8 @@ import sogang.cnu.backend.activity.command.ActivityUpdateCommand;
 import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.activity_type.ActivityTypeRepository;
+import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
+import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
 import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.BadRequestException;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
 public class ActivityService {
     private static final String MANAGER_ONLY_ACTIVITY_TYPE = "SPECIAL_LECTURE";
     private static final int MAX_DEPOSIT_AMOUNT = 1_000_000;
+    private static final int MAX_PARTICIPANT_LIMIT = 1_000;
 
     private final ActivityRepository activityRepository;
     private final ActivityMapper activityMapper;
@@ -42,6 +45,7 @@ public class ActivityService {
     private final AttendanceRepository attendanceRepository;
     private final AttendanceReportRepository attendanceReportRepository;
     private final CourseTimeReservationRepository courseTimeReservationRepository;
+    private final ActivityParticipantRepository activityParticipantRepository;
     private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
@@ -76,6 +80,7 @@ public class ActivityService {
     @Transactional
     public ActivityResponseDto create(ActivityRequestDto dto) {
         validateDepositAmount(dto.getDepositAmount());
+        validateParticipantLimit(dto.getParticipantLimit());
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
@@ -84,14 +89,20 @@ public class ActivityService {
 
     @Transactional
     public ActivityResponseDto update(UUID userId, UUID id, ActivityRequestDto dto) {
-        Activity activity = activityRepository.findById(id)
+        Activity activity = activityRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
         checkPermission(userId, activity);
         ActivityType activityType = findActivityType(dto.getActivityTypeId());
         validateActivityTypeChange(activity, activityType);
         Integer depositAmount = resolveDepositAmount(activity, activityType, dto.getDepositAmount());
-        activity.update(toUpdateCommand(dto, activityType, depositAmount));
+        Integer participantLimit = participantLimitForType(
+                activityType,
+                dto.getParticipantLimit()
+        );
+        validateParticipantLimit(participantLimit);
+        validateParticipantLimitAgainstCurrentCount(activity, participantLimit);
+        activity.update(toUpdateCommand(dto, activityType, depositAmount, participantLimit));
         return activityMapper.toResponseDto(activity);
     }
 
@@ -190,13 +201,18 @@ public class ActivityService {
                         activityType,
                         dto.getDepositAmount()
                 ))
+                .participantLimit(participantLimitForType(
+                        activityType,
+                        dto.getParticipantLimit()
+                ))
                 .build();
     }
 
     private ActivityUpdateCommand toUpdateCommand(
             ActivityRequestDto dto,
             ActivityType activityType,
-            Integer depositAmount
+            Integer depositAmount,
+            Integer participantLimit
     ) {
         return ActivityUpdateCommand.builder()
                 .title(dto.getTitle())
@@ -209,6 +225,7 @@ public class ActivityService {
                 .endDate(dto.getEndDate())
                 .parentActivity(findParentActivity(dto.getParentActivityId()))
                 .depositAmount(depositAmount)
+                .participantLimit(participantLimit)
                 .build();
     }
 
@@ -237,6 +254,28 @@ public class ActivityService {
     private void validateDepositAmount(Integer amount) {
         if (amount != null && (amount < 0 || amount > MAX_DEPOSIT_AMOUNT)) {
             throw new BadRequestException("참여 보증금은 0원 이상 1,000,000원 이하로 설정해주세요.");
+        }
+    }
+
+    private Integer participantLimitForType(ActivityType activityType, Integer limit) {
+        if (limit != null) return limit;
+        return "LECTURE".equals(activityType.getCode()) ? 5 : null;
+    }
+
+    private void validateParticipantLimit(Integer limit) {
+        if (limit != null && (limit < 1 || limit > MAX_PARTICIPANT_LIMIT)) {
+            throw new BadRequestException("참여 정원은 1명 이상 1,000명 이하로 설정해주세요.");
+        }
+    }
+
+    private void validateParticipantLimitAgainstCurrentCount(Activity activity, Integer limit) {
+        if (limit == null) return;
+        long currentCount = activityParticipantRepository.countCapacityParticipants(
+                activity,
+                List.of(ActivityParticipantStatus.APPLIED, ActivityParticipantStatus.APPROVED)
+        );
+        if (limit < currentCount) {
+            throw new BadRequestException("참여 정원을 현재 신청·참여 인원보다 적게 설정할 수 없습니다.");
         }
     }
 

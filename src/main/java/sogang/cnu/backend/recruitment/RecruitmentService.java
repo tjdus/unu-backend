@@ -13,6 +13,7 @@ import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.recruitment.command.RecruitmentCreateCommand;
 import sogang.cnu.backend.recruitment.command.RecruitmentUpdateCommand;
+import sogang.cnu.backend.recruitment.dto.RecruitmentCompletionMessageResponseDto;
 import sogang.cnu.backend.recruitment.dto.RecruitmentRequestDto;
 import sogang.cnu.backend.recruitment.dto.RecruitmentResponseDto;
 
@@ -93,6 +94,15 @@ public class RecruitmentService {
         return recruitmentMapper.toResponseDto(recruitment);
     }
 
+    @Transactional(readOnly = true)
+    public RecruitmentCompletionMessageResponseDto getCompletionMessage(UUID id) {
+        Recruitment recruitment = recruitmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Recruitment not found"));
+        return RecruitmentCompletionMessageResponseDto.builder()
+                .completionMessage(recruitment.getCompletionMessage())
+                .build();
+    }
+
     private void validateDates(java.time.LocalDateTime startAt, java.time.LocalDateTime endAt) {
         if (startAt == null || endAt == null || !startAt.isBefore(endAt)) {
             throw new BadRequestException("모집 종료 시각은 시작 시각보다 이후여야 합니다.");
@@ -116,6 +126,7 @@ public class RecruitmentService {
         return RecruitmentCreateCommand.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
+                .completionMessage(normalizeOptionalText(dto.getCompletionMessage()))
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
                 .quarter(findQuarter(dto.getQuarterId()))
@@ -128,11 +139,24 @@ public class RecruitmentService {
         return RecruitmentUpdateCommand.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
+                .completionMessage(normalizeOptionalText(dto.getCompletionMessage()))
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
                 .quarter(findQuarter(dto.getQuarterId()))
                 .active(dto.getActive())
                 .form(findForm(dto.getFormId()))
                 .build();
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        if (normalized.length() > 1000) {
+            throw new BadRequestException("지원 완료 안내는 1000자 이하로 입력해야 합니다.");
+        }
+        return normalized;
     }
 }

@@ -23,4 +23,5 @@ public class ActivityUpdateCommand {
     private LocalDate endDate;
     private Activity parentActivity;
     private Integer depositAmount;
+    private Integer participantLimit;
 }

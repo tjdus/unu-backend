@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 public class RecruitmentCreateCommand {
     private String title;
     private String description;
+    private String completionMessage;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
     private Quarter quarter;
     private Boolean active;
     private Form form;
 }
-

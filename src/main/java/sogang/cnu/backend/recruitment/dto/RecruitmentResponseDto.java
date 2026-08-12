@@ -16,6 +16,7 @@ public class RecruitmentResponseDto {
     private UUID id;
     private String title;
     private String description;
+    private String completionMessage;
     private String startAt;
     private String endAt;
     private QuarterResponseDto quarter;
@@ -26,4 +27,3 @@ public class RecruitmentResponseDto {
     private AuditorDto createdBy;
     private AuditorDto modifiedBy;
 }
-

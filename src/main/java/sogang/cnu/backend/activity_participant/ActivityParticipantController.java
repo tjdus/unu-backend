@@ -9,6 +9,7 @@ import sogang.cnu.backend.activity_participant.dto.ActivityJoinRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRefundAccountDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantSummaryDto;
+import sogang.cnu.backend.activity_participant.dto.ActivityCapacityResponseDto;
 import sogang.cnu.backend.security.CurrentUser;
 import sogang.cnu.backend.security.CustomUserDetails;
 
@@ -94,6 +95,12 @@ public class ActivityParticipantController {
             @RequestBody(required = false) ActivityJoinRequestDto request) {
         return ResponseEntity.ok(activityParticipantService.createWithUserIdAndActivityId(
                 user.getId(), activityId, request));
+    }
+
+    @GetMapping("/activities/{id}/capacity")
+    public ResponseEntity<ActivityCapacityResponseDto> getCapacity(
+            @PathVariable("id") UUID activityId) {
+        return ResponseEntity.ok(activityParticipantService.getCapacity(activityId));
     }
 
     @GetMapping("/activities/{id}/refund-accounts")

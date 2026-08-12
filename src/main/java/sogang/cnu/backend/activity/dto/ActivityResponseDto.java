@@ -26,6 +26,7 @@ public class ActivityResponseDto {
     private UUID parentActivityId;
     private Boolean listed;
     private Integer depositAmount;
+    private Integer participantLimit;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

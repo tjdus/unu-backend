@@ -21,4 +21,5 @@ public class ActivityRequestDto {
     private LocalDate endDate;
     private UUID parentActivityId;
     private Integer depositAmount;
+    private Integer participantLimit;
 }

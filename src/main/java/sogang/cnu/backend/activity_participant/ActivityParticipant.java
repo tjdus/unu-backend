@@ -12,7 +12,6 @@ import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.user.User;
 
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -80,7 +79,17 @@ public class ActivityParticipant extends BaseEntity {
         this.status = newStatus;
         if (newStatus == ActivityParticipantStatus.APPROVED) {
             this.joinedAt = LocalDateTime.now();
+        } else {
+            this.joinedAt = null;
         }
+    }
+
+    public void confirmOnActivityStart() {
+        if (status != ActivityParticipantStatus.APPLIED || activity.getStartDate() == null) {
+            return;
+        }
+        this.status = ActivityParticipantStatus.APPROVED;
+        this.joinedAt = activity.getStartDate().atStartOfDay();
     }
 
     public void updateCompleted() {

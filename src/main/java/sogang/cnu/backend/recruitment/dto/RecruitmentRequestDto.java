@@ -13,10 +13,10 @@ import java.util.UUID;
 public class RecruitmentRequestDto {
     private String title;
     private String description;
+    private String completionMessage;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
     private UUID quarterId;
     private Boolean active;
     private UUID formId;
 }
-

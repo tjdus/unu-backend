@@ -46,6 +46,10 @@ public class ActivityOpeningRequestDto {
     @NotNull(message = "신규 학회원 모집 여부를 선택해주세요.")
     private Boolean acceptsNewMembers;
 
+    @Min(value = 1, message = "참여 정원은 1명 이상이어야 합니다.")
+    @Max(value = 1000, message = "참여 정원은 1000명 이하로 입력해주세요.")
+    private Integer participantLimit;
+
     @NotNull(message = "개인 프로젝트 여부를 선택해주세요.")
     private Boolean personalProject;
 

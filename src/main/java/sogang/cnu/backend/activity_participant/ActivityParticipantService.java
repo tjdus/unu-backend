@@ -11,6 +11,7 @@ import sogang.cnu.backend.activity_participant.dto.ActivityJoinRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRefundAccountDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantSummaryDto;
+import sogang.cnu.backend.activity_participant.dto.ActivityCapacityResponseDto;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -18,6 +19,7 @@ import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.util.SecurityUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +30,8 @@ import java.util.stream.Collectors;
 public class ActivityParticipantService {
     private static final Set<String> DEPOSIT_REQUIRED_ACTIVITY_TYPES =
             Set.of("STUDY", "SPECIAL_LECTURE");
+    private static final List<ActivityParticipantStatus> CAPACITY_STATUSES =
+            List.of(ActivityParticipantStatus.APPLIED, ActivityParticipantStatus.APPROVED);
     private final ActivityParticipantRepository activityParticipantRepository;
     private final ActivityParticipantMapper activityParticipantMapper;
     private final ActivityRepository activityRepository;
@@ -52,7 +56,14 @@ public class ActivityParticipantService {
 
     @Transactional
     public ActivityParticipantResponseDto create(ActivityParticipantRequestDto dto) {
-        ActivityParticipantCreateCommand createCommand = toCreateCommand(dto);
+        Activity targetActivity = findActivityForUpdate(dto.getActivityId());
+        ActivityParticipantStatus status = ActivityParticipantStatus.valueOf(dto.getStatus());
+        validateAvailableCapacity(targetActivity, status);
+        ActivityParticipantCreateCommand createCommand = ActivityParticipantCreateCommand.builder()
+                .activity(targetActivity)
+                .user(findUser(dto.getUserId()))
+                .status(status)
+                .build();
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
         activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
@@ -64,7 +75,7 @@ public class ActivityParticipantService {
             UUID activityId,
             ActivityJoinRequestDto request
     ) {
-        Activity targetActivity = findActivity(activityId);
+        Activity targetActivity = findActivityForUpdate(activityId);
         if (targetActivity.getStatus() != ActivityStatus.OPEN) {
             throw new ForbiddenException("현재 참여자를 모집 중인 활동이 아닙니다.");
         }
@@ -74,18 +85,62 @@ public class ActivityParticipantService {
                 !SecurityUtils.isManagerOrAdmin()) {
             throw new ForbiddenException("개인 프로젝트에는 참여를 신청할 수 없습니다.");
         }
-        ActivityParticipantRequestDto dto = ActivityParticipantRequestDto.builder()
-                .userId(userId)
-                .activityId(activityId)
-                .status(String.valueOf(ActivityParticipantStatus.APPROVED))
+
+        ActivityParticipantStatus initialStatus = hasStarted(targetActivity)
+                ? ActivityParticipantStatus.APPROVED
+                : ActivityParticipantStatus.APPLIED;
+
+        ActivityParticipant existing = activityParticipantRepository
+                .findByUserIdAndActivityId(userId, activityId)
+                .orElse(null);
+        if (existing != null) {
+            if (existing.getStatus() != ActivityParticipantStatus.REJECTED) {
+                throw new BadRequestException(
+                        existing.getStatus() == ActivityParticipantStatus.APPROVED
+                                ? "이미 참여가 확정된 활동입니다."
+                                : "이미 참여를 신청한 활동입니다."
+                );
+            }
+            validateAvailableCapacity(targetActivity, initialStatus);
+            existing.updateStatus(initialStatus);
+            if (requiresDeposit(targetActivity)) {
+                recordDepositApplication(existing, request);
+            }
+            return activityParticipantMapper.toResponseDto(existing);
+        }
+
+        validateAvailableCapacity(targetActivity, initialStatus);
+        ActivityParticipantCreateCommand createCommand = ActivityParticipantCreateCommand.builder()
+                .activity(targetActivity)
+                .user(findUser(userId))
+                .status(initialStatus)
                 .build();
-        ActivityParticipantCreateCommand createCommand = toCreateCommand(dto);
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
         if (requiresDeposit(targetActivity)) {
             recordDepositApplication(activityParticipant, request);
         }
         activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
+    }
+
+    @Transactional(readOnly = true)
+    public ActivityCapacityResponseDto getCapacity(UUID activityId) {
+        Activity activity = findActivity(activityId);
+        long participantCount = countCapacityParticipants(activity);
+        Integer participantLimit = activity.getParticipantLimit();
+        return ActivityCapacityResponseDto.builder()
+                .participantLimit(participantLimit)
+                .participantCount(participantCount)
+                .full(participantLimit != null && participantCount >= participantLimit)
+                .build();
+    }
+
+    @Transactional
+    public int confirmParticipantsForStartedActivities(LocalDate today) {
+        List<ActivityParticipant> participants = activityParticipantRepository
+                .findReadyForConfirmation(ActivityParticipantStatus.APPLIED, today);
+        participants.forEach(ActivityParticipant::confirmOnActivityStart);
+        return participants.size();
     }
 
     @Transactional(readOnly = true)
@@ -111,6 +166,8 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
+        ActivityParticipantStatus newStatus = ActivityParticipantStatus.valueOf(dto.getStatus());
+        validateCapacityTransition(activity, newStatus);
         activity.update(toUpdateCommand(dto));
         return activityParticipantMapper.toResponseDto(activity);
     }
@@ -120,7 +177,9 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
-        activity.updateStatus(ActivityParticipantStatus.valueOf(dto.getStatus()));
+        ActivityParticipantStatus newStatus = ActivityParticipantStatus.valueOf(dto.getStatus());
+        validateCapacityTransition(activity, newStatus);
+        activity.updateStatus(newStatus);
         return activityParticipantMapper.toResponseDto(activity);
     }
 
@@ -206,6 +265,11 @@ public class ActivityParticipantService {
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
     }
 
+    private Activity findActivityForUpdate(UUID activityId) {
+        return activityRepository.findByIdForUpdate(activityId)
+                .orElseThrow(() -> new NotFoundException("Activity not found"));
+    }
+
     private User findUser(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -215,6 +279,42 @@ public class ActivityParticipantService {
         return activity.getActivityType() != null
                 && DEPOSIT_REQUIRED_ACTIVITY_TYPES.contains(activity.getActivityType().getCode())
                 && activity.getDepositAmount() > 0;
+    }
+
+    private boolean hasStarted(Activity activity) {
+        return activity.getStartDate() != null
+                && !activity.getStartDate().isAfter(LocalDate.now());
+    }
+
+    private void validateAvailableCapacity(
+            Activity activity,
+            ActivityParticipantStatus requestedStatus
+    ) {
+        if (!CAPACITY_STATUSES.contains(requestedStatus)) return;
+        Integer participantLimit = activity.getParticipantLimit();
+        if (participantLimit != null
+                && countCapacityParticipants(activity) >= participantLimit) {
+            throw new BadRequestException("참여 신청이 마감되었습니다. 정원이 모두 찼습니다.");
+        }
+    }
+
+    private void validateCapacityTransition(
+            ActivityParticipant participant,
+            ActivityParticipantStatus newStatus
+    ) {
+        if (CAPACITY_STATUSES.contains(participant.getStatus())
+                || !CAPACITY_STATUSES.contains(newStatus)) {
+            return;
+        }
+        Activity activity = findActivityForUpdate(participant.getActivity().getId());
+        validateAvailableCapacity(activity, newStatus);
+    }
+
+    private long countCapacityParticipants(Activity activity) {
+        return activityParticipantRepository.countCapacityParticipants(
+                activity,
+                CAPACITY_STATUSES
+        );
     }
 
     private void recordDepositApplication(
@@ -253,14 +353,6 @@ public class ActivityParticipantService {
             throw new BadRequestException(fieldName + "은(는) " + maxLength + "자 이하로 입력해주세요.");
         }
         return normalized;
-    }
-
-    private ActivityParticipantCreateCommand toCreateCommand(ActivityParticipantRequestDto dto) {
-        return ActivityParticipantCreateCommand.builder()
-                .activity(findActivity(dto.getActivityId()))
-                .user(findUser(dto.getUserId()))
-                .status(ActivityParticipantStatus.valueOf(dto.getStatus()))
-                .build();
     }
 
     private ActivityParticipantUpdateCommand toUpdateCommand(ActivityParticipantRequestDto dto) {

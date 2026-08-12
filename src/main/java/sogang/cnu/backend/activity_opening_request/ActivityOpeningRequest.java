@@ -58,6 +58,9 @@ public class ActivityOpeningRequest extends BaseEntity {
     @Column(name = "accepts_new_members", nullable = false)
     private Boolean acceptsNewMembers;
 
+    @Column(name = "participant_limit")
+    private Integer participantLimit;
+
     @Column(name = "is_personal_project")
     @Builder.Default
     private Boolean personalProject = false;
@@ -106,6 +109,7 @@ public class ActivityOpeningRequest extends BaseEntity {
             LocalDate endDate,
             Integer expectedMemberCount,
             Boolean acceptsNewMembers,
+            Integer participantLimit,
             Boolean personalProject,
             Activity parentActivity,
             Set<User> initialMembers
@@ -119,6 +123,7 @@ public class ActivityOpeningRequest extends BaseEntity {
         this.endDate = endDate;
         this.expectedMemberCount = expectedMemberCount;
         this.acceptsNewMembers = acceptsNewMembers;
+        this.participantLimit = participantLimit;
         this.personalProject = personalProject;
         this.parentActivity = parentActivity;
         this.initialMembers.clear();

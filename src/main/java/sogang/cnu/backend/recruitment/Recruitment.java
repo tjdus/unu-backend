@@ -32,6 +32,9 @@ public class Recruitment extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "completion_message", columnDefinition = "TEXT")
+    private String completionMessage;
+
     @Column(nullable = false)
     private LocalDateTime startAt;
 
@@ -56,6 +59,7 @@ public class Recruitment extends BaseEntity {
     public void update(RecruitmentUpdateCommand command) {
         this.title = command.getTitle();
         this.description = command.getDescription();
+        this.completionMessage = command.getCompletionMessage();
         this.startAt = command.getStartAt();
         this.endAt = command.getEndAt();
         this.quarter = command.getQuarter();
@@ -67,6 +71,7 @@ public class Recruitment extends BaseEntity {
         return Recruitment.builder()
                 .title(command.getTitle())
                 .description(command.getDescription())
+                .completionMessage(command.getCompletionMessage())
                 .startAt(command.getStartAt())
                 .endAt(command.getEndAt())
                 .quarter(command.getQuarter())
@@ -75,4 +80,3 @@ public class Recruitment extends BaseEntity {
                 .build();
     }
 }
-

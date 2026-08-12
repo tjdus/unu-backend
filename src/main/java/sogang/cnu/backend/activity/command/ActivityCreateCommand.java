@@ -23,4 +23,5 @@ public class ActivityCreateCommand {
     private Activity parentActivity;
     private Boolean listed;
     private Integer depositAmount;
+    private Integer participantLimit;
 }
