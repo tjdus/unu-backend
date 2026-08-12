@@ -184,11 +184,11 @@ public class ActivityParticipantService {
     }
 
     @Transactional
-    public ActivityParticipantResponseDto updateCompleted(UUID id) {
+    public ActivityParticipantResponseDto updateCompleted(UUID id, boolean completed) {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
-        activity.updateCompleted();
+        activity.updateCompleted(completed);
         return activityParticipantMapper.toResponseDto(activity);
     }
 

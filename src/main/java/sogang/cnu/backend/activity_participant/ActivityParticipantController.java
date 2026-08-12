@@ -1,9 +1,11 @@
 package sogang.cnu.backend.activity_participant;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import sogang.cnu.backend.activity_participant.dto.ActivityParticipantCompletionDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityJoinRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRefundAccountDto;
@@ -51,8 +53,10 @@ public class ActivityParticipantController {
 
     @PatchMapping("/{id}/completed")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<ActivityParticipantResponseDto> updateCompleted(@PathVariable UUID id) {
-        return ResponseEntity.ok(activityParticipantService.updateCompleted(id));
+    public ResponseEntity<ActivityParticipantResponseDto> updateCompleted(
+            @PathVariable UUID id,
+            @Valid @RequestBody ActivityParticipantCompletionDto dto) {
+        return ResponseEntity.ok(activityParticipantService.updateCompleted(id, dto.getCompleted()));
     }
 
     @PutMapping("/{id}")

@@ -92,9 +92,9 @@ public class ActivityParticipant extends BaseEntity {
         this.joinedAt = activity.getStartDate().atStartOfDay();
     }
 
-    public void updateCompleted() {
-        this.completed = true;
-        this.completedAt = LocalDateTime.now();
+    public void updateCompleted(boolean completed) {
+        this.completed = completed;
+        this.completedAt = completed ? LocalDateTime.now() : null;
     }
 
     public void recordDepositApplication(
