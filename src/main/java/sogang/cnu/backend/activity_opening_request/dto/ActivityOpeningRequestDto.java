@@ -26,6 +26,9 @@ public class ActivityOpeningRequestDto {
     @Size(max = 10000, message = "운영 계획은 10000자 이내로 입력해주세요.")
     private String operationPlan;
 
+    @Size(max = 2048, message = "자료 링크가 너무 깁니다.")
+    private String materialUrl;
+
     @NotNull(message = "활동 유형을 선택해주세요.")
     private UUID activityTypeId;
 

@@ -24,6 +24,7 @@ import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
+import sogang.cnu.backend.lecture_material.LectureMaterialService;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.MemberStatus;
 import sogang.cnu.backend.user.UserRepository;
@@ -48,6 +49,7 @@ public class ActivityOpeningRequestService {
     private final ActivityService activityService;
     private final ActivityParticipantRepository participantRepository;
     private final ActivityOpeningPeriodService openingPeriodService;
+    private final LectureMaterialService lectureMaterialService;
 
     @Transactional
     public ActivityOpeningRequestResponseDto createDraft(UUID applicantId, ActivityOpeningRequestDto dto) {
@@ -61,6 +63,7 @@ public class ActivityOpeningRequestService {
                 .title(dto.getTitle().trim())
                 .description(dto.getDescription().trim())
                 .operationPlan(dto.getOperationPlan().trim())
+                .materialUrl(materialUrlForRequest(dto, references.activityType()))
                 .activityType(references.activityType())
                 .quarter(references.quarter())
                 .startDate(dto.getStartDate())
@@ -91,6 +94,7 @@ public class ActivityOpeningRequestService {
                 dto.getTitle().trim(),
                 dto.getDescription().trim(),
                 dto.getOperationPlan().trim(),
+                materialUrlForRequest(dto, references.activityType()),
                 references.activityType(),
                 references.quarter(),
                 dto.getStartDate(),
@@ -273,6 +277,7 @@ public class ActivityOpeningRequestService {
         );
 
         Activity savedActivity = activityRepository.save(activity);
+        lectureMaterialService.syncPrimaryMaterial(savedActivity, request.getMaterialUrl());
 
         Set<User> participants =
                 new LinkedHashSet<>(request.getInitialMembers());
@@ -401,6 +406,12 @@ public class ActivityOpeningRequestService {
         return career.trim();
     }
 
+    private String materialUrlForRequest(ActivityOpeningRequestDto dto, ActivityType activityType) {
+        String code = activityType.getCode();
+        if (!"STUDY".equals(code) && !"SPECIAL_LECTURE".equals(code)) return null;
+        return lectureMaterialService.normalizeOptionalMaterialUrl(dto.getMaterialUrl());
+    }
+
     private String recruitmentPositionsForRequest(ActivityOpeningRequestDto dto) {
         if (!Boolean.TRUE.equals(dto.getAcceptsNewMembers())) return null;
         String positions = dto.getRecruitmentPositions();
@@ -482,6 +493,7 @@ public class ActivityOpeningRequestService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .operationPlan(request.getOperationPlan())
+                .materialUrl(request.getMaterialUrl())
                 .activityType(ActivityTypeResponseDto.builder()
                         .id(request.getActivityType().getId())
                         .name(request.getActivityType().getName())

@@ -15,6 +15,7 @@ public class LectureMaterialResponseDto {
     private String materialName;
     private String driveUrl;
     private Integer weekNumber;
+    private Boolean primary;
     private UUID activityId;
     private String activityTitle;
     private LocalDateTime createdAt;

@@ -45,6 +45,11 @@ public class LectureMaterial extends BaseEntity {
     @Column(name = "week_number")
     private Integer weekNumber;
 
+    /** 활동 등록/개설 신청에서 관리하는 대표 자료인지 구분한다. */
+    @Column(name = "is_primary")
+    @Builder.Default
+    private Boolean primary = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_id")
     private Activity activity;
@@ -57,5 +62,15 @@ public class LectureMaterial extends BaseEntity {
         this.driveUrl = driveUrl;
         this.weekNumber = weekNumber;
         this.activity = activity;
+    }
+
+    public void updatePrimary(String title, String driveUrl, Activity activity) {
+        this.title = title;
+        this.description = null;
+        this.materialName = title;
+        this.driveUrl = driveUrl;
+        this.weekNumber = null;
+        this.activity = activity;
+        this.primary = true;
     }
 }

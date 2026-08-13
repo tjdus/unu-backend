@@ -24,6 +24,10 @@ public class LectureMaterialService {
             "drive.google.com",
             "docs.google.com"
     );
+    private static final Set<String> NOTION_HOSTS = Set.of(
+            "notion.so",
+            "notion.site"
+    );
 
     private final LectureMaterialRepository lectureMaterialRepository;
     private final ActivityRepository activityRepository;
@@ -45,7 +49,7 @@ public class LectureMaterialService {
 
     @Transactional
     public LectureMaterialResponseDto create(LectureMaterialRequestDto request) {
-        String driveUrl = validateAndNormalizeDriveUrl(request.getDriveUrl());
+        String driveUrl = validateAndNormalizeMaterialUrl(request.getDriveUrl());
         Activity activity = findActivity(request.getActivityId());
         requireManageable(activity);
         LectureMaterial material = LectureMaterial.builder()
@@ -69,7 +73,7 @@ public class LectureMaterialService {
                 request.getTitle().trim(),
                 normalizeDescription(request.getDescription()),
                 normalizeMaterialName(request.getMaterialName()),
-                validateAndNormalizeDriveUrl(request.getDriveUrl()),
+                validateAndNormalizeMaterialUrl(request.getDriveUrl()),
                 request.getWeekNumber(),
                 activity
         );
@@ -81,6 +85,39 @@ public class LectureMaterialService {
         LectureMaterial material = findOrThrow(id);
         requireManageable(material.getActivity());
         lectureMaterialRepository.delete(material);
+    }
+
+    /** 활동 생성/수정 폼에서 입력한 대표 자료를 기존 자료 목록과 함께 관리한다. */
+    @Transactional
+    public void syncPrimaryMaterial(Activity activity, String driveUrl) {
+        LectureMaterial existing = lectureMaterialRepository
+                .findFirstByActivityIdAndPrimaryTrue(activity.getId())
+                .orElse(null);
+        String title = primaryMaterialTitle(activity);
+
+        if (title == null || driveUrl == null || driveUrl.isBlank()) {
+            if (existing != null) lectureMaterialRepository.delete(existing);
+            return;
+        }
+
+        String normalizedUrl = validateAndNormalizeMaterialUrl(driveUrl);
+        if (existing == null) {
+            lectureMaterialRepository.save(LectureMaterial.builder()
+                    .title(title)
+                    .materialName(title)
+                    .driveUrl(normalizedUrl)
+                    .weekNumber(null)
+                    .activity(activity)
+                    .primary(true)
+                    .build());
+            return;
+        }
+        existing.updatePrimary(title, normalizedUrl, activity);
+    }
+
+    public String normalizeOptionalMaterialUrl(String value) {
+        if (value == null || value.isBlank()) return null;
+        return validateAndNormalizeMaterialUrl(value);
     }
 
     private void requireManageable(Activity activity) {
@@ -98,21 +135,40 @@ public class LectureMaterialService {
                 .orElseThrow(() -> new NotFoundException("연결할 활동을 찾을 수 없습니다."));
     }
 
-    private String validateAndNormalizeDriveUrl(String value) {
+    private String validateAndNormalizeMaterialUrl(String value) {
         String normalized = value.trim();
+        if (normalized.length() > 2048) {
+            throw new BadRequestException("자료 링크가 너무 깁니다.");
+        }
         try {
             URI uri = new URI(normalized);
             String host = uri.getHost();
             if (!"https".equalsIgnoreCase(uri.getScheme()) ||
                     host == null ||
-                    !GOOGLE_DRIVE_HOSTS.contains(host.toLowerCase()) ||
+                    !isAllowedMaterialHost(host) ||
                     uri.getUserInfo() != null) {
-                throw new BadRequestException("Google Drive 공유 링크를 확인해주세요.");
+                throw new BadRequestException("Google Drive 또는 Notion 공유 링크를 확인해주세요.");
             }
             return uri.toString();
         } catch (URISyntaxException e) {
-            throw new BadRequestException("Google Drive 공유 링크를 확인해주세요.");
+            throw new BadRequestException("Google Drive 또는 Notion 공유 링크를 확인해주세요.");
         }
+    }
+
+    private boolean isAllowedMaterialHost(String host) {
+        String normalizedHost = host.toLowerCase();
+        if (GOOGLE_DRIVE_HOSTS.contains(normalizedHost)) return true;
+        return NOTION_HOSTS.stream().anyMatch(allowed ->
+                normalizedHost.equals(allowed) || normalizedHost.endsWith("." + allowed)
+        );
+    }
+
+    private String primaryMaterialTitle(Activity activity) {
+        return switch (activity.getActivityType().getCode()) {
+            case "STUDY" -> "스터디 자료";
+            case "SPECIAL_LECTURE" -> "강의자료";
+            default -> null;
+        };
     }
 
     private String normalizeDescription(String description) {
@@ -133,6 +189,7 @@ public class LectureMaterialService {
                 .materialName(material.getMaterialName())
                 .driveUrl(material.getDriveUrl())
                 .weekNumber(material.getWeekNumber())
+                .primary(Boolean.TRUE.equals(material.getPrimary()))
                 .activityId(material.getActivity() == null ? null : material.getActivity().getId())
                 .activityTitle(material.getActivity() == null ? null : material.getActivity().getTitle())
                 .createdAt(material.getCreatedAt())

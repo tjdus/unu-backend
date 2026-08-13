@@ -38,6 +38,9 @@ public class ActivityOpeningRequest extends BaseEntity {
     @Column(name = "operation_plan", columnDefinition = "TEXT", nullable = false)
     private String operationPlan;
 
+    @Column(name = "material_url", length = 2048)
+    private String materialUrl;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "activity_type_id", nullable = false)
     private ActivityType activityType;
@@ -110,6 +113,7 @@ public class ActivityOpeningRequest extends BaseEntity {
             String title,
             String description,
             String operationPlan,
+            String materialUrl,
             ActivityType activityType,
             Quarter quarter,
             LocalDate startDate,
@@ -126,6 +130,7 @@ public class ActivityOpeningRequest extends BaseEntity {
         this.title = title;
         this.description = description;
         this.operationPlan = operationPlan;
+        this.materialUrl = materialUrl;
         this.activityType = activityType;
         this.quarter = quarter;
         this.startDate = startDate;

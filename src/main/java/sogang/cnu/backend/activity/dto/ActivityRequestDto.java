@@ -27,6 +27,7 @@ public class ActivityRequestDto {
     private String discordUrl;
     private String operationPlan;
     private String instructorCareer;
+    private String materialUrl;
     private LocalDate recruitmentStartDate;
     private LocalDate recruitmentEndDate;
 }

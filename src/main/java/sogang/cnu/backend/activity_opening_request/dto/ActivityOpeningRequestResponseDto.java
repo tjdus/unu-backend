@@ -19,6 +19,7 @@ public class ActivityOpeningRequestResponseDto {
     private String title;
     private String description;
     private String operationPlan;
+    private String materialUrl;
     private ActivityTypeResponseDto activityType;
     private QuarterResponseDto quarter;
     private LocalDate startDate;

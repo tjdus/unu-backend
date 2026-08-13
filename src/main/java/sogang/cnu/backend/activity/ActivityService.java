@@ -25,6 +25,7 @@ import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepositor
 import sogang.cnu.backend.activity_notice.ActivityNoticeRepository;
 import sogang.cnu.backend.activity_opening_request.ActivityOpeningRequestRepository;
 import sogang.cnu.backend.lecture_material.LectureMaterialRepository;
+import sogang.cnu.backend.lecture_material.LectureMaterialService;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.user.User;
@@ -51,6 +52,7 @@ public class ActivityService {
     private final AttendanceReportRepository attendanceReportRepository;
     private final CourseTimeReservationRepository courseTimeReservationRepository;
     private final LectureMaterialRepository lectureMaterialRepository;
+    private final LectureMaterialService lectureMaterialService;
     private final ActivityNoticeRepository activityNoticeRepository;
     private final ActivityOpeningRequestRepository activityOpeningRequestRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
@@ -93,6 +95,7 @@ public class ActivityService {
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
+        lectureMaterialService.syncPrimaryMaterial(savedActivity, dto.getMaterialUrl());
         registerAssigneeAsParticipant(savedActivity);
         return activityMapper.toResponseDto(savedActivity);
     }
@@ -105,6 +108,7 @@ public class ActivityService {
         checkPermission(userId, activity);
         if (!SecurityUtils.isManagerOrAdmin()) {
             activity.update(toAssigneeUpdateCommand(activity, dto));
+            lectureMaterialService.syncPrimaryMaterial(activity, dto.getMaterialUrl());
             return activityMapper.toResponseDto(activity);
         }
 
@@ -119,6 +123,7 @@ public class ActivityService {
         validateParticipantLimitAgainstCurrentCount(activity, participantLimit);
         validateRecruitmentPeriod(dto);
         activity.update(toUpdateCommand(dto, activityType, depositAmount, participantLimit));
+        lectureMaterialService.syncPrimaryMaterial(activity, dto.getMaterialUrl());
         return activityMapper.toResponseDto(activity);
     }
 
@@ -141,6 +146,7 @@ public class ActivityService {
         attendanceReportRepository.deleteByActivityId(id);
         attendanceRepository.deleteByActivityId(id);
         courseTimeReservationRepository.deleteByActivityId(id);
+        lectureMaterialRepository.deleteByActivityIdAndPrimaryTrue(id);
         lectureMaterialRepository.detachFromActivity(id);
         // 공지는 활동에 종속되므로 같이 지운다 (자료와 달리 공용으로 남길 수 없다)
         activityNoticeRepository.deleteByActivityId(id);
