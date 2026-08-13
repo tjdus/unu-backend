@@ -203,11 +203,7 @@ public class ActivityOpeningRequestService {
                 ActivityCreateCommand.builder()
                         .title(request.getTitle())
                         .description(request.getDescription())
-                        .status(
-                                Boolean.TRUE.equals(request.getAcceptsNewMembers())
-                                        ? ActivityStatus.OPEN
-                                        : ActivityStatus.CREATED
-                        )
+                        .status(ActivityStatus.OPEN)
                         .activityType(request.getActivityType())
                         .assignee(request.getApplicant())
                         .quarter(request.getQuarter())
