@@ -17,11 +17,14 @@ import sogang.cnu.backend.user.command.UserUpdateCommand;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
+import sogang.cnu.backend.common.exception.ForbiddenException;
+import sogang.cnu.backend.util.SecurityUtils;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -40,6 +43,7 @@ public class AuthService {
             throw new RuntimeException("유효하지 않은 회원가입 토큰입니다.");
         }
 
+        validateAccountPassword(signUpRequestDto.getPassword());
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
 
         UserCreateCommand createCommand = toCreateCommand(signUpRequestDto);
@@ -94,9 +98,14 @@ public class AuthService {
             throw new RuntimeException("리프레시 토큰이 아닙니다.");
         }
 
-        String email = jwtTokenProvider.getIdFromToken(refreshToken);
+        UUID userId;
+        try {
+            userId = UUID.fromString(jwtTokenProvider.getIdFromToken(refreshToken));
+        } catch (IllegalArgumentException exception) {
+            throw new BadRequestException("유효하지 않은 리프레시 토큰입니다.");
+        }
 
-        User user = userRepository.findByUsername(email)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
         List<String> roles = getUserRoles(user.getId());
@@ -127,6 +136,12 @@ public class AuthService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!SecurityUtils.isAdmin()
+                && (!Objects.equals(user.getName(), dto.getName())
+                || !Objects.equals(user.getStudentId(), dto.getStudentId()))) {
+            throw new ForbiddenException("이름과 학번은 관리자만 변경할 수 있습니다.");
+        }
+
         validateUpdate(id, dto);
 
         user.update(UserUpdateCommand.builder()
@@ -150,6 +165,7 @@ public class AuthService {
             throw new RuntimeException("비밀번호가 올바르지 않습니다.");
         }
 
+        validateAccountPassword(dto.getNewPassword());
         String encodedPassword = passwordEncoder.encode(dto.getNewPassword());
         user.updatePassword(encodedPassword);
         userRepository.save(user);
@@ -228,5 +244,11 @@ public class AuthService {
         if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()
                 && userRepository.existsByPhoneNumberAndIdNot(dto.getPhoneNumber(), id))
             throw new BadRequestException("이미 사용 중인 전화번호입니다.");
+    }
+
+    private void validateAccountPassword(String password) {
+        if (password == null || password.length() < 8 || password.length() > 100) {
+            throw new BadRequestException("비밀번호는 8자 이상 100자 이하로 입력해주세요.");
+        }
     }
 }

@@ -244,6 +244,8 @@ public class ActivityOpeningRequestService {
             }
         }
 
+        validateApprovalParticipantCounts(request);
+
         Activity activity = Activity.create(
             ActivityCreateCommand.builder()
                     .title(request.getTitle())
@@ -356,12 +358,32 @@ public class ActivityOpeningRequestService {
         long selectedMemberCount = references.initialMembers().stream()
                 .filter(member -> !member.getId().equals(applicantId))
                 .count();
-        if (dto.getExpectedMemberCount() < selectedMemberCount) {
+        long registeredParticipantCount = selectedMemberCount + 1;
+        if (dto.getExpectedMemberCount() < registeredParticipantCount) {
             throw new BadRequestException("예상 인원은 현재 선택한 참여 인원보다 적을 수 없습니다.");
         }
+        long capacityParticipantCount = selectedMemberCount
+                + ("STUDY".equals(references.activityType().getCode()) ? 1 : 0);
         if (dto.getParticipantLimit() != null
-                && dto.getParticipantLimit() < selectedMemberCount) {
+                && dto.getParticipantLimit() < capacityParticipantCount) {
             throw new BadRequestException("참여 정원은 함께 시작할 인원보다 적게 설정할 수 없습니다.");
+        }
+    }
+
+    private void validateApprovalParticipantCounts(ActivityOpeningRequest request) {
+        long selectedMemberCount = request.getInitialMembers().stream()
+                .filter(member -> !member.getId().equals(request.getApplicant().getId()))
+                .count();
+        long registeredParticipantCount = selectedMemberCount + 1;
+        if (request.getExpectedMemberCount() < registeredParticipantCount) {
+            throw new BadRequestException("예상 인원은 실제 등록될 참여 인원보다 적을 수 없습니다.");
+        }
+
+        long capacityParticipantCount = selectedMemberCount
+                + ("STUDY".equals(request.getActivityType().getCode()) ? 1 : 0);
+        if (request.getParticipantLimit() != null
+                && request.getParticipantLimit() < capacityParticipantCount) {
+            throw new BadRequestException("참여 정원은 실제 등록될 참여 인원보다 적을 수 없습니다.");
         }
     }
 

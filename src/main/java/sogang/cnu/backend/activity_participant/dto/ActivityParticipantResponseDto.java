@@ -21,6 +21,9 @@ public class ActivityParticipantResponseDto {
     private Boolean completed;
     private String completedAt;
     private String joinedAt;
+    private String appliedPosition;
+    private String applicationMessage;
+    private String reviewMessage;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

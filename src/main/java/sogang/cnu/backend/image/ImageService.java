@@ -82,10 +82,19 @@ public class ImageService {
     @Transactional
     public String syncImages(UUID postId, PostType postType, String content, String explicitThumbnailUrl) {
         List<String> contentUrls = extractImageUrls(content);
+        Set<String> referencedUrls = new LinkedHashSet<>(contentUrls);
+        if (explicitThumbnailUrl != null && !explicitThumbnailUrl.isBlank()) {
+            referencedUrls.add(explicitThumbnailUrl);
+        }
+
+        // 게시물이 저장되기 전에는 연결할 ID가 없으므로 이미지 상태를 바꾸지 않는다.
+        if (postId == null) {
+            return determineThumbnail(contentUrls, explicitThumbnailUrl);
+        }
 
         // Activate TEMP images found in this content
-        if (!contentUrls.isEmpty()) {
-            List<Image> toActivate = imageRepository.findByUrlInAndStatus(contentUrls, ImageStatus.TEMP);
+        if (!referencedUrls.isEmpty()) {
+            List<Image> toActivate = imageRepository.findByUrlInAndStatus(referencedUrls, ImageStatus.TEMP);
             toActivate.forEach(img -> {
                 img.setStatus(ImageStatus.ACTIVE);
                 img.setPostId(postId);
@@ -94,11 +103,10 @@ public class ImageService {
             if (!toActivate.isEmpty()) imageRepository.saveAll(toActivate);
         }
 
-        // Deactivate images that were previously linked to this post but are no longer in content
+        // Deactivate images that are no longer referenced by the post or its thumbnail
         List<Image> currentActive = imageRepository.findByPostIdAndPostType(postId, postType);
-        Set<String> newUrlSet = new HashSet<>(contentUrls);
         List<Image> toDeactivate = currentActive.stream()
-                .filter(img -> !newUrlSet.contains(img.getUrl()))
+                .filter(img -> !referencedUrls.contains(img.getUrl()))
                 .collect(Collectors.toList());
         toDeactivate.forEach(img -> {
             img.setStatus(ImageStatus.TEMP);
@@ -108,10 +116,7 @@ public class ImageService {
         if (!toDeactivate.isEmpty()) imageRepository.saveAll(toDeactivate);
 
         // Determine thumbnail
-        if (explicitThumbnailUrl != null && !explicitThumbnailUrl.isBlank()) {
-            return explicitThumbnailUrl;
-        }
-        return contentUrls.isEmpty() ? "" : contentUrls.get(0);
+        return determineThumbnail(contentUrls, explicitThumbnailUrl);
     }
 
     // -------------------------------------------------------------------------
@@ -172,6 +177,13 @@ public class ImageService {
             urls.add(m.group(1));
         }
         return urls;
+    }
+
+    private String determineThumbnail(List<String> contentUrls, String explicitThumbnailUrl) {
+        if (explicitThumbnailUrl != null && !explicitThumbnailUrl.isBlank()) {
+            return explicitThumbnailUrl;
+        }
+        return contentUrls.isEmpty() ? "" : contentUrls.get(0);
     }
 
     private void deleteFile(String filename) {

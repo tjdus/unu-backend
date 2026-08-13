@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import sogang.cnu.backend.activity.Activity;
+import sogang.cnu.backend.activity.ActivityStatus;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -44,9 +45,12 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
             WHERE ap.status = :status
               AND ap.activity.startDate IS NOT NULL
               AND ap.activity.startDate <= :today
+              AND ap.activity.status <> :excludedActivityStatus
+              AND ap.activity.activityType.code <> 'PROJECT'
             """)
     List<ActivityParticipant> findReadyForConfirmation(
             @Param("status") ActivityParticipantStatus status,
-            @Param("today") LocalDate today
+            @Param("today") LocalDate today,
+            @Param("excludedActivityStatus") ActivityStatus excludedActivityStatus
     );
 }

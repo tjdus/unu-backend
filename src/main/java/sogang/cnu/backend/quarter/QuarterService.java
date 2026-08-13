@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.quarter.command.QuarterCreateCommand;
 import sogang.cnu.backend.quarter.command.QuarterUpdateCommand;
 import sogang.cnu.backend.quarter.dto.QuarterRequestDto;
@@ -40,6 +41,7 @@ public class QuarterService {
 
     @Transactional
     public QuarterResponseDto create(QuarterRequestDto dto) {
+        validatePeriod(dto);
         Quarter quarter = Quarter.create(toCreateCommand(dto));
         Quarter savedQuarter = quarterRepository.save(quarter);
         return quarterMapper.toResponseDto(savedQuarter);
@@ -49,6 +51,10 @@ public class QuarterService {
     public QuarterResponseDto update(UUID id, QuarterRequestDto dto) {
         Quarter quarter = quarterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
+        validatePeriod(dto);
+        if (quarterRepository.countActivitiesOutsidePeriod(id, dto.getStartDate(), dto.getEndDate()) > 0) {
+            throw new BadRequestException("기존 활동 기간을 벗어나도록 분기 기간을 변경할 수 없습니다.");
+        }
         QuarterUpdateCommand updateCommand = toUpdateCommand(dto);
         quarter.update(updateCommand);
 
@@ -87,6 +93,15 @@ public class QuarterService {
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
                 .build();
+    }
+
+    private void validatePeriod(QuarterRequestDto dto) {
+        if (dto.getStartDate() == null || dto.getEndDate() == null) {
+            throw new BadRequestException("분기 시작일과 종료일을 입력해주세요.");
+        }
+        if (dto.getStartDate().isAfter(dto.getEndDate())) {
+            throw new BadRequestException("분기 종료일은 시작일보다 빠를 수 없습니다.");
+        }
     }
 
 

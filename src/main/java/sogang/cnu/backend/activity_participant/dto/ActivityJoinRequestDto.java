@@ -12,4 +12,6 @@ public class ActivityJoinRequestDto {
     private Boolean agreedToDepositPolicy;
     private Boolean confirmedDepositPayment;
     private Boolean agreedToPromotion;
+    private String appliedPosition;
+    private String applicationMessage;
 }

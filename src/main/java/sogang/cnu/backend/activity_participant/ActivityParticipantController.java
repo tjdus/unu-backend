@@ -46,7 +46,6 @@ public class ActivityParticipantController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivityParticipantResponseDto> updateStatus(@PathVariable UUID id, @RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
         return ResponseEntity.ok(activityParticipantService.updateStatus(id, activityParticipantRequestDto));
     }

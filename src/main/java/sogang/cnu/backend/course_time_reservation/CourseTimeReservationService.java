@@ -54,6 +54,7 @@ public class CourseTimeReservationService {
 
         validateParticipant(user.getId(), activity.getId());
         validateTimeRange(dto.getStartAt(), dto.getEndAt());
+        validateReservationWindow(activity, dto.getStartAt(), dto.getEndAt());
         validateSingleDuration(dto.getStartAt(), dto.getEndAt());
         validateNoOverlap(user.getId(), dto.getStartAt(), dto.getEndAt(), null);
         validateActivityNoOverlap(activity.getId(), dto.getStartAt(), dto.getEndAt(), null);
@@ -84,6 +85,7 @@ public class CourseTimeReservationService {
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
         validateOnlineCourse(activity);
         validateTimeRange(dto.getStartAt(), dto.getEndAt());
+        validateReservationWindow(activity, dto.getStartAt(), dto.getEndAt());
         validateSingleDuration(dto.getStartAt(), dto.getEndAt());
         validateNoOverlap(reservation.getUser().getId(), dto.getStartAt(), dto.getEndAt(), id);
         validateActivityNoOverlap(activity.getId(), dto.getStartAt(), dto.getEndAt(), id);
@@ -149,9 +151,42 @@ public class CourseTimeReservationService {
     }
 
     private void validateTimeRange(LocalDateTime startAt, LocalDateTime endAt) {
+        if (startAt == null || endAt == null) {
+            throw new BadRequestException("예약 시작·종료 시간을 입력해주세요.");
+        }
         if (!endAt.isAfter(startAt)) {
             throw new BadRequestException("endAt must be after startAt");
         }
+    }
+
+    private void validateReservationWindow(
+            Activity activity,
+            LocalDateTime startAt,
+            LocalDateTime endAt
+    ) {
+        if (!startAt.toLocalDate().equals(endAt.toLocalDate())) {
+            throw new BadRequestException("예약은 같은 날짜 안에서만 가능합니다.");
+        }
+        if (startAt.isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("지난 시간은 예약할 수 없습니다.");
+        }
+        if (!isHalfHourBoundary(startAt) || !isHalfHourBoundary(endAt)) {
+            throw new BadRequestException("예약 시간은 30분 단위로 입력해주세요.");
+        }
+        if (activity.getStartDate() == null || activity.getEndDate() == null) {
+            throw new BadRequestException("활동 기간이 설정되지 않아 예약할 수 없습니다.");
+        }
+        LocalDate reservationDate = startAt.toLocalDate();
+        if (reservationDate.isBefore(activity.getStartDate())
+                || reservationDate.isAfter(activity.getEndDate())) {
+            throw new BadRequestException("활동 기간 안에서만 예약할 수 있습니다.");
+        }
+    }
+
+    private boolean isHalfHourBoundary(LocalDateTime value) {
+        return value.getMinute() % 30 == 0
+                && value.getSecond() == 0
+                && value.getNano() == 0;
     }
 
     private void validateSingleDuration(LocalDateTime startAt, LocalDateTime endAt) {

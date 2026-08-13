@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity.*;
 import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreateCommand;
-import sogang.cnu.backend.activity_participant.command.ActivityParticipantUpdateCommand;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityJoinRequestDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRefundAccountDto;
@@ -76,6 +75,10 @@ public class ActivityParticipantService {
             ActivityJoinRequestDto request
     ) {
         Activity targetActivity = findActivityForUpdate(activityId);
+        if (targetActivity.getStatus() == null
+                || targetActivity.getStatus() == ActivityStatus.COMPLETED) {
+            throw new ForbiddenException("종료된 활동에는 참여를 신청할 수 없습니다.");
+        }
         if (!isRecruitmentOpen(targetActivity)) {
             throw new ForbiddenException("현재 참여자를 모집 중인 활동이 아닙니다.");
         }
@@ -86,9 +89,11 @@ public class ActivityParticipantService {
             throw new ForbiddenException("개인 프로젝트에는 참여를 신청할 수 없습니다.");
         }
 
-        ActivityParticipantStatus initialStatus = hasStarted(targetActivity)
-                ? ActivityParticipantStatus.APPROVED
-                : ActivityParticipantStatus.APPLIED;
+        ActivityParticipantStatus initialStatus = isProject(targetActivity)
+                ? ActivityParticipantStatus.APPLIED
+                : hasStarted(targetActivity)
+                    ? ActivityParticipantStatus.APPROVED
+                    : ActivityParticipantStatus.APPLIED;
 
         ActivityParticipant existing = activityParticipantRepository
                 .findByUserIdAndActivityId(userId, activityId)
@@ -106,6 +111,9 @@ public class ActivityParticipantService {
             if (requiresDeposit(targetActivity)) {
                 recordDepositApplication(existing, request);
             }
+            if (isProject(targetActivity)) {
+                recordProjectApplication(existing, request);
+            }
             return activityParticipantMapper.toResponseDto(existing);
         }
 
@@ -118,6 +126,9 @@ public class ActivityParticipantService {
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
         if (requiresDeposit(targetActivity)) {
             recordDepositApplication(activityParticipant, request);
+        }
+        if (isProject(targetActivity)) {
+            recordProjectApplication(activityParticipant, request);
         }
         activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
@@ -138,7 +149,11 @@ public class ActivityParticipantService {
     @Transactional
     public int confirmParticipantsForStartedActivities(LocalDate today) {
         List<ActivityParticipant> participants = activityParticipantRepository
-                .findReadyForConfirmation(ActivityParticipantStatus.APPLIED, today);
+                .findReadyForConfirmation(
+                        ActivityParticipantStatus.APPLIED,
+                        today,
+                        ActivityStatus.COMPLETED
+                );
         participants.forEach(ActivityParticipant::confirmOnActivityStart);
         return participants.size();
     }
@@ -167,8 +182,7 @@ public class ActivityParticipantService {
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
         ActivityParticipantStatus newStatus = ActivityParticipantStatus.valueOf(dto.getStatus());
-        validateCapacityTransition(activity, newStatus);
-        activity.update(toUpdateCommand(dto));
+        changeStatus(activity, newStatus);
         return activityParticipantMapper.toResponseDto(activity);
     }
 
@@ -177,9 +191,20 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
+        requireActivityManagerOrAssignee(activity);
+
         ActivityParticipantStatus newStatus = ActivityParticipantStatus.valueOf(dto.getStatus());
-        validateCapacityTransition(activity, newStatus);
-        activity.updateStatus(newStatus);
+        String reviewMessage = normalizeReviewMessage(dto.getReviewMessage());
+        if (newStatus == ActivityParticipantStatus.REJECTED
+                && isProject(activity.getActivity())
+                && !SecurityUtils.isManagerOrAdmin()
+                && reviewMessage == null) {
+            throw new BadRequestException("신청자에게 전달할 반려 안내를 입력해주세요.");
+        }
+        changeStatus(activity, newStatus);
+        if (newStatus == ActivityParticipantStatus.REJECTED) {
+            activity.recordReviewMessage(reviewMessage);
+        }
         return activityParticipantMapper.toResponseDto(activity);
     }
 
@@ -188,6 +213,9 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
+        if (completed && activity.getStatus() != ActivityParticipantStatus.APPROVED) {
+            throw new BadRequestException("참여가 확정된 학회원만 수료 처리할 수 있습니다.");
+        }
         activity.updateCompleted(completed);
         return activityParticipantMapper.toResponseDto(activity);
     }
@@ -294,6 +322,11 @@ public class ActivityParticipantService {
                 && activity.getDepositAmount() > 0;
     }
 
+    private boolean isProject(Activity activity) {
+        return activity.getActivityType() != null
+                && "PROJECT".equals(activity.getActivityType().getCode());
+    }
+
     private boolean hasStarted(Activity activity) {
         return activity.getStartDate() != null
                 && !activity.getStartDate().isAfter(LocalDate.now());
@@ -303,11 +336,11 @@ public class ActivityParticipantService {
             Activity activity,
             ActivityParticipantStatus requestedStatus
     ) {
-        if (!CAPACITY_STATUSES.contains(requestedStatus)) return;
+        if (!capacityStatuses(activity).contains(requestedStatus)) return;
         Integer participantLimit = activity.getParticipantLimit();
         if (participantLimit != null
                 && countCapacityParticipants(activity) >= participantLimit) {
-            throw new BadRequestException("참여 신청이 마감되었습니다. 정원이 모두 찼습니다.");
+            throw new BadRequestException("참여 정원이 모두 찼습니다.");
         }
     }
 
@@ -315,19 +348,86 @@ public class ActivityParticipantService {
             ActivityParticipant participant,
             ActivityParticipantStatus newStatus
     ) {
-        if (CAPACITY_STATUSES.contains(participant.getStatus())
-                || !CAPACITY_STATUSES.contains(newStatus)) {
+        Activity activity = participant.getActivity();
+        List<ActivityParticipantStatus> capacityStatuses = capacityStatuses(activity);
+        if (capacityStatuses.contains(participant.getStatus())
+                || !capacityStatuses.contains(newStatus)) {
             return;
         }
-        Activity activity = findActivityForUpdate(participant.getActivity().getId());
+        activity = findActivityForUpdate(activity.getId());
         validateAvailableCapacity(activity, newStatus);
+    }
+
+    private void changeStatus(
+            ActivityParticipant participant,
+            ActivityParticipantStatus newStatus
+    ) {
+        validateCapacityTransition(participant, newStatus);
+        if (newStatus != ActivityParticipantStatus.APPROVED) {
+            participant.updateCompleted(false);
+        }
+        participant.updateStatus(newStatus);
     }
 
     private long countCapacityParticipants(Activity activity) {
         return activityParticipantRepository.countCapacityParticipants(
                 activity,
-                CAPACITY_STATUSES
+                capacityStatuses(activity)
         );
+    }
+
+    private List<ActivityParticipantStatus> capacityStatuses(Activity activity) {
+        return isProject(activity)
+                ? List.of(ActivityParticipantStatus.APPROVED)
+                : CAPACITY_STATUSES;
+    }
+
+    private void requireActivityManagerOrAssignee(ActivityParticipant participant) {
+        if (SecurityUtils.isManagerOrAdmin()) {
+            return;
+        }
+
+        Activity activity = participant.getActivity();
+        boolean projectAssignee = activity != null
+                && isProject(activity)
+                && activity.getAssignee() != null
+                && activity.getAssignee().getId().equals(SecurityUtils.getCurrentUserId());
+        boolean projectApplicant = participant.getAppliedPosition() != null;
+        if (!projectAssignee || !projectApplicant) {
+            throw new ForbiddenException("프로젝트 개설자는 프로젝트 지원자의 상태만 변경할 수 있습니다.");
+        }
+    }
+
+    private void recordProjectApplication(
+            ActivityParticipant participant,
+            ActivityJoinRequestDto request
+    ) {
+        String position = request == null ? null : request.getAppliedPosition();
+        if (position == null || position.isBlank()) {
+            throw new BadRequestException("지원 포지션을 입력해주세요.");
+        }
+        if (position.trim().length() > 100) {
+            throw new BadRequestException("지원 포지션은 100자 이내로 입력해주세요.");
+        }
+        String message = request.getApplicationMessage();
+        if (message != null && message.trim().length() > 1000) {
+            throw new BadRequestException("지원 내용은 1,000자 이내로 입력해주세요.");
+        }
+        participant.recordProjectApplication(
+                position.trim(),
+                message == null || message.isBlank() ? null : message.trim()
+        );
+    }
+
+    private String normalizeReviewMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+        String normalized = message.trim();
+        if (normalized.length() > 500) {
+            throw new BadRequestException("반려 안내는 500자 이내로 입력해주세요.");
+        }
+        return normalized;
     }
 
     private void recordDepositApplication(
@@ -366,12 +466,6 @@ public class ActivityParticipantService {
             throw new BadRequestException(fieldName + "은(는) " + maxLength + "자 이하로 입력해주세요.");
         }
         return normalized;
-    }
-
-    private ActivityParticipantUpdateCommand toUpdateCommand(ActivityParticipantRequestDto dto) {
-        return ActivityParticipantUpdateCommand.builder()
-                .status(ActivityParticipantStatus.valueOf(dto.getStatus()))
-                .build();
     }
 
 }

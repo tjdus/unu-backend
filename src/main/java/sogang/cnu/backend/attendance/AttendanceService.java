@@ -23,6 +23,7 @@ import sogang.cnu.backend.util.SecurityUtils;
 
 import java.util.ArrayList;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +35,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AttendanceService {
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
+
     private final AttendanceRepository attendanceRepository;
     private final AttendanceMapper attendanceMapper;
     private final ActivitySessionRepository activitySessionRepository;
@@ -63,6 +66,7 @@ public class AttendanceService {
         ActivityParticipant activityParticipant = activityParticipantRepository.findById(dto.getParticipantId())
                 .orElseThrow(() -> new NotFoundException("Activity participant not found"));
         requireAttendanceManager(session);
+        validateAttendanceDate(session);
         validateParticipantForSession(session, activityParticipant);
 
         if (attendanceRepository.findBySessionIdAndParticipantId(session.getId(), activityParticipant.getId()).isPresent()) {
@@ -84,6 +88,7 @@ public class AttendanceService {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Attendance not found"));
         requireAttendanceManager(attendance.getSession());
+        validateAttendanceDate(attendance.getSession());
         AttendanceUpdateCommand updateCommand = AttendanceUpdateCommand.builder()
                 .status(parseManagedStatus(dto.getStatus()))
                 .build();
@@ -135,6 +140,7 @@ public class AttendanceService {
         ActivitySession session = activitySessionRepository.findById(dto.getSessionId())
                 .orElseThrow(() -> new NotFoundException("Activity session not found"));
         requireAttendanceManager(session);
+        validateAttendanceDate(session);
 
         Set<UUID> allParticipantIds = new HashSet<>();
         List<UUID> presentIds = safeList(dto.getPresentParticipantIds());
@@ -247,6 +253,12 @@ public class AttendanceService {
         }
         if (participant.getStatus() != ActivityParticipantStatus.APPROVED) {
             throw new BadRequestException("참여가 확정된 학회원만 출석 처리할 수 있습니다.");
+        }
+    }
+
+    private void validateAttendanceDate(ActivitySession session) {
+        if (session.getDate().isAfter(LocalDate.now(SERVICE_ZONE))) {
+            throw new BadRequestException("미래 일정의 출석은 해당 날짜부터 입력할 수 있습니다.");
         }
     }
 

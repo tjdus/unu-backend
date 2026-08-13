@@ -20,6 +20,7 @@ import sogang.cnu.backend.util.SecurityUtils;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ActivitySessionService {
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
+
     private final ActivitySessionRepository activitySessionRepository;
     private final ActivitySessionMapper activitySessionMapper;
     private final ActivityRepository activityRepository;
@@ -139,6 +142,10 @@ public class ActivitySessionService {
         requireScheduleManager(activitySession.getActivity());
         if (!activitySession.getActivity().getId().equals(dto.getActivityId())) {
             throw new BadRequestException("회차의 활동은 변경할 수 없습니다.");
+        }
+        if (dto.getDate().isAfter(LocalDate.now(SERVICE_ZONE))
+                && attendanceRepository.existsBySessionId(activitySession.getId())) {
+            throw new BadRequestException("출석 기록이 있는 일정은 미래 날짜로 변경할 수 없습니다.");
         }
         validateSession(
                 activitySession.getActivity(),

@@ -103,6 +103,11 @@ public class ActivityService {
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
         checkPermission(userId, activity);
+        if (!SecurityUtils.isManagerOrAdmin()) {
+            activity.update(toAssigneeUpdateCommand(activity, dto));
+            return activityMapper.toResponseDto(activity);
+        }
+
         ActivityType activityType = findActivityType(dto.getActivityTypeId());
         validateActivityTypeChange(activity, activityType);
         Integer depositAmount = resolveDepositAmount(activity, activityType, dto.getDepositAmount());
@@ -349,6 +354,33 @@ public class ActivityService {
                 .recruitmentEndDate(dto.getRecruitmentEndDate())
                 .operationPlan(normalizeOperationPlan(activityType, dto.getOperationPlan()))
                 .instructorCareer(normalizeInstructorCareer(activityType, dto.getInstructorCareer()))
+                .build();
+    }
+
+    private ActivityUpdateCommand toAssigneeUpdateCommand(
+            Activity activity,
+            ActivityRequestDto dto
+    ) {
+        ActivityType activityType = activity.getActivityType();
+        return ActivityUpdateCommand.builder()
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .status(activity.getStatus())
+                .activityType(activityType)
+                .assignee(activity.getAssignee())
+                .quarter(activity.getQuarter())
+                .startDate(activity.getStartDate())
+                .endDate(activity.getEndDate())
+                .parentActivity(activity.getParentActivity())
+                .depositAmount(activity.getDepositAmount())
+                .participantLimit(activity.getParticipantLimit())
+                .listed(activity.getListed())
+                .recruitmentPositions(activity.getRecruitmentPositions())
+                .discordUrl(normalizeDiscordUrl(dto.getDiscordUrl()))
+                .operationPlan(normalizeOperationPlan(activityType, dto.getOperationPlan()))
+                .instructorCareer(normalizeInstructorCareer(activityType, dto.getInstructorCareer()))
+                .recruitmentStartDate(activity.getRecruitmentStartDate())
+                .recruitmentEndDate(activity.getRecruitmentEndDate())
                 .build();
     }
 

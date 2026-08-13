@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/signup", "/api/auth/login",
+                        .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/refresh",
                                 "/api/public/**")
                         .permitAll()// 회원가입, 로그인은 인증 없이해야함
                         .anyRequest().authenticated()

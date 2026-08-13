@@ -75,12 +75,24 @@ public class ActivityParticipant extends BaseEntity {
     @Column(name = "promotion_agreed_at")
     private LocalDateTime promotionAgreedAt;
 
+    @Column(name = "applied_position", length = 100)
+    private String appliedPosition;
+
+    @Column(name = "application_message", columnDefinition = "TEXT")
+    private String applicationMessage;
+
+    @Column(name = "review_message", length = 500)
+    private String reviewMessage;
+
     public void updateStatus(ActivityParticipantStatus newStatus) {
         this.status = newStatus;
         if (newStatus == ActivityParticipantStatus.APPROVED) {
             this.joinedAt = LocalDateTime.now();
         } else {
             this.joinedAt = null;
+        }
+        if (newStatus != ActivityParticipantStatus.REJECTED) {
+            this.reviewMessage = null;
         }
     }
 
@@ -110,6 +122,15 @@ public class ActivityParticipant extends BaseEntity {
         this.depositPolicyAgreedAt = now;
         this.depositPaymentConfirmedAt = now;
         this.promotionAgreedAt = promotionAgreed ? now : null;
+    }
+
+    public void recordProjectApplication(String position, String message) {
+        this.appliedPosition = position;
+        this.applicationMessage = message;
+    }
+
+    public void recordReviewMessage(String message) {
+        this.reviewMessage = message;
     }
 
     public void update(ActivityParticipantUpdateCommand command) {
