@@ -22,4 +22,7 @@ public class ActivityRequestDto {
     private UUID parentActivityId;
     private Integer depositAmount;
     private Integer participantLimit;
+    private Boolean listed;
+    private String recruitmentPositions;
+    private String discordUrl;
 }

@@ -27,6 +27,8 @@ public class ActivityResponseDto {
     private Boolean listed;
     private Integer depositAmount;
     private Integer participantLimit;
+    private String recruitmentPositions;
+    private String discordUrl;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

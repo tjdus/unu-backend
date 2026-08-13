@@ -24,4 +24,6 @@ public class ActivityCreateCommand {
     private Boolean listed;
     private Integer depositAmount;
     private Integer participantLimit;
+    private String recruitmentPositions;
+    private String discordUrl;
 }

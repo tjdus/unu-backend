@@ -50,9 +50,18 @@ public class ActivityOpeningRequestManagementController {
     public ResponseEntity<ActivityOpeningRequestResponseDto> approve(
             @CurrentUser CustomUserDetails user,
             @PathVariable UUID id,
-            @RequestBody(required = false) ActivityOpeningApprovalRequestDto request
+            @Valid @RequestBody(required = false) ActivityOpeningApprovalRequestDto request
     ) {
         String comment = request == null ? null : request.getComment();
-        return ResponseEntity.ok(requestService.approve(user.getId(), id, comment));
+        Integer depositAmount = request == null ? null : request.getDepositAmount();
+
+        return ResponseEntity.ok(
+                requestService.approve(
+                        user.getId(),
+                        id,
+                        comment,
+                        depositAmount
+                )
+        );
     }
 }

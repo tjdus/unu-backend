@@ -29,10 +29,11 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
             Activity activity,
             Collection<ActivityParticipantStatus> statuses
     ) {
-        return activity.getAssignee() != null
-                ? countByActivityIdAndStatusInAndUserIdNot(
-                        activity.getId(), statuses, activity.getAssignee().getId())
-                : countByActivityIdAndStatusIn(activity.getId(), statuses);
+        if (activity.getAssignee() == null || activity.includesAssigneeAsParticipant()) {
+            return countByActivityIdAndStatusIn(activity.getId(), statuses);
+        }
+        return countByActivityIdAndStatusInAndUserIdNot(
+                activity.getId(), statuses, activity.getAssignee().getId());
     }
 
     @Query("SELECT ap FROM ActivityParticipant ap WHERE ap.activity.quarter.id = :quarterId")

@@ -63,6 +63,14 @@ public class Activity extends BaseEntity {
     @Column(name = "participant_limit")
     private Integer participantLimit;
 
+    /** 추가 팀원을 모집할 때 희망하는 포지션 안내 */
+    @Column(name = "recruitment_positions", columnDefinition = "TEXT")
+    private String recruitmentPositions;
+
+    /** 활동 내용에서 안내할 디스코드 초대 링크 (선택) */
+    @Column(name = "discord_url", length = 2048)
+    private String discordUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_activity_id")
     private Activity parentActivity;
@@ -79,10 +87,20 @@ public class Activity extends BaseEntity {
         this.parentActivity = command.getParentActivity();
         this.depositAmount = command.getDepositAmount();
         this.participantLimit = command.getParticipantLimit();
+        this.recruitmentPositions = command.getRecruitmentPositions();
+        this.discordUrl = command.getDiscordUrl();
+        if (command.getListed() != null) {
+            this.listed = command.getListed();
+        }
     }
 
     public void updateStatus(ActivityStatus newStatus) {
         this.status = newStatus;
+    }
+
+    /** 스터디는 담당자도 함께 공부하므로 참여자로 등록하고 정원에도 포함한다. */
+    public boolean includesAssigneeAsParticipant() {
+        return activityType != null && "STUDY".equals(activityType.getCode());
     }
 
     @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -113,6 +131,8 @@ public class Activity extends BaseEntity {
                         command.getActivityType(),
                         command.getParticipantLimit()
                 ))
+                .recruitmentPositions(command.getRecruitmentPositions())
+                .discordUrl(command.getDiscordUrl())
                 .build();
         return activity;
     }

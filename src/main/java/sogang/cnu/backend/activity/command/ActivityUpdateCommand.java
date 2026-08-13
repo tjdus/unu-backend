@@ -24,4 +24,7 @@ public class ActivityUpdateCommand {
     private Activity parentActivity;
     private Integer depositAmount;
     private Integer participantLimit;
+    private Boolean listed;
+    private String recruitmentPositions;
+    private String discordUrl;
 }

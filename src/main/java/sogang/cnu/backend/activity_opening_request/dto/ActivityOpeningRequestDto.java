@@ -50,6 +50,8 @@ public class ActivityOpeningRequestDto {
     @Max(value = 1000, message = "참여 정원은 1000명 이하로 입력해주세요.")
     private Integer participantLimit;
 
+    private String recruitmentPositions;
+
     @NotNull(message = "개인 프로젝트 여부를 선택해주세요.")
     private Boolean personalProject;
 

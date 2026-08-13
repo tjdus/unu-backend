@@ -61,6 +61,9 @@ public class ActivityOpeningRequest extends BaseEntity {
     @Column(name = "participant_limit")
     private Integer participantLimit;
 
+    @Column(name = "recruitment_positions", columnDefinition = "TEXT")
+    private String recruitmentPositions;
+
     @Column(name = "is_personal_project")
     @Builder.Default
     private Boolean personalProject = false;
@@ -110,6 +113,7 @@ public class ActivityOpeningRequest extends BaseEntity {
             Integer expectedMemberCount,
             Boolean acceptsNewMembers,
             Integer participantLimit,
+            String recruitmentPositions,
             Boolean personalProject,
             Activity parentActivity,
             Set<User> initialMembers
@@ -124,6 +128,7 @@ public class ActivityOpeningRequest extends BaseEntity {
         this.expectedMemberCount = expectedMemberCount;
         this.acceptsNewMembers = acceptsNewMembers;
         this.participantLimit = participantLimit;
+        this.recruitmentPositions = recruitmentPositions;
         this.personalProject = personalProject;
         this.parentActivity = parentActivity;
         this.initialMembers.clear();

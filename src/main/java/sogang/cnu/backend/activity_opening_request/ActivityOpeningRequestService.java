@@ -65,6 +65,7 @@ public class ActivityOpeningRequestService {
                 .expectedMemberCount(dto.getExpectedMemberCount())
                 .acceptsNewMembers(dto.getAcceptsNewMembers())
                 .participantLimit(participantLimitForRequest(dto))
+                .recruitmentPositions(recruitmentPositionsForRequest(dto))
                 .personalProject(dto.getPersonalProject())
                 .parentActivity(references.parentActivity())
                 .initialMembers(references.initialMembers())
@@ -93,6 +94,7 @@ public class ActivityOpeningRequestService {
                 dto.getExpectedMemberCount(),
                 dto.getAcceptsNewMembers(),
                 participantLimitForRequest(dto),
+                recruitmentPositionsForRequest(dto),
                 dto.getPersonalProject(),
                 references.parentActivity(),
                 references.initialMembers()
@@ -172,32 +174,59 @@ public class ActivityOpeningRequestService {
     }
 
     @Transactional
-    public ActivityOpeningRequestResponseDto approve(UUID reviewerId, UUID requestId, String comment) {
+    public ActivityOpeningRequestResponseDto approve(UUID reviewerId, UUID requestId, String comment, Integer depositAmount) {
         ActivityOpeningRequest request = findForUpdate(requestId);
-        if (request.getStatus() == ActivityOpeningRequestStatus.APPROVED && request.getApprovedActivity() != null) {
+        if (request.getStatus() == ActivityOpeningRequestStatus.APPROVED
+                && request.getApprovedActivity() != null) {
             return toResponse(request);
         }
+
         if (request.getStatus() != ActivityOpeningRequestStatus.SUBMITTED) {
             throw new BadRequestException("제출된 신청만 승인할 수 있습니다.");
         }
 
-        Activity activity = Activity.create(ActivityCreateCommand.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .status(Boolean.TRUE.equals(request.getAcceptsNewMembers()) ? ActivityStatus.OPEN : ActivityStatus.CREATED)
-                .activityType(request.getActivityType())
-                .assignee(request.getApplicant())
-                .quarter(request.getQuarter())
-                .startDate(request.getStartDate())
-                .endDate(request.getEndDate())
-                .parentActivity(request.getParentActivity())
-                .listed(!Boolean.TRUE.equals(request.getPersonalProject()))
-                .participantLimit(request.getParticipantLimit())
-                .build());
+        String activityTypeCode = request.getActivityType().getCode();
+
+        boolean usesDeposit =
+                "STUDY".equals(activityTypeCode) ||
+                "SPECIAL_LECTURE".equals(activityTypeCode);
+
+        if (usesDeposit && depositAmount == null) {
+            throw new BadRequestException("참여 보증금을 설정해주세요.");
+        }
+
+        if (depositAmount != null && depositAmount < 0) {
+            throw new BadRequestException("참여 보증금은 0원 이상이어야 합니다.");
+        }
+
+        Activity activity = Activity.create(
+                ActivityCreateCommand.builder()
+                        .title(request.getTitle())
+                        .description(request.getDescription())
+                        .status(
+                                Boolean.TRUE.equals(request.getAcceptsNewMembers())
+                                        ? ActivityStatus.OPEN
+                                        : ActivityStatus.CREATED
+                        )
+                        .activityType(request.getActivityType())
+                        .assignee(request.getApplicant())
+                        .quarter(request.getQuarter())
+                        .startDate(request.getStartDate())
+                        .endDate(request.getEndDate())
+                        .parentActivity(request.getParentActivity())
+                        .listed(!Boolean.TRUE.equals(request.getPersonalProject()))
+                        .participantLimit(request.getParticipantLimit())
+                        .depositAmount(usesDeposit ? depositAmount : 0)
+                        .build()
+        );
+
         Activity savedActivity = activityRepository.save(activity);
 
-        Set<User> participants = new LinkedHashSet<>(request.getInitialMembers());
+        Set<User> participants =
+                new LinkedHashSet<>(request.getInitialMembers());
+
         participants.add(request.getApplicant());
+
         participants.forEach(user -> {
             ActivityParticipant participant = ActivityParticipant.create(
                     ActivityParticipantCreateCommand.builder()
@@ -206,19 +235,25 @@ public class ActivityOpeningRequestService {
                             .status(ActivityParticipantStatus.APPLIED)
                             .build()
             );
+
             participant.updateStatus(ActivityParticipantStatus.APPROVED);
             participantRepository.save(participant);
         });
 
-        request.approve(findUser(reviewerId), normalizeComment(comment), savedActivity);
+        request.approve(
+                findUser(reviewerId),
+                normalizeComment(comment),
+                savedActivity
+        );
+
         return toResponse(request);
     }
 
     private RequestReferences resolveReferences(UUID applicantId, ActivityOpeningRequestDto dto) {
         ActivityType activityType = activityTypeRepository.findById(dto.getActivityTypeId())
                 .orElseThrow(() -> new NotFoundException("활동 유형을 찾을 수 없습니다."));
-        if (!Set.of("PROJECT", "STUDY").contains(activityType.getCode())) {
-            throw new BadRequestException("프로젝트 또는 스터디만 개설을 신청할 수 있습니다.");
+        if (!Set.of("PROJECT", "STUDY", "SPECIAL_LECTURE").contains(activityType.getCode())) {
+            throw new BadRequestException("강의, 프로젝트, 스터디만 개설을 신청할 수 있습니다.");
         }
         Quarter quarter = quarterRepository.findById(dto.getQuarterId())
                 .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
@@ -274,6 +309,14 @@ public class ActivityOpeningRequestService {
                 && dto.getParticipantLimit() < selectedMemberCount) {
             throw new BadRequestException("참여 정원은 함께 시작할 인원보다 적게 설정할 수 없습니다.");
         }
+    }
+
+    /** 추가 모집을 하지 않으면 희망 포지션도 남기지 않는다. */
+    private String recruitmentPositionsForRequest(ActivityOpeningRequestDto dto) {
+        if (!Boolean.TRUE.equals(dto.getAcceptsNewMembers())) return null;
+        String positions = dto.getRecruitmentPositions();
+        if (positions == null || positions.isBlank()) return null;
+        return positions.trim();
     }
 
     private Integer participantLimitForRequest(ActivityOpeningRequestDto dto) {
@@ -368,6 +411,7 @@ public class ActivityOpeningRequestService {
                 .expectedMemberCount(request.getExpectedMemberCount())
                 .acceptsNewMembers(request.getAcceptsNewMembers())
                 .participantLimit(request.getParticipantLimit())
+                .recruitmentPositions(request.getRecruitmentPositions())
                 .personalProject(Boolean.TRUE.equals(request.getPersonalProject()))
                 .parentActivityId(request.getParentActivity() == null ? null : request.getParentActivity().getId())
                 .parentActivityTitle(request.getParentActivity() == null ? null : request.getParentActivity().getTitle())

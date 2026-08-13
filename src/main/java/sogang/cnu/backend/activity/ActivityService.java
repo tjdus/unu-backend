@@ -8,8 +8,10 @@ import sogang.cnu.backend.activity.command.ActivityUpdateCommand;
 import sogang.cnu.backend.activity.dto.ActivitySearchQuery;
 import sogang.cnu.backend.activity_type.ActivityType;
 import sogang.cnu.backend.activity_type.ActivityTypeRepository;
+import sogang.cnu.backend.activity_participant.ActivityParticipant;
 import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
+import sogang.cnu.backend.activity_participant.command.ActivityParticipantCreateCommand;
 import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.BadRequestException;
@@ -88,6 +90,7 @@ public class ActivityService {
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
+        registerAssigneeAsParticipant(savedActivity);
         return activityMapper.toResponseDto(savedActivity);
     }
 
@@ -100,9 +103,9 @@ public class ActivityService {
         ActivityType activityType = findActivityType(dto.getActivityTypeId());
         validateActivityTypeChange(activity, activityType);
         Integer depositAmount = resolveDepositAmount(activity, activityType, dto.getDepositAmount());
-        Integer participantLimit = participantLimitForType(
-                activityType,
-                dto.getParticipantLimit()
+        Integer participantLimit = participantLimitForListing(
+                dto.getListed(),
+                participantLimitForType(activityType, dto.getParticipantLimit())
         );
         validateParticipantLimit(participantLimit);
         validateParticipantLimitAgainstCurrentCount(activity, participantLimit);
@@ -148,6 +151,29 @@ public class ActivityService {
         if (isListed(activity)) return true;
         if (!includeUnlisted) return false;
         return SecurityUtils.isManagerOrAdmin() || activity.getAssignee().getId().equals(userId);
+    }
+
+    /**
+     * 스터디처럼 담당자도 참여자인 유형은 개설과 동시에 참여 확정으로 등록한다.
+     * 개설 신청 승인 경로에서는 신청자를 이미 등록하므로 여기선 직접 생성만 다룬다.
+     */
+    private void registerAssigneeAsParticipant(Activity activity) {
+        if (!activity.includesAssigneeAsParticipant() || activity.getAssignee() == null) return;
+
+        boolean alreadyRegistered = activityParticipantRepository
+                .findByUserIdAndActivityId(activity.getAssignee().getId(), activity.getId())
+                .isPresent();
+        if (alreadyRegistered) return;
+
+        ActivityParticipant participant = ActivityParticipant.create(
+                ActivityParticipantCreateCommand.builder()
+                        .activity(activity)
+                        .user(activity.getAssignee())
+                        .status(ActivityParticipantStatus.APPLIED)
+                        .build()
+        );
+        participant.updateStatus(ActivityParticipantStatus.APPROVED);
+        activityParticipantRepository.save(participant);
     }
 
     private boolean isListed(Activity activity) {
@@ -208,11 +234,49 @@ public class ActivityService {
                         activityType,
                         dto.getDepositAmount()
                 ))
-                .participantLimit(participantLimitForType(
-                        activityType,
-                        dto.getParticipantLimit()
+                .participantLimit(participantLimitForListing(
+                        dto.getListed(),
+                        participantLimitForType(activityType, dto.getParticipantLimit())
                 ))
+                .listed(dto.getListed())
+                .recruitmentPositions(normalizeRecruitmentPositions(dto.getRecruitmentPositions()))
+                .discordUrl(normalizeDiscordUrl(dto.getDiscordUrl()))
                 .build();
+    }
+
+    private String normalizeRecruitmentPositions(String positions) {
+        if (positions == null || positions.isBlank()) return null;
+        return positions.trim();
+    }
+
+    private static final java.util.Set<String> DISCORD_HOSTS = java.util.Set.of(
+            "discord.gg",
+            "discord.com",
+            "www.discord.com",
+            "discordapp.com"
+    );
+
+    /** 선택 입력이라 비어 있으면 그냥 없는 값으로 두고, 넣었다면 디스코드 링크인지 확인한다. */
+    private String normalizeDiscordUrl(String url) {
+        if (url == null || url.isBlank()) return null;
+        String normalized = url.trim();
+        try {
+            java.net.URI uri = new java.net.URI(normalized);
+            String host = uri.getHost();
+            if (!"https".equalsIgnoreCase(uri.getScheme()) ||
+                    host == null ||
+                    !DISCORD_HOSTS.contains(host.toLowerCase())) {
+                throw new BadRequestException("디스코드 초대 링크를 확인해주세요.");
+            }
+            return normalized;
+        } catch (java.net.URISyntaxException e) {
+            throw new BadRequestException("디스코드 초대 링크를 확인해주세요.");
+        }
+    }
+
+    /** 목록에 공개하지 않는 활동(개인 프로젝트)은 신청을 받지 않으므로 정원 개념이 없다. */
+    private Integer participantLimitForListing(Boolean listed, Integer participantLimit) {
+        return Boolean.FALSE.equals(listed) ? null : participantLimit;
     }
 
     private ActivityUpdateCommand toUpdateCommand(
@@ -233,6 +297,9 @@ public class ActivityService {
                 .parentActivity(findParentActivity(dto.getParentActivityId()))
                 .depositAmount(depositAmount)
                 .participantLimit(participantLimit)
+                .listed(dto.getListed())
+                .recruitmentPositions(normalizeRecruitmentPositions(dto.getRecruitmentPositions()))
+                .discordUrl(normalizeDiscordUrl(dto.getDiscordUrl()))
                 .build();
     }
 
