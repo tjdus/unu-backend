@@ -52,6 +52,8 @@ public class ActivityOpeningRequestDto {
 
     private String recruitmentPositions;
 
+    private String instructorCareer;
+
     @NotNull(message = "개인 프로젝트 여부를 선택해주세요.")
     private Boolean personalProject;
 

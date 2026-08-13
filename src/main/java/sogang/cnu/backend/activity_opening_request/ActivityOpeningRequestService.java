@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity.Activity;
 import sogang.cnu.backend.activity.ActivityRepository;
+import sogang.cnu.backend.activity.ActivityService;
 import sogang.cnu.backend.activity.ActivityStatus;
 import sogang.cnu.backend.activity.command.ActivityCreateCommand;
 import sogang.cnu.backend.activity_opening_period.ActivityOpeningPeriodService;
@@ -34,6 +35,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,7 @@ public class ActivityOpeningRequestService {
     private final ActivityTypeRepository activityTypeRepository;
     private final QuarterRepository quarterRepository;
     private final ActivityRepository activityRepository;
+    private final ActivityService activityService;
     private final ActivityParticipantRepository participantRepository;
     private final ActivityOpeningPeriodService openingPeriodService;
 
@@ -66,6 +69,7 @@ public class ActivityOpeningRequestService {
                 .acceptsNewMembers(dto.getAcceptsNewMembers())
                 .participantLimit(participantLimitForRequest(dto))
                 .recruitmentPositions(recruitmentPositionsForRequest(dto))
+                .instructorCareer(instructorCareerForRequest(dto))
                 .personalProject(dto.getPersonalProject())
                 .parentActivity(references.parentActivity())
                 .initialMembers(references.initialMembers())
@@ -95,6 +99,7 @@ public class ActivityOpeningRequestService {
                 dto.getAcceptsNewMembers(),
                 participantLimitForRequest(dto),
                 recruitmentPositionsForRequest(dto),
+                instructorCareerForRequest(dto),
                 dto.getPersonalProject(),
                 references.parentActivity(),
                 references.initialMembers()
@@ -157,24 +162,45 @@ public class ActivityOpeningRequestService {
             ActivityOpeningRequestStatus status,
             String comment
     ) {
-        if (status != ActivityOpeningRequestStatus.REVISION_REQUESTED &&
+        if (status != ActivityOpeningRequestStatus.SUBMITTED &&
+                status != ActivityOpeningRequestStatus.REVISION_REQUESTED &&
                 status != ActivityOpeningRequestStatus.REJECTED) {
-            throw new BadRequestException("보완 요청 또는 반려 상태만 선택할 수 있습니다.");
+            throw new BadRequestException("검토 대기, 보완 요청 또는 반려 상태만 선택할 수 있습니다.");
         }
-        if (comment == null || comment.isBlank()) {
+        if (status != ActivityOpeningRequestStatus.SUBMITTED &&
+                (comment == null || comment.isBlank())) {
             throw new BadRequestException("검토 의견을 입력해주세요.");
         }
 
         ActivityOpeningRequest request = findForUpdate(requestId);
-        if (request.getStatus() != ActivityOpeningRequestStatus.SUBMITTED) {
-            throw new BadRequestException("제출된 신청만 검토할 수 있습니다.");
+        if (request.getStatus() != ActivityOpeningRequestStatus.SUBMITTED &&
+                request.getStatus() != ActivityOpeningRequestStatus.REVISION_REQUESTED &&
+                request.getStatus() != ActivityOpeningRequestStatus.REJECTED &&
+                request.getStatus() != ActivityOpeningRequestStatus.APPROVED) {
+            throw new BadRequestException("현재 상태의 신청은 검토 상태를 변경할 수 없습니다.");
         }
-        request.review(status, findUser(reviewerId), comment.trim());
+
+        if (request.getStatus() == ActivityOpeningRequestStatus.APPROVED) {
+            Activity approvedActivity = request.unlinkApprovedActivity();
+            requestRepository.flush();
+            if (approvedActivity != null) {
+                activityService.delete(reviewerId, approvedActivity.getId());
+            }
+        }
+
+        request.review(status, findUser(reviewerId), normalizeComment(comment));
         return toResponse(request);
     }
 
     @Transactional
-    public ActivityOpeningRequestResponseDto approve(UUID reviewerId, UUID requestId, String comment, Integer depositAmount) {
+    public ActivityOpeningRequestResponseDto approve(
+            UUID reviewerId,
+            UUID requestId,
+            String comment,
+            Integer depositAmount,
+            LocalDate recruitmentStartDate,
+            LocalDate recruitmentEndDate
+    ) {
         ActivityOpeningRequest request = findForUpdate(requestId);
         if (request.getStatus() == ActivityOpeningRequestStatus.APPROVED
                 && request.getApprovedActivity() != null) {
@@ -191,6 +217,10 @@ public class ActivityOpeningRequestService {
                 "STUDY".equals(activityTypeCode) ||
                 "SPECIAL_LECTURE".equals(activityTypeCode);
 
+        boolean recruitsMembers =
+                "SPECIAL_LECTURE".equals(activityTypeCode) ||
+                Boolean.TRUE.equals(request.getAcceptsNewMembers());
+
         if (usesDeposit && depositAmount == null) {
             throw new BadRequestException("참여 보증금을 설정해주세요.");
         }
@@ -199,21 +229,45 @@ public class ActivityOpeningRequestService {
             throw new BadRequestException("참여 보증금은 0원 이상이어야 합니다.");
         }
 
+        if (recruitsMembers) {
+            if (recruitmentStartDate == null || recruitmentEndDate == null) {
+                throw new BadRequestException("모집 기간을 설정해주세요.");
+            }
+
+            if (recruitmentEndDate.isBefore(recruitmentStartDate)) {
+                throw new BadRequestException("모집 종료일은 모집 시작일보다 빠를 수 없습니다.");
+            }
+
+            if (request.getStartDate() != null &&
+                    recruitmentEndDate.isAfter(request.getStartDate())) {
+                throw new BadRequestException("모집 종료일은 활동 시작일 이후로 설정할 수 없습니다.");
+            }
+        }
+
         Activity activity = Activity.create(
-                ActivityCreateCommand.builder()
-                        .title(request.getTitle())
-                        .description(request.getDescription())
-                        .status(ActivityStatus.OPEN)
-                        .activityType(request.getActivityType())
-                        .assignee(request.getApplicant())
-                        .quarter(request.getQuarter())
-                        .startDate(request.getStartDate())
-                        .endDate(request.getEndDate())
-                        .parentActivity(request.getParentActivity())
-                        .listed(!Boolean.TRUE.equals(request.getPersonalProject()))
-                        .participantLimit(request.getParticipantLimit())
-                        .depositAmount(usesDeposit ? depositAmount : 0)
-                        .build()
+            ActivityCreateCommand.builder()
+                    .title(request.getTitle())
+                    .description(request.getDescription())
+                    .status(ActivityStatus.CREATED)
+                    .activityType(request.getActivityType())
+                    .assignee(request.getApplicant())
+                    .quarter(request.getQuarter())
+                    .startDate(request.getStartDate())
+                    .endDate(request.getEndDate())
+                    .recruitmentStartDate(
+                            recruitsMembers ? recruitmentStartDate : null
+                    )
+                    .recruitmentEndDate(
+                            recruitsMembers ? recruitmentEndDate : null
+                    )
+                    .parentActivity(request.getParentActivity())
+                    .listed(!Boolean.TRUE.equals(request.getPersonalProject()))
+                    .participantLimit(request.getParticipantLimit())
+                    .depositAmount(usesDeposit ? depositAmount : 0)
+                    .recruitmentPositions(request.getRecruitmentPositions())
+                    .operationPlan(request.getOperationPlan())
+                    .instructorCareer(request.getInstructorCareer())
+                    .build()
         );
 
         Activity savedActivity = activityRepository.save(activity);
@@ -283,6 +337,10 @@ public class ActivityOpeningRequestService {
         }
 
         boolean project = "PROJECT".equals(references.activityType().getCode());
+        boolean specialLecture = "SPECIAL_LECTURE".equals(references.activityType().getCode());
+        if (specialLecture && (dto.getInstructorCareer() == null || dto.getInstructorCareer().isBlank())) {
+            throw new BadRequestException("강의자 경력을 입력해주세요.");
+        }
         if (Boolean.TRUE.equals(dto.getPersonalProject()) && !project) {
             throw new BadRequestException("개인 프로젝트는 프로젝트 유형에서만 선택할 수 있습니다.");
         }
@@ -308,6 +366,19 @@ public class ActivityOpeningRequestService {
     }
 
     /** 추가 모집을 하지 않으면 희망 포지션도 남기지 않는다. */
+    /** 강의가 아닌 유형에는 강의자 경력을 남기지 않는다. */
+    private String instructorCareerForRequest(ActivityOpeningRequestDto dto) {
+        ActivityType activityType = activityTypeRepository
+                .findById(dto.getActivityTypeId())
+                .orElse(null);
+        if (activityType == null || !"SPECIAL_LECTURE".equals(activityType.getCode())) {
+            return null;
+        }
+        String career = dto.getInstructorCareer();
+        if (career == null || career.isBlank()) return null;
+        return career.trim();
+    }
+
     private String recruitmentPositionsForRequest(ActivityOpeningRequestDto dto) {
         if (!Boolean.TRUE.equals(dto.getAcceptsNewMembers())) return null;
         String positions = dto.getRecruitmentPositions();
@@ -408,6 +479,7 @@ public class ActivityOpeningRequestService {
                 .acceptsNewMembers(request.getAcceptsNewMembers())
                 .participantLimit(request.getParticipantLimit())
                 .recruitmentPositions(request.getRecruitmentPositions())
+                .instructorCareer(request.getInstructorCareer())
                 .personalProject(Boolean.TRUE.equals(request.getPersonalProject()))
                 .parentActivityId(request.getParentActivity() == null ? null : request.getParentActivity().getId())
                 .parentActivityTitle(request.getParentActivity() == null ? null : request.getParentActivity().getTitle())

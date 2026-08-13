@@ -23,12 +23,16 @@ public class ActivityResponseDto {
     private QuarterResponseDto quarter;
     private String startDate;
     private String endDate;
+    private String recruitmentStartDate;
+    private String recruitmentEndDate;
     private UUID parentActivityId;
     private Boolean listed;
     private Integer depositAmount;
     private Integer participantLimit;
     private String recruitmentPositions;
     private String discordUrl;
+    private String operationPlan;
+    private String instructorCareer;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

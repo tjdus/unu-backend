@@ -76,7 +76,7 @@ public class ActivityParticipantService {
             ActivityJoinRequestDto request
     ) {
         Activity targetActivity = findActivityForUpdate(activityId);
-        if (targetActivity.getStatus() != ActivityStatus.OPEN) {
+        if (!isRecruitmentOpen(targetActivity)) {
             throw new ForbiddenException("현재 참여자를 모집 중인 활동이 아닙니다.");
         }
         boolean privateActivity = targetActivity.getListed() != null && !targetActivity.getListed();
@@ -258,6 +258,19 @@ public class ActivityParticipantService {
         return participants.stream()
                 .map(activityParticipantMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isRecruitmentOpen(Activity activity) {
+        LocalDate today = LocalDate.now();
+
+        LocalDate start = activity.getRecruitmentStartDate();
+        LocalDate end = activity.getRecruitmentEndDate();
+
+        if (start == null || end == null) {
+            return false;
+        }
+
+        return !today.isBefore(start) && !today.isAfter(end);
     }
 
     private Activity findActivity(UUID activityId) {

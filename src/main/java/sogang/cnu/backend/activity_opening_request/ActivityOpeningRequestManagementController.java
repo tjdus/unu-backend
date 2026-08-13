@@ -14,6 +14,7 @@ import sogang.cnu.backend.security.CustomUserDetails;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/manage/activity-opening-requests")
@@ -54,13 +55,19 @@ public class ActivityOpeningRequestManagementController {
     ) {
         String comment = request == null ? null : request.getComment();
         Integer depositAmount = request == null ? null : request.getDepositAmount();
+        LocalDate recruitmentStartDate =
+                request == null ? null : request.getRecruitmentStartDate();
+        LocalDate recruitmentEndDate =
+                request == null ? null : request.getRecruitmentEndDate();
 
         return ResponseEntity.ok(
                 requestService.approve(
                         user.getId(),
                         id,
                         comment,
-                        depositAmount
+                        depositAmount,
+                        recruitmentStartDate,
+                        recruitmentEndDate
                 )
         );
     }

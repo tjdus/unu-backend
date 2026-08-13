@@ -27,4 +27,8 @@ public class ActivityUpdateCommand {
     private Boolean listed;
     private String recruitmentPositions;
     private String discordUrl;
+    private String operationPlan;
+    private String instructorCareer;
+    private LocalDate recruitmentStartDate;
+    private LocalDate recruitmentEndDate;
 }

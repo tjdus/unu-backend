@@ -23,6 +23,7 @@ import sogang.cnu.backend.attendance.AttendanceRepository;
 import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
 import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepository;
 import sogang.cnu.backend.activity_notice.ActivityNoticeRepository;
+import sogang.cnu.backend.activity_opening_request.ActivityOpeningRequestRepository;
 import sogang.cnu.backend.lecture_material.LectureMaterialRepository;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
@@ -51,6 +52,7 @@ public class ActivityService {
     private final CourseTimeReservationRepository courseTimeReservationRepository;
     private final LectureMaterialRepository lectureMaterialRepository;
     private final ActivityNoticeRepository activityNoticeRepository;
+    private final ActivityOpeningRequestRepository activityOpeningRequestRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
     private final PermissionChecker permissionChecker;
 
@@ -87,6 +89,7 @@ public class ActivityService {
     public ActivityResponseDto create(ActivityRequestDto dto) {
         validateDepositAmount(dto.getDepositAmount());
         validateParticipantLimit(dto.getParticipantLimit());
+        validateRecruitmentPeriod(dto);
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
         Activity savedActivity = activityRepository.save(activity);
@@ -109,6 +112,7 @@ public class ActivityService {
         );
         validateParticipantLimit(participantLimit);
         validateParticipantLimitAgainstCurrentCount(activity, participantLimit);
+        validateRecruitmentPeriod(dto);
         activity.update(toUpdateCommand(dto, activityType, depositAmount, participantLimit));
         return activityMapper.toResponseDto(activity);
     }
@@ -135,6 +139,13 @@ public class ActivityService {
         lectureMaterialRepository.detachFromActivity(id);
         // 공지는 활동에 종속되므로 같이 지운다 (자료와 달리 공용으로 남길 수 없다)
         activityNoticeRepository.deleteByActivityId(id);
+        // 승인으로 생성된 활동이면 연결된 개설 신청 검토 기록도 함께 지운다.
+        activityOpeningRequestRepository.findByApprovedActivityId(id)
+                .ifPresent(request -> {
+                    activityOpeningRequestRepository.delete(request);
+                    activityOpeningRequestRepository.flush();
+                });
+        activityOpeningRequestRepository.detachParentActivity(id);
         activityRepository.detachChildActivities(id);
         activityRepository.delete(activity);
     }
@@ -174,6 +185,23 @@ public class ActivityService {
         );
         participant.updateStatus(ActivityParticipantStatus.APPROVED);
         activityParticipantRepository.save(participant);
+    }
+
+    /** 모집 기간은 선택이지만, 넣는다면 개설 승인 경로와 같은 규칙을 지켜야 한다. */
+    private void validateRecruitmentPeriod(ActivityRequestDto dto) {
+        java.time.LocalDate start = dto.getRecruitmentStartDate();
+        java.time.LocalDate end = dto.getRecruitmentEndDate();
+
+        if (start == null && end == null) return;
+        if (start == null || end == null) {
+            throw new BadRequestException("모집 시작일과 종료일을 모두 입력해주세요.");
+        }
+        if (end.isBefore(start)) {
+            throw new BadRequestException("모집 종료일은 모집 시작일보다 빠를 수 없습니다.");
+        }
+        if (dto.getStartDate() != null && end.isAfter(dto.getStartDate())) {
+            throw new BadRequestException("모집 종료일은 활동 시작일 이후로 설정할 수 없습니다.");
+        }
     }
 
     private boolean isListed(Activity activity) {
@@ -241,12 +269,29 @@ public class ActivityService {
                 .listed(dto.getListed())
                 .recruitmentPositions(normalizeRecruitmentPositions(dto.getRecruitmentPositions()))
                 .discordUrl(normalizeDiscordUrl(dto.getDiscordUrl()))
+                .recruitmentStartDate(dto.getRecruitmentStartDate())
+                .recruitmentEndDate(dto.getRecruitmentEndDate())
+                .operationPlan(normalizeOperationPlan(activityType, dto.getOperationPlan()))
+                .instructorCareer(normalizeInstructorCareer(activityType, dto.getInstructorCareer()))
                 .build();
     }
 
     private String normalizeRecruitmentPositions(String positions) {
         if (positions == null || positions.isBlank()) return null;
         return positions.trim();
+    }
+
+    private String normalizeOperationPlan(ActivityType activityType, String operationPlan) {
+        String code = activityType.getCode();
+        if (!"STUDY".equals(code) && !"SPECIAL_LECTURE".equals(code)) return null;
+        if (operationPlan == null || operationPlan.isBlank()) return null;
+        return operationPlan.trim();
+    }
+
+    private String normalizeInstructorCareer(ActivityType activityType, String instructorCareer) {
+        if (!"SPECIAL_LECTURE".equals(activityType.getCode())) return null;
+        if (instructorCareer == null || instructorCareer.isBlank()) return null;
+        return instructorCareer.trim();
     }
 
     private static final java.util.Set<String> DISCORD_HOSTS = java.util.Set.of(
@@ -300,6 +345,10 @@ public class ActivityService {
                 .listed(dto.getListed())
                 .recruitmentPositions(normalizeRecruitmentPositions(dto.getRecruitmentPositions()))
                 .discordUrl(normalizeDiscordUrl(dto.getDiscordUrl()))
+                .recruitmentStartDate(dto.getRecruitmentStartDate())
+                .recruitmentEndDate(dto.getRecruitmentEndDate())
+                .operationPlan(normalizeOperationPlan(activityType, dto.getOperationPlan()))
+                .instructorCareer(normalizeInstructorCareer(activityType, dto.getInstructorCareer()))
                 .build();
     }
 

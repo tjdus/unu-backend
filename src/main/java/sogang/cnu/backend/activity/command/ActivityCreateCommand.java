@@ -20,10 +20,14 @@ public class ActivityCreateCommand {
     private Quarter quarter;
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDate recruitmentStartDate;
+    private LocalDate recruitmentEndDate;
     private Activity parentActivity;
     private Boolean listed;
     private Integer depositAmount;
     private Integer participantLimit;
     private String recruitmentPositions;
     private String discordUrl;
+    private String operationPlan;
+    private String instructorCareer;
 }

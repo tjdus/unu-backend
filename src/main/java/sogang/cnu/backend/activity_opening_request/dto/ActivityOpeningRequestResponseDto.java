@@ -27,6 +27,7 @@ public class ActivityOpeningRequestResponseDto {
     private Boolean acceptsNewMembers;
     private Integer participantLimit;
     private String recruitmentPositions;
+    private String instructorCareer;
     private Boolean personalProject;
     private UUID parentActivityId;
     private String parentActivityTitle;

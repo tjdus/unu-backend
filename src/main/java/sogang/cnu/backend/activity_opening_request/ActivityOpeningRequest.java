@@ -64,6 +64,10 @@ public class ActivityOpeningRequest extends BaseEntity {
     @Column(name = "recruitment_positions", columnDefinition = "TEXT")
     private String recruitmentPositions;
 
+    /** 강의 개설 신청 시 받는 강의자 경력 */
+    @Column(name = "instructor_career", columnDefinition = "TEXT")
+    private String instructorCareer;
+
     @Column(name = "is_personal_project")
     @Builder.Default
     private Boolean personalProject = false;
@@ -114,6 +118,7 @@ public class ActivityOpeningRequest extends BaseEntity {
             Boolean acceptsNewMembers,
             Integer participantLimit,
             String recruitmentPositions,
+            String instructorCareer,
             Boolean personalProject,
             Activity parentActivity,
             Set<User> initialMembers
@@ -129,6 +134,7 @@ public class ActivityOpeningRequest extends BaseEntity {
         this.acceptsNewMembers = acceptsNewMembers;
         this.participantLimit = participantLimit;
         this.recruitmentPositions = recruitmentPositions;
+        this.instructorCareer = instructorCareer;
         this.personalProject = personalProject;
         this.parentActivity = parentActivity;
         this.initialMembers.clear();
@@ -160,5 +166,11 @@ public class ActivityOpeningRequest extends BaseEntity {
         this.reviewComment = comment;
         this.reviewedAt = LocalDateTime.now();
         this.approvedActivity = activity;
+    }
+
+    public Activity unlinkApprovedActivity() {
+        Activity activity = this.approvedActivity;
+        this.approvedActivity = null;
+        return activity;
     }
 }
