@@ -29,6 +29,9 @@ public class Application extends BaseEntity {
     @JoinColumn(name = "recruitment_id", nullable = false)
     private Recruitment recruitment;
 
+    @Column(name = "applicant_user_id")
+    private UUID applicantUserId;
+
     @Column(nullable = false)
     private String name;
 
@@ -71,9 +74,14 @@ public class Application extends BaseEntity {
         this.status = newStatus;
     }
 
+    public void updateAnswers(JsonNode newAnswers) {
+        this.answers = newAnswers;
+    }
+
     public static Application create(ApplicationCreateCommand command) {
         return Application.builder()
                 .recruitment(command.getRecruitment())
+                .applicantUserId(command.getApplicantUserId())
                 .name(command.getName())
                 .studentId(command.getStudentId())
                 .major(command.getMajor())

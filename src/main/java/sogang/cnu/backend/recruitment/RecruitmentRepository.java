@@ -8,23 +8,45 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface RecruitmentRepository extends JpaRepository<Recruitment, UUID> {
-    Optional<Recruitment> findFirstByActiveIsTrueAndStartAtLessThanEqualAndEndAtGreaterThanEqualOrderByEndAtAsc(
-            LocalDateTime startAt, LocalDateTime endAt);
-
-    Optional<Recruitment> findFirstByActiveIsTrueAndStartAtGreaterThanOrderByStartAtAsc(LocalDateTime now);
-
-    Optional<Recruitment> findFirstByActiveIsTrueAndEndAtLessThanOrderByEndAtDesc(LocalDateTime now);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Recruitment r where r.id = :id")
     Optional<Recruitment> findByIdForUpdate(@Param("id") UUID id);
 
-    // 진행 중이거나 아직 시작 전이면서 가장 먼저 마감되는 모집 1건.
-    // active 플래그와 무관하게 startAt/endAt만으로 판단한다(홈 배너 전용 단일 진실 공급원).
-    Optional<Recruitment> findFirstByEndAtAfterOrderByEndAtAsc(LocalDateTime now);
+    Optional<Recruitment> findFirstByTypeAndActiveIsTrueAndStartAtLessThanEqualAndEndAtGreaterThanEqualOrderByEndAtAsc(
+            RecruitmentType type, LocalDateTime startAt, LocalDateTime endAt);
+
+    Optional<Recruitment> findFirstByTypeAndActiveIsTrueAndStartAtGreaterThanOrderByStartAtAsc(
+            RecruitmentType type, LocalDateTime now);
+
+    Optional<Recruitment> findFirstByTypeAndActiveIsTrueAndEndAtLessThanOrderByEndAtDesc(
+            RecruitmentType type, LocalDateTime now);
+
+    Optional<Recruitment> findFirstByTypeAndEndAtAfterOrderByEndAtAsc(
+            RecruitmentType type, LocalDateTime now);
+
+    List<Recruitment> findAllByTypeOrderByStartAtDesc(RecruitmentType type);
+
+    @Query("""
+            SELECT r.id
+            FROM Recruitment r
+            WHERE r.type = :type
+              AND r.createdAt >= :cutoff
+              AND NOT EXISTS (
+                SELECT receipt.id
+                FROM RecruitmentCardRead receipt
+                WHERE receipt.recruitment.id = r.id
+                  AND receipt.user.id = :userId
+              )
+            """)
+    List<UUID> findUnreadRecentIdsByType(
+            @Param("type") RecruitmentType type,
+            @Param("userId") UUID userId,
+            @Param("cutoff") LocalDateTime cutoff
+    );
 }

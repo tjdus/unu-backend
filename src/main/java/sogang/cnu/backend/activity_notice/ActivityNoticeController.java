@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import sogang.cnu.backend.activity_notice.dto.ActivityNoticeRequestDto;
 import sogang.cnu.backend.activity_notice.dto.ActivityNoticeResponseDto;
+import sogang.cnu.backend.activity_notice.dto.ActivityNoticeUnreadSummaryDto;
+import sogang.cnu.backend.security.CurrentUser;
+import sogang.cnu.backend.security.CustomUserDetails;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,24 +31,43 @@ public class ActivityNoticeController {
 
     @GetMapping
     public ResponseEntity<List<ActivityNoticeResponseDto>> getByActivityId(
+            @CurrentUser CustomUserDetails user,
             @RequestParam UUID activityId
     ) {
-        return ResponseEntity.ok(activityNoticeService.getByActivityId(activityId));
+        return ResponseEntity.ok(activityNoticeService.getByActivityId(user.getId(), activityId));
+    }
+
+    @GetMapping("/unread-summary")
+    public ResponseEntity<ActivityNoticeUnreadSummaryDto> getUnreadSummary(
+            @CurrentUser CustomUserDetails user
+    ) {
+        return ResponseEntity.ok(activityNoticeService.getUnreadSummary(user.getId()));
+    }
+
+    @PostMapping("/{id}/read")
+    public ResponseEntity<Void> markRead(
+            @CurrentUser CustomUserDetails user,
+            @PathVariable UUID id
+    ) {
+        activityNoticeService.markRead(user.getId(), id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping
     public ResponseEntity<ActivityNoticeResponseDto> create(
+            @CurrentUser CustomUserDetails user,
             @Valid @RequestBody ActivityNoticeRequestDto request
     ) {
-        return ResponseEntity.ok(activityNoticeService.create(request));
+        return ResponseEntity.ok(activityNoticeService.create(user.getId(), request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ActivityNoticeResponseDto> update(
+            @CurrentUser CustomUserDetails user,
             @PathVariable UUID id,
             @Valid @RequestBody ActivityNoticeRequestDto request
     ) {
-        return ResponseEntity.ok(activityNoticeService.update(id, request));
+        return ResponseEntity.ok(activityNoticeService.update(user.getId(), id, request));
     }
 
     @DeleteMapping("/{id}")

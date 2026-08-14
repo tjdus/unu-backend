@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.common.domain.dto.AuditorDto;
+import sogang.cnu.backend.recruitment.RecruitmentType;
 
 import java.util.UUID;
 
@@ -14,6 +15,8 @@ import java.util.UUID;
 public class ApplicationResponse {
     private UUID id;
     private UUID recruitmentId;
+    private String recruitmentTitle;
+    private RecruitmentType recruitmentType;
     private UUID formId;
     private String name;
     private String studentId;

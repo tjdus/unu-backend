@@ -26,6 +26,17 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LectureRoomScheduleService {
 
+    private static final Set<LocalTime> TIME_SLOTS = Set.of(
+            LocalTime.of(9, 0),
+            LocalTime.of(10, 15),
+            LocalTime.of(11, 45),
+            LocalTime.of(13, 15),
+            LocalTime.of(14, 45),
+            LocalTime.of(16, 15),
+            LocalTime.of(17, 45),
+            LocalTime.of(19, 15)
+    );
+
     private static final Set<DayOfWeek> WEEKDAYS = Set.of(
             DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
@@ -90,11 +101,11 @@ public class LectureRoomScheduleService {
         LectureRoomSchedule schedule = lectureRoomScheduleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("LectureRoomSchedule not found"));
 
-        // 본인 예약이거나 학회실 관리 권한이 있어야 삭제할 수 있다.
         boolean isOwner = schedule.getUser() != null
                 && schedule.getUser().getId().equals(SecurityUtils.getCurrentUserId());
-        if (!isOwner && !SecurityUtils.hasAnyRole("ADMIN", "MANAGER", "LECTURE_ROOM_MANAGER")) {
-            throw new ForbiddenException("본인 예약이거나 학회실 관리자만 삭제할 수 있습니다.");
+        boolean canManageAll = SecurityUtils.hasAnyRole("ADMIN", "MANAGER");
+        if (!isOwner && !canManageAll) {
+            throw new ForbiddenException("본인의 학회실 관리 시간만 삭제할 수 있습니다.");
         }
 
         lectureRoomScheduleRepository.delete(schedule);
@@ -115,8 +126,8 @@ public class LectureRoomScheduleService {
     }
 
     private void validateTimeSlot(LocalTime timeSlot) {
-        if (timeSlot.getMinute() % 15 != 0 || timeSlot.getSecond() != 0 || timeSlot.getNano() != 0) {
-            throw new BadRequestException("시간은 15분 단위로만 등록 가능합니다.");
+        if (!TIME_SLOTS.contains(timeSlot)) {
+            throw new BadRequestException("등록 가능한 학회실 관리 시간이 아닙니다.");
         }
     }
 }

@@ -17,6 +17,7 @@ import java.util.UUID;
 @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
 public class ApplicationController {
     private final ApplicationService applicationService;
+    private final ApplicationLectureRoomScheduleService applicationLectureRoomScheduleService;
 
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponse> getById(@PathVariable UUID id) {
@@ -33,6 +34,12 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.updateStatus(id, request.getStatus()));
     }
 
+    @PostMapping("/{id}/lecture-room-schedule")
+    public ResponseEntity<ApplicationLectureRoomScheduleImportResponse> importLectureRoomSchedule(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(applicationLectureRoomScheduleService.importSchedule(id));
+    }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancel(@PathVariable UUID id) {
         applicationService.cancel(id);
@@ -46,4 +53,3 @@ public class ApplicationController {
     }
 
 }
-

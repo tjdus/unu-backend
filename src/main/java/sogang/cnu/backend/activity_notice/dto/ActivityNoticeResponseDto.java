@@ -13,6 +13,7 @@ public class ActivityNoticeResponseDto {
     private String title;
     private String content;
     private UUID activityId;
+    private Boolean read;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
 }

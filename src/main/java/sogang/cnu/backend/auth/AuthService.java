@@ -18,6 +18,7 @@ import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 import sogang.cnu.backend.common.exception.ForbiddenException;
+import sogang.cnu.backend.common.exception.UnauthorizedException;
 import sogang.cnu.backend.util.SecurityUtils;
 
 import java.security.SecureRandom;
@@ -91,22 +92,22 @@ public class AuthService {
 
     public LoginResponseDto refreshToken(String refreshToken) {
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new RuntimeException("유효하지 않은 리프레시 토큰입니다.");
+            throw new UnauthorizedException("세션이 만료되었습니다.");
         }
 
         if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
-            throw new RuntimeException("리프레시 토큰이 아닙니다.");
+            throw new UnauthorizedException("세션이 만료되었습니다.");
         }
 
         UUID userId;
         try {
             userId = UUID.fromString(jwtTokenProvider.getIdFromToken(refreshToken));
         } catch (IllegalArgumentException exception) {
-            throw new BadRequestException("유효하지 않은 리프레시 토큰입니다.");
+            throw new UnauthorizedException("세션이 만료되었습니다.");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new UnauthorizedException("세션이 만료되었습니다."));
 
         List<String> roles = getUserRoles(user.getId());
 

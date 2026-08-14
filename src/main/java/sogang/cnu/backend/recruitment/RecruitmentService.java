@@ -63,6 +63,12 @@ public class RecruitmentService {
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
 
         validateDates(dto.getStartAt(), dto.getEndAt());
+        RecruitmentType newType = resolveType(dto.getType());
+        if (recruitment.getType() == RecruitmentType.INTERNAL_OPERATION
+                && newType == RecruitmentType.NEW_MEMBER
+                && !recruitment.getApplications().isEmpty()) {
+            throw new BadRequestException("신청 내역이 있는 운영 모집은 신규 학회원 모집으로 변경할 수 없습니다.");
+        }
         recruitment.update(toUpdateCommand(dto));
         return recruitmentMapper.toResponseDto(recruitment);
     }
@@ -79,9 +85,12 @@ public class RecruitmentService {
     public RecruitmentResponseDto getActiveRecruitment() {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         Recruitment recruitment = recruitmentRepository
-                .findFirstByActiveIsTrueAndStartAtLessThanEqualAndEndAtGreaterThanEqualOrderByEndAtAsc(now, now)
-                .or(() -> recruitmentRepository.findFirstByActiveIsTrueAndStartAtGreaterThanOrderByStartAtAsc(now))
-                .or(() -> recruitmentRepository.findFirstByActiveIsTrueAndEndAtLessThanOrderByEndAtDesc(now))
+                .findFirstByTypeAndActiveIsTrueAndStartAtLessThanEqualAndEndAtGreaterThanEqualOrderByEndAtAsc(
+                        RecruitmentType.NEW_MEMBER, now, now)
+                .or(() -> recruitmentRepository.findFirstByTypeAndActiveIsTrueAndStartAtGreaterThanOrderByStartAtAsc(
+                        RecruitmentType.NEW_MEMBER, now))
+                .or(() -> recruitmentRepository.findFirstByTypeAndActiveIsTrueAndEndAtLessThanOrderByEndAtDesc(
+                        RecruitmentType.NEW_MEMBER, now))
                 .orElseThrow(() -> new NotFoundException("Active recruitment not found"));
         return recruitmentMapper.toResponseDto(recruitment);
     }
@@ -89,15 +98,40 @@ public class RecruitmentService {
     @Transactional(readOnly = true)
     public RecruitmentResponseDto getClosestRecruitment() {
         Recruitment recruitment = recruitmentRepository
-                .findFirstByEndAtAfterOrderByEndAtAsc(java.time.LocalDateTime.now())
+                .findFirstByTypeAndEndAtAfterOrderByEndAtAsc(
+                        RecruitmentType.NEW_MEMBER, java.time.LocalDateTime.now())
                 .orElseThrow(() -> new NotFoundException("No upcoming or ongoing recruitment"));
         return recruitmentMapper.toResponseDto(recruitment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecruitmentResponseDto> getOperationRecruitments() {
+        return recruitmentRepository.findAllByTypeOrderByStartAtDesc(RecruitmentType.INTERNAL_OPERATION).stream()
+                .map(recruitmentMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public RecruitmentResponseDto getOperationRecruitment(UUID id) {
+        Recruitment recruitment = findOperationRecruitment(id);
+        return recruitmentMapper.toResponseDto(recruitment);
+    }
+
+    @Transactional(readOnly = true)
+    public RecruitmentCompletionMessageResponseDto getOperationCompletionMessage(UUID id) {
+        Recruitment recruitment = findOperationRecruitment(id);
+        return RecruitmentCompletionMessageResponseDto.builder()
+                .completionMessage(recruitment.getCompletionMessage())
+                .build();
     }
 
     @Transactional(readOnly = true)
     public RecruitmentCompletionMessageResponseDto getCompletionMessage(UUID id) {
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
+        if (recruitment.getType() != RecruitmentType.NEW_MEMBER) {
+            throw new NotFoundException("Recruitment not found");
+        }
         return RecruitmentCompletionMessageResponseDto.builder()
                 .completionMessage(recruitment.getCompletionMessage())
                 .build();
@@ -132,6 +166,7 @@ public class RecruitmentService {
                 .quarter(findQuarter(dto.getQuarterId()))
                 .active(dto.getActive() != null ? dto.getActive() : true)
                 .form(findForm(dto.getFormId()))
+                .type(resolveType(dto.getType()))
                 .build();
     }
 
@@ -145,7 +180,18 @@ public class RecruitmentService {
                 .quarter(findQuarter(dto.getQuarterId()))
                 .active(dto.getActive())
                 .form(findForm(dto.getFormId()))
+                .type(resolveType(dto.getType()))
                 .build();
+    }
+
+    private RecruitmentType resolveType(RecruitmentType type) {
+        return type == null ? RecruitmentType.NEW_MEMBER : type;
+    }
+
+    private Recruitment findOperationRecruitment(UUID id) {
+        return recruitmentRepository.findById(id)
+                .filter(item -> item.getType() == RecruitmentType.INTERNAL_OPERATION)
+                .orElseThrow(() -> new NotFoundException("Operation recruitment not found"));
     }
 
     private String normalizeOptionalText(String value) {
@@ -155,7 +201,7 @@ public class RecruitmentService {
 
         String normalized = value.trim();
         if (normalized.length() > 1000) {
-            throw new BadRequestException("지원 완료 안내는 1000자 이하로 입력해야 합니다.");
+            throw new BadRequestException("완료 안내는 1000자 이하로 입력해야 합니다.");
         }
         return normalized;
     }

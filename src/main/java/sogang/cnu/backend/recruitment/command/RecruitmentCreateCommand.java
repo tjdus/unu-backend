@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import sogang.cnu.backend.form.Form;
 import sogang.cnu.backend.quarter.Quarter;
+import sogang.cnu.backend.recruitment.RecruitmentType;
 
 import java.time.LocalDateTime;
 
@@ -18,4 +19,5 @@ public class RecruitmentCreateCommand {
     private Quarter quarter;
     private Boolean active;
     private Form form;
+    private RecruitmentType type;
 }

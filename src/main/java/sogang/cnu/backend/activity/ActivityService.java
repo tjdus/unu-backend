@@ -23,6 +23,7 @@ import sogang.cnu.backend.attendance.AttendanceRepository;
 import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
 import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepository;
 import sogang.cnu.backend.activity_notice.ActivityNoticeRepository;
+import sogang.cnu.backend.activity_notice.ActivityNoticeReadRepository;
 import sogang.cnu.backend.activity_opening_request.ActivityOpeningRequestRepository;
 import sogang.cnu.backend.lecture_material.LectureMaterialRepository;
 import sogang.cnu.backend.lecture_material.LectureMaterialService;
@@ -54,6 +55,7 @@ public class ActivityService {
     private final LectureMaterialRepository lectureMaterialRepository;
     private final LectureMaterialService lectureMaterialService;
     private final ActivityNoticeRepository activityNoticeRepository;
+    private final ActivityNoticeReadRepository activityNoticeReadRepository;
     private final ActivityOpeningRequestRepository activityOpeningRequestRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
     private final PermissionChecker permissionChecker;
@@ -148,6 +150,7 @@ public class ActivityService {
         courseTimeReservationRepository.deleteByActivityId(id);
         lectureMaterialRepository.deleteByActivityIdAndPrimaryTrue(id);
         lectureMaterialRepository.detachFromActivity(id);
+        activityNoticeReadRepository.deleteByActivityId(id);
         // 공지는 활동에 종속되므로 같이 지운다 (자료와 달리 공용으로 남길 수 없다)
         activityNoticeRepository.deleteByActivityId(id);
         // 승인으로 생성된 활동이면 연결된 개설 신청 검토 기록도 함께 지운다.

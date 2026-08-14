@@ -25,9 +25,14 @@ public class Notice extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "notification_enabled", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean notificationEnabled = false;
+
     public void update(String title, String tag, String content) {
         this.title = title;
         this.tag = tag;
         this.content = content;
+        this.notificationEnabled = true;
     }
 }

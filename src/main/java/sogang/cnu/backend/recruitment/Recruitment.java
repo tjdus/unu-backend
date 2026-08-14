@@ -48,6 +48,10 @@ public class Recruitment extends BaseEntity {
     @Column(nullable = false)
     private Boolean active;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recruitment_type")
+    private RecruitmentType type;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "form_id", nullable = false)
     private Form form;
@@ -65,6 +69,7 @@ public class Recruitment extends BaseEntity {
         this.quarter = command.getQuarter();
         this.active = command.getActive();
         this.form = command.getForm();
+        this.type = command.getType();
     }
 
     public static Recruitment create(RecruitmentCreateCommand command) {
@@ -77,6 +82,17 @@ public class Recruitment extends BaseEntity {
                 .quarter(command.getQuarter())
                 .active(command.getActive())
                 .form(command.getForm())
+                .type(command.getType())
                 .build();
+    }
+
+    public RecruitmentType getType() {
+        return type == null ? RecruitmentType.NEW_MEMBER : type;
+    }
+
+    public void assignDefaultType() {
+        if (type == null) {
+            type = RecruitmentType.NEW_MEMBER;
+        }
     }
 }

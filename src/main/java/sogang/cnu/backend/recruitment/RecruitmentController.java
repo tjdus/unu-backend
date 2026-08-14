@@ -15,6 +15,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/recruitments")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
 public class RecruitmentController {
     private final RecruitmentService recruitmentService;
 
@@ -23,10 +24,7 @@ public class RecruitmentController {
         return ResponseEntity.ok(recruitmentService.getAll());
     }
 
-    // update/delete는 서비스의 permissionChecker.checkManagerOrAdmin()으로 막혀 있는데
-    // create만 빠져 있었다. 같은 기준(MANAGER/ADMIN)으로 맞춘다.
     @PostMapping("")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<RecruitmentResponseDto> create(@RequestBody RecruitmentRequestDto request) {
         return ResponseEntity.ok(recruitmentService.create(request));
     }
@@ -48,4 +46,3 @@ public class RecruitmentController {
     }
 
 }
-

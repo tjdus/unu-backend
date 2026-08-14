@@ -8,6 +8,8 @@ import sogang.cnu.backend.common.mapper.UserAuditorMapper;
 @Mapper(componentModel = "spring", uses = {UserAuditorMapper.class})
 public interface ApplicationMapper {
     @Mapping(source = "recruitment.id", target = "recruitmentId")
+    @Mapping(source = "recruitment.title", target = "recruitmentTitle")
+    @Mapping(source = "recruitment.type", target = "recruitmentType")
     @Mapping(source = "recruitment.form.id", target = "formId")
     ApplicationResponse toResponseDto(Application application);
 }

@@ -11,13 +11,17 @@ import sogang.cnu.backend.application.dto.ApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationResponse;
 import sogang.cnu.backend.application.dto.ApplicationLookupRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationLookupResponse;
+import sogang.cnu.backend.application.dto.OperationApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationVerificationResponse;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.recruitment.Recruitment;
 import sogang.cnu.backend.recruitment.RecruitmentRepository;
+import sogang.cnu.backend.recruitment.RecruitmentType;
 import sogang.cnu.backend.security.JwtTokenProvider;
+import sogang.cnu.backend.user.User;
+import sogang.cnu.backend.user.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +38,7 @@ public class ApplicationService {
     private final PasswordEncoder passwordEncoder;
     private final ApplicationAnswerValidator answerValidator;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public ApplicationResponse getById(UUID id) {
@@ -47,6 +52,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
+        requireNewMemberApplication(application);
         validatePassword(password, application.getPassword());
 
         return ApplicationVerificationResponse.builder()
@@ -64,8 +70,104 @@ public class ApplicationService {
 
     @Transactional
     public ApplicationResponse create(ApplicationRequestDto dto) {
-        validateCreatePassword(dto.getPassword());
         Recruitment recruitment = findRecruitmentForUpdate(dto.getRecruitmentId());
+        if (recruitment.getType() != RecruitmentType.NEW_MEMBER) {
+            throw new ForbiddenException("로그인 후 학회 내 모집에서 신청해주세요.");
+        }
+        return create(dto, recruitment);
+    }
+
+    @Transactional
+    public ApplicationResponse createOperation(
+            UUID recruitmentId,
+            UUID currentUserId,
+            OperationApplicationRequestDto dto) {
+        Recruitment recruitment = findRecruitmentForUpdate(recruitmentId);
+        if (recruitment.getType() != RecruitmentType.INTERNAL_OPERATION) {
+            throw new BadRequestException("학회 내 모집이 아닙니다.");
+        }
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        validateRecruitmentActive(recruitment);
+        validateRecruitmentPeriod(recruitment);
+        if (applicationRepository.existsByRecruitmentIdAndStudentIdAndStatusNot(
+                recruitmentId, user.getStudentId(), ApplicationStatus.CANCELED)) {
+            throw new BadRequestException("이미 제출한 신청서가 있습니다.");
+        }
+        answerValidator.validate(recruitment.getForm().getSchema(), dto.getAnswers());
+
+        ApplicationCreateCommand command = ApplicationCreateCommand.builder()
+                .recruitment(recruitment)
+                .applicantUserId(user.getId())
+                .name(user.getName())
+                .studentId(user.getStudentId())
+                .major(valueOrEmpty(user.getMajor()))
+                .subMajor(trimToNull(user.getSubMajor()))
+                .email(valueOrEmpty(user.getEmail()))
+                .githubId(trimToNull(user.getGithubId()))
+                .phoneNumber(valueOrEmpty(user.getPhoneNumber()))
+                .answers(dto.getAnswers())
+                .formSnapshot(recruitment.getForm().getSchema())
+                .password(null)
+                .build();
+
+        return applicationMapper.toResponseDto(applicationRepository.save(Application.create(command)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> getMyOperationApplications(UUID currentUserId) {
+        User user = findUser(currentUserId);
+        return applicationRepository.findMyOperationApplications(
+                        RecruitmentType.INTERNAL_OPERATION,
+                        user.getId(),
+                        user.getStudentId(),
+                        ApplicationStatus.CANCELED).stream()
+                .map(applicationMapper::toResponseDto)
+                .toList();
+    }
+
+    @Transactional
+    public ApplicationResponse getMyOperationApplication(UUID currentUserId, UUID applicationId) {
+        User user = findUser(currentUserId);
+        Application application = findOwnedOperationApplication(user, applicationId);
+        if (application.getStatus() == ApplicationStatus.CANCELED) {
+            throw new NotFoundException("Application not found");
+        }
+        attachLegacyApplicant(application, user);
+        return applicationMapper.toResponseDto(application);
+    }
+
+    @Transactional
+    public void cancelMyOperationApplication(UUID currentUserId, UUID applicationId) {
+        User user = findUser(currentUserId);
+        Application application = findOwnedOperationApplication(user, applicationId);
+        if (application.getStatus() != ApplicationStatus.APPLIED) {
+            throw new BadRequestException("제출 상태의 신청서만 취소할 수 있습니다.");
+        }
+        applicationRepository.delete(application);
+    }
+
+    @Transactional
+    public ApplicationResponse updateMyOperationApplication(
+            UUID currentUserId,
+            UUID applicationId,
+            OperationApplicationRequestDto dto) {
+        User user = findUser(currentUserId);
+        Application application = findOwnedOperationApplication(user, applicationId);
+        attachLegacyApplicant(application, user);
+        if (application.getStatus() != ApplicationStatus.APPLIED) {
+            throw new BadRequestException("검토가 시작된 신청서는 수정할 수 없습니다.");
+        }
+        validateRecruitmentActive(application.getRecruitment());
+        validateRecruitmentPeriod(application.getRecruitment());
+        answerValidator.validate(application.getFormSnapshot(), dto.getAnswers());
+        application.updateAnswers(dto.getAnswers());
+        return applicationMapper.toResponseDto(application);
+    }
+
+    private ApplicationResponse create(ApplicationRequestDto dto, Recruitment recruitment) {
+        validateCreatePassword(dto.getPassword());
         String studentId = dto.getStudentId().trim();
         String email = dto.getEmail().trim();
 
@@ -98,6 +200,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
+        requireNewMemberApplication(application);
         // Only allow updates if the application is still in APPLIED status
         if (application.getStatus() != ApplicationStatus.APPLIED) {
             throw new BadRequestException("검토가 시작된 지원서는 수정할 수 없습니다.");
@@ -141,7 +244,9 @@ public class ApplicationService {
 
     @Transactional(readOnly = true)
     public ApplicationLookupResponse lookup(ApplicationLookupRequestDto query) {
-        Application application = applicationRepository.findFirstByNameAndEmailOrderByCreatedAtDesc(query.getName(), query.getEmail())
+        Application application = applicationRepository
+                .findFirstByNameAndEmailAndRecruitmentTypeOrderByCreatedAtDesc(
+                        query.getName(), query.getEmail(), RecruitmentType.NEW_MEMBER)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
         // 비밀번호 검증 전 단계이므로 존재 확인에 필요한 최소 정보만 반환한다.
         // 답변/학번/전화번호 등은 /verify(비밀번호 필요)에서만 노출된다.
@@ -159,6 +264,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
+        requireNewMemberApplication(application);
         authorizeApplicant(application, accessToken, password);
 
         if (application.getStatus() != ApplicationStatus.APPLIED) {
@@ -197,16 +303,48 @@ public class ApplicationService {
                 .orElseThrow(() -> new NotFoundException("Recruitment not found"));
     }
 
+    private User findUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    private Application findOwnedOperationApplication(User user, UUID applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+        if (application.getRecruitment().getType() != RecruitmentType.INTERNAL_OPERATION) {
+            throw new NotFoundException("Application not found");
+        }
+        boolean ownedByAccount = user.getId().equals(application.getApplicantUserId());
+        boolean legacyOwnedByStudentId = application.getApplicantUserId() == null
+                && application.getStudentId().equals(user.getStudentId());
+        if (!ownedByAccount && !legacyOwnedByStudentId) {
+            throw new ForbiddenException("본인의 신청서만 확인할 수 있습니다.");
+        }
+        return application;
+    }
+
+    private void attachLegacyApplicant(Application application, User user) {
+        if (application.getApplicantUserId() == null) {
+            application.setApplicantUserId(user.getId());
+        }
+    }
+
+    private void requireNewMemberApplication(Application application) {
+        if (application.getRecruitment().getType() != RecruitmentType.NEW_MEMBER) {
+            throw new NotFoundException("Application not found");
+        }
+    }
+
     private void validateRecruitmentActive(Recruitment recruitment) {
         if (!recruitment.getActive()) {
-            throw new BadRequestException("현재 지원할 수 없는 모집입니다.");
+            throw new BadRequestException("현재 접수할 수 없는 모집입니다.");
         }
     }
 
     private void validateRecruitmentPeriod(Recruitment recruitment) {
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(recruitment.getStartAt()) || now.isAfter(recruitment.getEndAt())) {
-            throw new BadRequestException("모집 기간에만 지원서를 제출하거나 수정할 수 있습니다.");
+            throw new BadRequestException("모집 기간에만 제출하거나 수정할 수 있습니다.");
         }
     }
 
@@ -267,5 +405,9 @@ public class ApplicationService {
             return null;
         }
         return value.trim();
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 }

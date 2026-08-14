@@ -32,7 +32,7 @@ public class LectureRoomScheduleController {
 
     // 임의 사용자(dto.userId)를 배정하는 경로.
     @PostMapping("")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','LECTURE_ROOM_MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<LectureRoomScheduleResponseDto> create(@RequestBody LectureRoomScheduleRequestDto dto) {
         return ResponseEntity.ok(lectureRoomScheduleService.create(dto));
     }
@@ -45,7 +45,7 @@ public class LectureRoomScheduleController {
         return ResponseEntity.ok(lectureRoomScheduleService.createForMe(user.getId(), dto));
     }
 
-    // 본인 일정 취소 또는 다른 관리자의 배정 해제. 소유자 확인은 서비스에서 한다.
+    // 본인 일정 취소 또는 운영진의 배정 해제. 소유자 확인은 서비스에서 한다.
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','LECTURE_ROOM_MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
