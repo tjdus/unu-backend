@@ -10,7 +10,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface LectureMaterialRepository extends JpaRepository<LectureMaterial, UUID> {
-    List<LectureMaterial> findAllByOrderByCreatedAtDesc();
+    // 관리자가 지정한 순서(display_order) 우선, 미지정(null)은 뒤로 밀리며 최신순으로.
+    List<LectureMaterial> findAllByOrderByDisplayOrderAscCreatedAtDesc();
 
     List<LectureMaterial> findAllByActivityIdOrderByCreatedAtDesc(UUID activityId);
 

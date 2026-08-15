@@ -14,8 +14,10 @@ import sogang.cnu.backend.lecture_material.dto.LectureMaterialResponseDto;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,9 +37,27 @@ public class LectureMaterialService {
 
     @Transactional(readOnly = true)
     public List<LectureMaterialResponseDto> getAll() {
-        return lectureMaterialRepository.findAllByOrderByCreatedAtDesc().stream()
+        return lectureMaterialRepository.findAllByOrderByDisplayOrderAscCreatedAtDesc().stream()
                 .map(this::toResponseDto)
                 .toList();
+    }
+
+    @Transactional
+    public void reorder(List<UUID> orderedIds) {
+        if (orderedIds == null || orderedIds.isEmpty()) {
+            return;
+        }
+        List<LectureMaterial> materials = lectureMaterialRepository.findAllById(orderedIds);
+        Map<UUID, LectureMaterial> byId = materials.stream()
+                .collect(Collectors.toMap(LectureMaterial::getId, material -> material));
+        int order = 0;
+        for (UUID id : orderedIds) {
+            LectureMaterial material = byId.get(id);
+            if (material == null) {
+                throw new NotFoundException("강의자료를 찾을 수 없습니다.");
+            }
+            material.updateDisplayOrder(order++);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -189,6 +209,7 @@ public class LectureMaterialService {
                 .materialName(material.getMaterialName())
                 .driveUrl(material.getDriveUrl())
                 .weekNumber(material.getWeekNumber())
+                .displayOrder(material.getDisplayOrder())
                 .primary(Boolean.TRUE.equals(material.getPrimary()))
                 .activityId(material.getActivity() == null ? null : material.getActivity().getId())
                 .activityTitle(material.getActivity() == null ? null : material.getActivity().getTitle())

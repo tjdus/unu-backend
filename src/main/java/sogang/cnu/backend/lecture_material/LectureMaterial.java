@@ -50,9 +50,16 @@ public class LectureMaterial extends BaseEntity {
     @Builder.Default
     private Boolean primary = false;
 
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_id")
     private Activity activity;
+
+    public void updateDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
+    }
 
     public void update(String title, String description, String materialName, String driveUrl,
                        Integer weekNumber, Activity activity) {

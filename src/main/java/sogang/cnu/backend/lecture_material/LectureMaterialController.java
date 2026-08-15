@@ -3,14 +3,17 @@ package sogang.cnu.backend.lecture_material;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import sogang.cnu.backend.lecture_material.dto.LectureMaterialReorderDto;
 import sogang.cnu.backend.lecture_material.dto.LectureMaterialRequestDto;
 import sogang.cnu.backend.lecture_material.dto.LectureMaterialResponseDto;
 
@@ -55,6 +58,14 @@ public class LectureMaterialController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         lectureMaterialService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 강의자료 목록 표시 순서 변경은 운영진/관리자만 가능하다.
+    @PatchMapping("/reorder")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<Void> reorder(@Valid @RequestBody LectureMaterialReorderDto request) {
+        lectureMaterialService.reorder(request.getOrderedIds());
         return ResponseEntity.noContent().build();
     }
 }
