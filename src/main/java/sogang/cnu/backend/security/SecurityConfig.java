@@ -44,8 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/refresh",
-                                "/api/public/**")
-                        .permitAll()// 회원가입, 로그인은 인증 없이해야함
+                                "/api/auth/logout", "/api/public/**")
+                        .permitAll()// 회원가입, 로그인, 토큰 재발급, 로그아웃은 인증 없이 호출 가능해야 함
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)

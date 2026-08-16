@@ -9,7 +9,6 @@ import lombok.Setter;
 @Builder
 public class LoginResponseDto {
     private String token;
-    private String refreshToken;
     private String email;
     private String nickname;
 }

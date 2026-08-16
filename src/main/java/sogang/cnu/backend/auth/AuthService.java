@@ -71,7 +71,7 @@ public class AuthService {
                 .build();
     }
 
-    public LoginResponseDto login(LoginRequestDto loginRequestDto){
+    public AuthResult login(LoginRequestDto loginRequestDto){
         User user = userRepository.findByUsername(loginRequestDto.getUsername())
                 .orElse(null);
 
@@ -83,15 +83,12 @@ public class AuthService {
 
         String token = jwtTokenProvider.generateAccessToken(user.getId(), roles);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-        return LoginResponseDto.builder()
-                .token(token)
-                .refreshToken(refreshToken)
-                .email(user.getEmail())
-                .build();
+        return new AuthResult(token, refreshToken, user.getEmail());
     }
 
-    public LoginResponseDto refreshToken(String refreshToken) {
-        if (!jwtTokenProvider.validateToken(refreshToken)) {
+    // 슬라이딩 방식: 검증 성공 시 새 access/refresh 토큰을 함께 재발급한다(rotation 유지).
+    public AuthResult refreshToken(String refreshToken) {
+        if (refreshToken == null || !jwtTokenProvider.validateToken(refreshToken)) {
             throw new UnauthorizedException("세션이 만료되었습니다.");
         }
 
@@ -114,11 +111,7 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), roles);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        return LoginResponseDto.builder()
-                .token(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .email(user.getEmail())
-                .build();
+        return new AuthResult(newAccessToken, newRefreshToken, user.getEmail());
     }
 
     private List<String> getUserRoles(UUID userId) {
