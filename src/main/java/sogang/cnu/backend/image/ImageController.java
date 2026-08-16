@@ -19,14 +19,7 @@ public class ImageController {
     @PostMapping("/upload")
     public ResponseEntity<ImageUploadResponseDto> upload(
             @RequestParam("file") MultipartFile file) throws IOException {
-
-        if (file.isEmpty()) return ResponseEntity.badRequest().build();
-
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            return ResponseEntity.badRequest().build();
-        }
-
+        // 상세 검증(크기·확장자·MIME·매직바이트·상호일치)은 ImageService.upload에서 최종 수행한다.
         return ResponseEntity.ok(imageService.upload(file));
     }
 
