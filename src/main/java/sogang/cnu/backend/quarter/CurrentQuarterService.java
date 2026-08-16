@@ -32,6 +32,15 @@ public class CurrentQuarterService {
         return quarterMapper.toResponseDto(quarter);
     }
 
+    /** 현재 분기의 ID. 설정된 현재 분기가 없으면 null. (readOnly 경로에서 안전하도록 생성은 하지 않는다.) */
+    @Transactional(readOnly = true)
+    public UUID getCurrentQuarterId() {
+        return currentQuarterRepository.findById(FIXED_ID)
+                .map(CurrentQuarter::getQuarter)
+                .map(Quarter::getId)
+                .orElse(null);
+    }
+
     @Transactional
     public QuarterResponseDto update(CurrentQuarterRequestDto requestDto) {
         CurrentQuarter currentQuarter = getOne();

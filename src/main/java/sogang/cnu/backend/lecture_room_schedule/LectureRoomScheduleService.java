@@ -8,6 +8,7 @@ import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.lecture_room_schedule.command.LectureRoomScheduleCreateCommand;
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleRequestDto;
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleResponseDto;
+import sogang.cnu.backend.quarter.CurrentQuarterService;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.common.exception.ForbiddenException;
@@ -46,9 +47,11 @@ public class LectureRoomScheduleService {
     private final LectureRoomScheduleMapper lectureRoomScheduleMapper;
     private final QuarterRepository quarterRepository;
     private final UserRepository userRepository;
+    private final CurrentQuarterService currentQuarterService;
 
     @Transactional(readOnly = true)
     public List<LectureRoomScheduleResponseDto> getByQuarter(UUID quarterId) {
+        requireAllowedQuarter(quarterId);
         return lectureRoomScheduleRepository.findByQuarterId(quarterId).stream()
                 .map(lectureRoomScheduleMapper::toResponseDto)
                 .collect(Collectors.toList());
@@ -56,6 +59,7 @@ public class LectureRoomScheduleService {
 
     @Transactional(readOnly = true)
     public List<LectureRoomScheduleResponseDto> getByQuarterAndDay(UUID quarterId, String dayOfWeek) {
+        requireAllowedQuarter(quarterId);
         DayOfWeek day = parseDayOfWeek(dayOfWeek);
         return lectureRoomScheduleRepository.findByQuarterIdAndDayOfWeek(quarterId, day).stream()
                 .map(lectureRoomScheduleMapper::toResponseDto)
@@ -64,6 +68,7 @@ public class LectureRoomScheduleService {
 
     @Transactional
     public LectureRoomScheduleResponseDto create(LectureRoomScheduleRequestDto dto) {
+        requireAllowedQuarter(dto.getQuarterId());
         DayOfWeek dayOfWeek = parseDayOfWeek(dto.getDayOfWeek());
         validateWeekday(dayOfWeek);
         validateTimeSlot(dto.getTimeSlot());
@@ -107,8 +112,22 @@ public class LectureRoomScheduleService {
         if (!isOwner && !canManageAll) {
             throw new ForbiddenException("본인의 학회실 관리 시간만 삭제할 수 있습니다.");
         }
+        // 조회/생성과 일관되게, 운영진이 아닌 학회실 관리자는 현재 분기 일정만 삭제할 수 있다.
+        requireAllowedQuarter(schedule.getQuarter().getId());
 
         lectureRoomScheduleRepository.delete(schedule);
+    }
+
+    /**
+     * 운영진(ADMIN/MANAGER)은 모든 분기를 허용한다.
+     * 그 외(학회실 관리자)는 현재 분기만 조회·관리할 수 있으며, 다른 분기 요청은 403으로 막는다.
+     */
+    private void requireAllowedQuarter(UUID quarterId) {
+        if (SecurityUtils.hasAnyRole("ADMIN", "MANAGER")) return;
+        UUID currentQuarterId = currentQuarterService.getCurrentQuarterId();
+        if (currentQuarterId == null || !currentQuarterId.equals(quarterId)) {
+            throw new ForbiddenException("학회실 관리자는 현재 분기만 조회·관리할 수 있습니다.");
+        }
     }
 
     private DayOfWeek parseDayOfWeek(String dayOfWeek) {
