@@ -24,8 +24,8 @@ public class AuthController {
     @Value("${auth.cookie.secure:false}")
     private boolean cookieSecure;
 
-    // 리프레시 쿠키 만료를 토큰 만료와 동일하게 맞춰 슬라이딩 8시간을 유지한다.
-    @Value("${jwt.refresh-token-expire-time:28800000}")
+    // 리프레시 쿠키 만료를 토큰 만료와 동일하게 맞춰 슬라이딩 4시간을 유지한다.
+    @Value("${jwt.refresh-token-expire-time:14400000}")
     private long refreshTokenExpireMs;
 
     @PostMapping("/signup")
