@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
+    private static final java.time.ZoneId SERVICE_ZONE = java.time.ZoneId.of("Asia/Seoul");
+
     private final ApplicationRepository applicationRepository;
     private final ApplicationMapper applicationMapper;
     private final RecruitmentRepository recruitmentRepository;
@@ -342,7 +344,7 @@ public class ApplicationService {
     }
 
     private void validateRecruitmentPeriod(Recruitment recruitment) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(SERVICE_ZONE);
         if (now.isBefore(recruitment.getStartAt()) || now.isAfter(recruitment.getEndAt())) {
             throw new BadRequestException("모집 기간에만 제출하거나 수정할 수 있습니다.");
         }

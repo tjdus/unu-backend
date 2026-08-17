@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class RecruitmentService {
+    private static final java.time.ZoneId SERVICE_ZONE = java.time.ZoneId.of("Asia/Seoul");
+
     private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentMapper recruitmentMapper;
     private final FormRepository formRepository;
@@ -83,7 +85,7 @@ public class RecruitmentService {
 
     @Transactional
     public RecruitmentResponseDto getActiveRecruitment() {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(SERVICE_ZONE);
         Recruitment recruitment = recruitmentRepository
                 .findFirstByTypeAndActiveIsTrueAndStartAtLessThanEqualAndEndAtGreaterThanEqualOrderByEndAtAsc(
                         RecruitmentType.NEW_MEMBER, now, now)
@@ -99,7 +101,7 @@ public class RecruitmentService {
     public RecruitmentResponseDto getClosestRecruitment() {
         Recruitment recruitment = recruitmentRepository
                 .findFirstByTypeAndActiveIsTrueAndEndAtAfterOrderByEndAtAsc(
-                        RecruitmentType.NEW_MEMBER, java.time.LocalDateTime.now())
+                        RecruitmentType.NEW_MEMBER, java.time.LocalDateTime.now(SERVICE_ZONE))
                 .orElseThrow(() -> new NotFoundException("No upcoming or ongoing recruitment"));
         return recruitmentMapper.toResponseDto(recruitment);
     }
