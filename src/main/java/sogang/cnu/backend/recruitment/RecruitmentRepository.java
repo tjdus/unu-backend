@@ -27,7 +27,8 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, UUID> 
     Optional<Recruitment> findFirstByTypeAndActiveIsTrueAndEndAtLessThanOrderByEndAtDesc(
             RecruitmentType type, LocalDateTime now);
 
-    Optional<Recruitment> findFirstByTypeAndEndAtAfterOrderByEndAtAsc(
+    // 홈 CTA용: 공개(active=true) + 아직 끝나지 않은(endAt > now) 모집 중 가장 가까운 1건.
+    Optional<Recruitment> findFirstByTypeAndActiveIsTrueAndEndAtAfterOrderByEndAtAsc(
             RecruitmentType type, LocalDateTime now);
 
     List<Recruitment> findAllByTypeOrderByStartAtDesc(RecruitmentType type);

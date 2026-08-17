@@ -98,7 +98,7 @@ public class RecruitmentService {
     @Transactional(readOnly = true)
     public RecruitmentResponseDto getClosestRecruitment() {
         Recruitment recruitment = recruitmentRepository
-                .findFirstByTypeAndEndAtAfterOrderByEndAtAsc(
+                .findFirstByTypeAndActiveIsTrueAndEndAtAfterOrderByEndAtAsc(
                         RecruitmentType.NEW_MEMBER, java.time.LocalDateTime.now())
                 .orElseThrow(() -> new NotFoundException("No upcoming or ongoing recruitment"));
         return recruitmentMapper.toResponseDto(recruitment);
