@@ -15,6 +15,7 @@ import sogang.cnu.backend.attendance.dto.AttendanceBulkRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
 import sogang.cnu.backend.attendance.dto.AttendanceStatsResponseDto;
+import sogang.cnu.backend.attendance.dto.SessionAttendanceSummaryDto;
 import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
@@ -113,6 +114,39 @@ public class AttendanceService {
         requireAttendanceManager(session);
         return attendanceRepository.findBySessionId(sessionId).stream()
                 .map(attendanceMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    /** 활동의 모든 세션 출석을 한 번에 집계한다(일정 관리 탭의 세션별 출석 요약용). */
+    @Transactional(readOnly = true)
+    public List<SessionAttendanceSummaryDto> getSessionSummariesByActivity(UUID activityId) {
+        List<ActivitySession> sessions = activitySessionRepository.findByActivityId(activityId);
+        if (sessions.isEmpty()) {
+            return List.of();
+        }
+        // 세션별 조회와 동일한 권한 기준(담당자/운영진). 세션이 있으면 하나로 검사.
+        requireAttendanceManager(sessions.get(0));
+
+        // [present, absent(ABSENT+LATE), excused, total]
+        Map<UUID, long[]> counts = new HashMap<>();
+        for (Attendance attendance : attendanceRepository.findByActivityId(activityId)) {
+            long[] c = counts.computeIfAbsent(attendance.getSession().getId(), key -> new long[4]);
+            switch (attendance.getStatus()) {
+                case PRESENT -> c[0]++;
+                case ABSENT, LATE -> c[1]++;
+                case EXCUSED -> c[2]++;
+            }
+            c[3]++;
+        }
+
+        return counts.entrySet().stream()
+                .map(entry -> SessionAttendanceSummaryDto.builder()
+                        .sessionId(entry.getKey())
+                        .present(entry.getValue()[0])
+                        .absent(entry.getValue()[1])
+                        .excused(entry.getValue()[2])
+                        .total(entry.getValue()[3])
+                        .build())
                 .collect(Collectors.toList());
     }
 

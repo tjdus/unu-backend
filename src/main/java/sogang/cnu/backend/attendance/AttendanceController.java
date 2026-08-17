@@ -9,6 +9,7 @@ import sogang.cnu.backend.attendance.dto.AttendanceBulkRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
 import sogang.cnu.backend.attendance.dto.AttendanceStatsResponseDto;
+import sogang.cnu.backend.attendance.dto.SessionAttendanceSummaryDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +53,13 @@ public class AttendanceController {
     @GetMapping("/sessions/{id}")
     public ResponseEntity<List<AttendanceResponseDto>> getBySessionId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getBySessionId(id));
+    }
+
+    // 일정 관리 탭의 세션별 출석 요약: 회차마다 개별 호출하는 대신 활동 단위로 한 번에 집계한다.
+    @GetMapping("/activities/{activityId}/session-summary")
+    public ResponseEntity<List<SessionAttendanceSummaryDto>> getSessionSummariesByActivity(
+            @PathVariable UUID activityId) {
+        return ResponseEntity.ok(attendanceService.getSessionSummariesByActivity(activityId));
     }
 
     @GetMapping("/participants/{id}")
