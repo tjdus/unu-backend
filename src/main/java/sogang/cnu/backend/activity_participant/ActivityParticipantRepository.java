@@ -16,6 +16,14 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
     Optional<ActivityParticipant> findByUserIdAndActivityId(UUID userId, UUID activityId);
     List<ActivityParticipant> findByUserId(UUID userId);
     List<ActivityParticipant> findByActivityId(UUID activityId);
+    @Query("""
+            SELECT ap.activity.id FROM ActivityParticipant ap
+            WHERE ap.user.id = :userId
+              AND ap.resultChangedAt IS NOT NULL
+              AND ap.resultReadAt IS NULL
+            ORDER BY ap.resultChangedAt DESC
+            """)
+    List<UUID> findUnreadResultActivityIds(@Param("userId") UUID userId);
     long countByActivityIdAndStatusIn(
             UUID activityId,
             Collection<ActivityParticipantStatus> statuses
@@ -30,7 +38,7 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
             Activity activity,
             Collection<ActivityParticipantStatus> statuses
     ) {
-        if (activity.getAssignee() == null || activity.includesAssigneeAsParticipant()) {
+        if (activity.getAssignee() == null) {
             return countByActivityIdAndStatusIn(activity.getId(), statuses);
         }
         return countByActivityIdAndStatusInAndUserIdNot(

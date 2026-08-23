@@ -22,7 +22,6 @@ public class ActivityOpeningRequestDto {
     @Size(max = 3000, message = "활동 소개는 3000자 이내로 입력해주세요.")
     private String description;
 
-    @NotBlank(message = "운영 계획을 입력해주세요.")
     @Size(max = 10000, message = "운영 계획은 10000자 이내로 입력해주세요.")
     private String operationPlan;
 
@@ -49,8 +48,8 @@ public class ActivityOpeningRequestDto {
     @NotNull(message = "신규 학회원 모집 여부를 선택해주세요.")
     private Boolean acceptsNewMembers;
 
-    @Min(value = 1, message = "참여 정원은 1명 이상이어야 합니다.")
-    @Max(value = 1000, message = "참여 정원은 1000명 이하로 입력해주세요.")
+    @Min(value = 1, message = "추가 참여 정원은 1명 이상이어야 합니다.")
+    @Max(value = 1000, message = "추가 참여 정원은 1000명 이하로 입력해주세요.")
     private Integer participantLimit;
 
     private String recruitmentPositions;

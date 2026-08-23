@@ -62,7 +62,7 @@ public class ActivityOpeningRequestService {
                 .applicant(applicant)
                 .title(dto.getTitle().trim())
                 .description(dto.getDescription().trim())
-                .operationPlan(dto.getOperationPlan().trim())
+                .operationPlan(operationPlanForRequest(dto, references.activityType()))
                 .materialUrl(materialUrlForRequest(dto, references.activityType()))
                 .activityType(references.activityType())
                 .quarter(references.quarter())
@@ -93,7 +93,7 @@ public class ActivityOpeningRequestService {
         request.update(
                 dto.getTitle().trim(),
                 dto.getDescription().trim(),
-                dto.getOperationPlan().trim(),
+                operationPlanForRequest(dto, references.activityType()),
                 materialUrlForRequest(dto, references.activityType()),
                 references.activityType(),
                 references.quarter(),
@@ -289,11 +289,10 @@ public class ActivityOpeningRequestService {
                     ActivityParticipantCreateCommand.builder()
                             .activity(savedActivity)
                             .user(user)
-                            .status(ActivityParticipantStatus.APPLIED)
+                            .status(ActivityParticipantStatus.APPROVED)
                             .build()
             );
 
-            participant.updateStatus(ActivityParticipantStatus.APPROVED);
             participantRepository.save(participant);
         });
 
@@ -367,11 +366,10 @@ public class ActivityOpeningRequestService {
         if (dto.getExpectedMemberCount() < registeredParticipantCount) {
             throw new BadRequestException("예상 인원은 현재 선택한 참여 인원보다 적을 수 없습니다.");
         }
-        long capacityParticipantCount = selectedMemberCount
-                + ("STUDY".equals(references.activityType().getCode()) ? 1 : 0);
+        long capacityParticipantCount = selectedMemberCount;
         if (dto.getParticipantLimit() != null
                 && dto.getParticipantLimit() < capacityParticipantCount) {
-            throw new BadRequestException("참여 정원은 함께 시작할 인원보다 적게 설정할 수 없습니다.");
+            throw new BadRequestException("추가 참여 정원은 함께 시작할 학회원 수보다 적게 설정할 수 없습니다.");
         }
     }
 
@@ -384,11 +382,10 @@ public class ActivityOpeningRequestService {
             throw new BadRequestException("예상 인원은 실제 등록될 참여 인원보다 적을 수 없습니다.");
         }
 
-        long capacityParticipantCount = selectedMemberCount
-                + ("STUDY".equals(request.getActivityType().getCode()) ? 1 : 0);
+        long capacityParticipantCount = selectedMemberCount;
         if (request.getParticipantLimit() != null
                 && request.getParticipantLimit() < capacityParticipantCount) {
-            throw new BadRequestException("참여 정원은 실제 등록될 참여 인원보다 적을 수 없습니다.");
+            throw new BadRequestException("추가 참여 정원은 실제 등록될 학회원 수보다 적을 수 없습니다.");
         }
     }
 
@@ -410,6 +407,19 @@ public class ActivityOpeningRequestService {
         String code = activityType.getCode();
         if (!"STUDY".equals(code) && !"SPECIAL_LECTURE".equals(code)) return null;
         return lectureMaterialService.normalizeOptionalMaterialUrl(dto.getMaterialUrl());
+    }
+
+    private String operationPlanForRequest(ActivityOpeningRequestDto dto, ActivityType activityType) {
+        String operationPlan = dto.getOperationPlan();
+        if (operationPlan == null || operationPlan.isBlank()) {
+            if ("PROJECT".equals(activityType.getCode())) return "";
+            throw new BadRequestException(
+                    "STUDY".equals(activityType.getCode())
+                            ? "스터디 계획서 링크를 첨부해주세요."
+                            : "강의 계획서 링크를 첨부해주세요."
+            );
+        }
+        return lectureMaterialService.normalizeOptionalMaterialUrl(operationPlan);
     }
 
     private String recruitmentPositionsForRequest(ActivityOpeningRequestDto dto) {

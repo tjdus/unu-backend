@@ -40,4 +40,12 @@ public class MenuNotificationController {
         menuNotificationService.markOperationRecruitmentCardRead(user.getId(), recruitmentId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/activity-results/{activityId}/read")
+    public ResponseEntity<Void> markActivityResultRead(
+            @CurrentUser CustomUserDetails user,
+            @PathVariable UUID activityId) {
+        menuNotificationService.markActivityResultRead(user.getId(), activityId);
+        return ResponseEntity.noContent().build();
+    }
 }

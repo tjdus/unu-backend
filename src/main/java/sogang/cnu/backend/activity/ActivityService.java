@@ -194,10 +194,9 @@ public class ActivityService {
                 ActivityParticipantCreateCommand.builder()
                         .activity(activity)
                         .user(activity.getAssignee())
-                        .status(ActivityParticipantStatus.APPLIED)
+                        .status(ActivityParticipantStatus.APPROVED)
                         .build()
         );
-        participant.updateStatus(ActivityParticipantStatus.APPROVED);
         activityParticipantRepository.save(participant);
     }
 
@@ -297,7 +296,9 @@ public class ActivityService {
 
     private String normalizeOperationPlan(ActivityType activityType, String operationPlan) {
         String code = activityType.getCode();
-        if (!"STUDY".equals(code) && !"SPECIAL_LECTURE".equals(code)) return null;
+        if (!"PROJECT".equals(code)
+                && !"STUDY".equals(code)
+                && !"SPECIAL_LECTURE".equals(code)) return null;
         if (operationPlan == null || operationPlan.isBlank()) return null;
         return operationPlan.trim();
     }
@@ -428,7 +429,7 @@ public class ActivityService {
 
     private void validateParticipantLimit(Integer limit) {
         if (limit != null && (limit < 1 || limit > MAX_PARTICIPANT_LIMIT)) {
-            throw new BadRequestException("참여 정원은 1명 이상 1,000명 이하로 설정해주세요.");
+            throw new BadRequestException("추가 참여 정원은 1명 이상 1,000명 이하로 설정해주세요.");
         }
     }
 
@@ -439,7 +440,7 @@ public class ActivityService {
                 List.of(ActivityParticipantStatus.APPLIED, ActivityParticipantStatus.APPROVED)
         );
         if (limit < currentCount) {
-            throw new BadRequestException("참여 정원을 현재 신청·참여 인원보다 적게 설정할 수 없습니다.");
+            throw new BadRequestException("추가 참여 정원을 현재 신청·참여 인원보다 적게 설정할 수 없습니다.");
         }
     }
 

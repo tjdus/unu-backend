@@ -15,6 +15,8 @@ import java.util.UUID;
 public class MenuNotificationSummaryDto {
     private long activityCount;
     private long operationRecruitmentCount;
+    private long activityResultCount;
     private List<UUID> newActivityIds;
     private List<UUID> newOperationRecruitmentIds;
+    private List<UUID> unreadActivityResultIds;
 }

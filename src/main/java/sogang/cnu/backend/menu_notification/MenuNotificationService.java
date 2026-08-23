@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity.ActivityRepository;
+import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.menu_notification.dto.MenuNotificationSummaryDto;
 import sogang.cnu.backend.quarter.CurrentQuarter;
@@ -27,6 +28,7 @@ public class MenuNotificationService {
     private final CurrentQuarterRepository currentQuarterRepository;
     private final ActivityCardReadRepository activityCardReadRepository;
     private final RecruitmentCardReadRepository recruitmentCardReadRepository;
+    private final ActivityParticipantRepository activityParticipantRepository;
 
     @Transactional
     public MenuNotificationSummaryDto getSummary(UUID userId) {
@@ -42,11 +44,15 @@ public class MenuNotificationService {
                 userId,
                 cutoff
         );
+        List<UUID> unreadActivityResultIds =
+                activityParticipantRepository.findUnreadResultActivityIds(userId);
         return MenuNotificationSummaryDto.builder()
                 .activityCount(newActivityIds.size())
                 .operationRecruitmentCount(newOperationRecruitmentIds.size())
+                .activityResultCount(unreadActivityResultIds.size())
                 .newActivityIds(newActivityIds)
                 .newOperationRecruitmentIds(newOperationRecruitmentIds)
+                .unreadActivityResultIds(unreadActivityResultIds)
                 .build();
     }
 
@@ -73,6 +79,15 @@ public class MenuNotificationService {
         }
         recruitmentCardReadRepository.insertIgnore(
                 UUID.randomUUID(), recruitmentId, userId, LocalDateTime.now());
+    }
+
+    @Transactional
+    public void markActivityResultRead(UUID userId, UUID activityId) {
+        activityParticipantRepository.findByUserIdAndActivityId(userId, activityId)
+                .ifPresent(participant -> {
+                    participant.markResultRead();
+                    activityParticipantRepository.save(participant);
+                });
     }
 
 }

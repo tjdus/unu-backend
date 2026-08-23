@@ -340,7 +340,7 @@ public class ActivityParticipantService {
         Integer participantLimit = activity.getParticipantLimit();
         if (participantLimit != null
                 && countCapacityParticipants(activity) >= participantLimit) {
-            throw new BadRequestException("참여 정원이 모두 찼습니다.");
+            throw new BadRequestException("추가 참여 정원이 모두 찼습니다.");
         }
     }
 

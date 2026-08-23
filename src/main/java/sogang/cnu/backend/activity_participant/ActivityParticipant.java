@@ -18,6 +18,12 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "activity_participants",
+        indexes = {
+                @Index(
+                        name = "idx_activity_participant_result_unread",
+                        columnList = "user_id,result_read_at"
+                )
+        },
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_activity_user",
@@ -84,7 +90,15 @@ public class ActivityParticipant extends BaseEntity {
     @Column(name = "review_message", length = 500)
     private String reviewMessage;
 
+    @Column(name = "result_changed_at")
+    private LocalDateTime resultChangedAt;
+
+    @Column(name = "result_read_at")
+    private LocalDateTime resultReadAt;
+
     public void updateStatus(ActivityParticipantStatus newStatus) {
+        if (this.status == newStatus) return;
+
         this.status = newStatus;
         if (newStatus == ActivityParticipantStatus.APPROVED) {
             this.joinedAt = LocalDateTime.now();
@@ -94,14 +108,27 @@ public class ActivityParticipant extends BaseEntity {
         if (newStatus != ActivityParticipantStatus.REJECTED) {
             this.reviewMessage = null;
         }
+        if (newStatus == ActivityParticipantStatus.APPLIED) {
+            this.resultChangedAt = null;
+            this.resultReadAt = null;
+        } else {
+            this.resultChangedAt = LocalDateTime.now();
+            this.resultReadAt = null;
+        }
     }
 
     public void confirmOnActivityStart() {
         if (status != ActivityParticipantStatus.APPLIED || activity.getStartDate() == null) {
             return;
         }
-        this.status = ActivityParticipantStatus.APPROVED;
+        updateStatus(ActivityParticipantStatus.APPROVED);
         this.joinedAt = activity.getStartDate().atStartOfDay();
+    }
+
+    public void markResultRead() {
+        if (resultChangedAt != null && resultReadAt == null) {
+            resultReadAt = LocalDateTime.now();
+        }
     }
 
     public void updateCompleted(boolean completed) {

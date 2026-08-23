@@ -124,7 +124,7 @@ public class Activity extends BaseEntity {
         }
     }
 
-    /** 스터디는 담당자도 함께 공부하므로 참여자로 등록하고 정원에도 포함한다. */
+    /** 스터디는 담당자도 함께 공부하므로 참여자로 등록한다. */
     public boolean includesAssigneeAsParticipant() {
         return activityType != null && "STUDY".equals(activityType.getCode());
     }
