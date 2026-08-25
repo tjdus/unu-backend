@@ -27,6 +27,7 @@ public class LectureMaterialService {
             "docs.google.com"
     );
     private static final Set<String> NOTION_HOSTS = Set.of(
+            "notion.com",
             "notion.so",
             "notion.site"
     );
