@@ -41,4 +41,14 @@ class ActivityParticipantTest {
         assertThat(participant.getStatus()).isEqualTo(ActivityParticipantStatus.APPLIED);
         assertThat(participant.getJoinedAt()).isNull();
     }
+
+    @Test
+    void recordsLectureParticipationMode() {
+        ActivityParticipant participant = ActivityParticipant.builder().build();
+
+        participant.recordLectureParticipationMode(LectureParticipationMode.GROUP);
+
+        assertThat(participant.getLectureParticipationMode())
+                .isEqualTo(LectureParticipationMode.GROUP);
+    }
 }

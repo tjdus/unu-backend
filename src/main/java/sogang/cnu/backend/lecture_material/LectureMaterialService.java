@@ -15,23 +15,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class LectureMaterialService {
-    private static final Set<String> GOOGLE_DRIVE_HOSTS = Set.of(
-            "drive.google.com",
-            "docs.google.com"
-    );
-    private static final Set<String> NOTION_HOSTS = Set.of(
-            "notion.com",
-            "notion.so",
-            "notion.site"
-    );
-
     private final LectureMaterialRepository lectureMaterialRepository;
     private final ActivityRepository activityRepository;
     private final ActivityAccessGuard activityAccessGuard;
@@ -70,9 +59,9 @@ public class LectureMaterialService {
 
     @Transactional
     public LectureMaterialResponseDto create(LectureMaterialRequestDto request) {
-        String driveUrl = validateAndNormalizeMaterialUrl(request.getDriveUrl());
         Activity activity = findActivity(request.getActivityId());
         requireManageable(activity);
+        String driveUrl = validateAndNormalizeMaterialUrl(request.getDriveUrl());
         LectureMaterial material = LectureMaterial.builder()
                 .title(request.getTitle().trim())
                 .description(normalizeDescription(request.getDescription()))
@@ -166,28 +155,24 @@ public class LectureMaterialService {
             String host = uri.getHost();
             if (!"https".equalsIgnoreCase(uri.getScheme()) ||
                     host == null ||
-                    !isAllowedMaterialHost(host) ||
                     uri.getUserInfo() != null) {
-                throw new BadRequestException("Google Drive 또는 Notion 공유 링크를 확인해주세요.");
+                throw invalidMaterialUrl();
             }
             return uri.toString();
         } catch (URISyntaxException e) {
-            throw new BadRequestException("Google Drive 또는 Notion 공유 링크를 확인해주세요.");
+            throw invalidMaterialUrl();
         }
     }
 
-    private boolean isAllowedMaterialHost(String host) {
-        String normalizedHost = host.toLowerCase();
-        if (GOOGLE_DRIVE_HOSTS.contains(normalizedHost)) return true;
-        return NOTION_HOSTS.stream().anyMatch(allowed ->
-                normalizedHost.equals(allowed) || normalizedHost.endsWith("." + allowed)
-        );
+    private BadRequestException invalidMaterialUrl() {
+        return new BadRequestException("자료 링크를 확인해주세요.");
     }
 
     private String primaryMaterialTitle(Activity activity) {
         return switch (activity.getActivityType().getCode()) {
             case "STUDY" -> "스터디 자료";
             case "SPECIAL_LECTURE" -> "강의자료";
+            case "LECTURE" -> "강의 링크";
             default -> null;
         };
     }

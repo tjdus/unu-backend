@@ -87,6 +87,10 @@ public class ActivityParticipant extends BaseEntity {
     @Column(name = "application_message", columnDefinition = "TEXT")
     private String applicationMessage;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "lecture_participation_mode", length = 20)
+    private LectureParticipationMode lectureParticipationMode;
+
     @Column(name = "review_message", length = 500)
     private String reviewMessage;
 
@@ -154,6 +158,10 @@ public class ActivityParticipant extends BaseEntity {
     public void recordProjectApplication(String position, String message) {
         this.appliedPosition = position;
         this.applicationMessage = message;
+    }
+
+    public void recordLectureParticipationMode(LectureParticipationMode mode) {
+        this.lectureParticipationMode = mode;
     }
 
     public void recordReviewMessage(String message) {

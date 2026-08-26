@@ -413,7 +413,9 @@ public class ActivityService {
 
     private boolean isDepositType(ActivityType activityType) {
         String code = activityType.getCode();
-        return "STUDY".equals(code) || "SPECIAL_LECTURE".equals(code);
+        return "STUDY".equals(code)
+                || "SPECIAL_LECTURE".equals(code)
+                || "LECTURE".equals(code);
     }
 
     private void validateDepositAmount(Integer amount) {

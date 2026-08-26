@@ -2,6 +2,7 @@ package sogang.cnu.backend.activity_participant.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import sogang.cnu.backend.activity_participant.LectureParticipationMode;
 
 @Getter
 @NoArgsConstructor
@@ -14,4 +15,5 @@ public class ActivityJoinRequestDto {
     private Boolean agreedToPromotion;
     private String appliedPosition;
     private String applicationMessage;
+    private LectureParticipationMode lectureParticipationMode;
 }

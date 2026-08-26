@@ -8,6 +8,7 @@ import sogang.cnu.backend.common.domain.dto.AuditorDto;
 
 import java.util.UUID;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
+import sogang.cnu.backend.activity_participant.LectureParticipationMode;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 
 @Getter
@@ -23,6 +24,7 @@ public class ActivityParticipantResponseDto {
     private String joinedAt;
     private String appliedPosition;
     private String applicationMessage;
+    private LectureParticipationMode lectureParticipationMode;
     private String reviewMessage;
     private String createdAt;
     private String modifiedAt;

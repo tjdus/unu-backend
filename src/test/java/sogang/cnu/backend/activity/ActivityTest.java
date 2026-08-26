@@ -18,6 +18,15 @@ class ActivityTest {
     }
 
     @Test
+    void lectureUsesDefaultDepositAmount() {
+        Activity activity = Activity.create(ActivityCreateCommand.builder()
+                .activityType(ActivityType.builder().code("LECTURE").build())
+                .build());
+
+        assertThat(activity.getDepositAmount()).isEqualTo(30_000);
+    }
+
+    @Test
     void otherActivityTypesHaveNoDefaultParticipantLimit() {
         Activity activity = Activity.create(ActivityCreateCommand.builder()
                 .activityType(ActivityType.builder().code("STUDY").build())

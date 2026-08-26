@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ActivityParticipantService {
     private static final Set<String> DEPOSIT_REQUIRED_ACTIVITY_TYPES =
-            Set.of("STUDY", "SPECIAL_LECTURE");
+            Set.of("STUDY", "SPECIAL_LECTURE", "LECTURE");
     private static final List<ActivityParticipantStatus> CAPACITY_STATUSES =
             List.of(ActivityParticipantStatus.APPLIED, ActivityParticipantStatus.APPROVED);
     private final ActivityParticipantRepository activityParticipantRepository;
@@ -114,6 +114,9 @@ public class ActivityParticipantService {
             if (isProject(targetActivity)) {
                 recordProjectApplication(existing, request);
             }
+            if (isLecture(targetActivity)) {
+                recordLectureParticipationMode(existing, request);
+            }
             return activityParticipantMapper.toResponseDto(existing);
         }
 
@@ -129,6 +132,9 @@ public class ActivityParticipantService {
         }
         if (isProject(targetActivity)) {
             recordProjectApplication(activityParticipant, request);
+        }
+        if (isLecture(targetActivity)) {
+            recordLectureParticipationMode(activityParticipant, request);
         }
         activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
@@ -327,6 +333,11 @@ public class ActivityParticipantService {
                 && "PROJECT".equals(activity.getActivityType().getCode());
     }
 
+    private boolean isLecture(Activity activity) {
+        return activity.getActivityType() != null
+                && "LECTURE".equals(activity.getActivityType().getCode());
+    }
+
     private boolean hasStarted(Activity activity) {
         return activity.getStartDate() != null
                 && !activity.getStartDate().isAfter(LocalDate.now());
@@ -417,6 +428,19 @@ public class ActivityParticipantService {
                 position.trim(),
                 message == null || message.isBlank() ? null : message.trim()
         );
+    }
+
+    private void recordLectureParticipationMode(
+            ActivityParticipant participant,
+            ActivityJoinRequestDto request
+    ) {
+        LectureParticipationMode mode = request == null
+                ? null
+                : request.getLectureParticipationMode();
+        if (mode == null) {
+            throw new BadRequestException("수강 방식을 선택해주세요.");
+        }
+        participant.recordLectureParticipationMode(mode);
     }
 
     private String normalizeReviewMessage(String message) {

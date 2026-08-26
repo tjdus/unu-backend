@@ -179,7 +179,9 @@ public class Activity extends BaseEntity {
         if (amount != null) return amount;
         if (activityType == null) return 0;
         String code = activityType.getCode();
-        return "STUDY".equals(code) || "SPECIAL_LECTURE".equals(code)
+        return "STUDY".equals(code)
+                || "SPECIAL_LECTURE".equals(code)
+                || "LECTURE".equals(code)
                 ? DEFAULT_DEPOSIT_AMOUNT
                 : 0;
     }
