@@ -1,16 +1,19 @@
 package sogang.cnu.backend.auth;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.auth.dto.*;
-import sogang.cnu.backend.quarter.QuarterRepository;
+import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserMapper;
 import sogang.cnu.backend.common.exception.BadRequestException;
+import sogang.cnu.backend.common.exception.DuplicateUserException;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.user.command.UserCreateCommand;
 import sogang.cnu.backend.user.command.UserUpdateCommand;
@@ -22,9 +25,10 @@ import sogang.cnu.backend.common.exception.UnauthorizedException;
 import sogang.cnu.backend.util.SecurityUtils;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -36,39 +40,52 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
-    private final QuarterRepository quarterRepository;
     private final RoleRepository roleRepository;
+    private final SignupInvitationService signupInvitationService;
 
+    @Transactional
     public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto, String token){
-        if (!jwtTokenProvider.validateToken(token) || !jwtTokenProvider.isSignupToken(token)) {
-            throw new RuntimeException("유효하지 않은 회원가입 토큰입니다.");
-        }
-
+        normalizeSignupRequest(signUpRequestDto);
+        SignupInvitationMember invitationMember = signupInvitationService
+                .findEligibleMemberForSignup(token, signUpRequestDto.getStudentId());
         validateAccountPassword(signUpRequestDto.getPassword());
+        validateSignupUniqueness(signUpRequestDto);
         String encodedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
 
-        UserCreateCommand createCommand = toCreateCommand(signUpRequestDto);
+        UserCreateCommand createCommand = toCreateCommand(
+                signUpRequestDto,
+                invitationMember.getInvitation().getJoinedQuarter()
+        );
         createCommand.setPassword(encodedPassword);
 
         User user = User.create(createCommand);
-
-        User savedUser = userRepository.save(user);
-
         Role roleMember = roleRepository.findByName("MEMBER")
                 .orElseThrow(() -> new RuntimeException("권한이 존재하지 않습니다."));
 
-        userRoleRepository.save(
-                UserRole.builder()
-                        .user(savedUser)
-                        .role(roleMember)
-                        .build()
-        );
+        User savedUser;
+        try {
+            savedUser = userRepository.saveAndFlush(user);
+            userRoleRepository.saveAndFlush(
+                    UserRole.builder()
+                            .user(savedUser)
+                            .role(roleMember)
+                            .build()
+            );
+            invitationMember.markUsed(savedUser, Instant.now());
+        } catch (DataIntegrityViolationException exception) {
+            throw new DuplicateUserException("이미 사용 중인 회원 정보가 있습니다.");
+        }
 
 
         return SignUpResponseDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public SignupEligibilityResponseDto verifySignupEligibility(String token, String studentId) {
+        return signupInvitationService.verifyEligibility(token, studentId);
     }
 
     public AuthResult login(LoginRequestDto loginRequestDto){
@@ -194,25 +211,52 @@ public class AuthService {
         return sb.toString();
     }
 
-    public SignupTokenResponseDto generateSignupToken() {
-        String token = jwtTokenProvider.generateSignupToken();
-        return SignupTokenResponseDto.builder()
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusHours(24))
-                .build();
+    private void normalizeSignupRequest(SignUpRequestDto dto) {
+        dto.setName(dto.getName().trim());
+        dto.setUsername(dto.getUsername().trim());
+        dto.setStudentId(dto.getStudentId().trim());
+        dto.setMajor(dto.getMajor().trim());
+        dto.setSubMajor(normalizeOptional(dto.getSubMajor()));
+        dto.setPhoneNumber(dto.getPhoneNumber().trim());
+        dto.setEmail(dto.getEmail().trim().toLowerCase(Locale.ROOT));
+        dto.setGithubId(normalizeOptional(dto.getGithubId()));
     }
 
-    private UserCreateCommand toCreateCommand(SignUpRequestDto dto) {
+    private String normalizeOptional(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim();
+    }
+
+    private void validateSignupUniqueness(SignUpRequestDto dto) {
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            throw new DuplicateUserException("이미 사용 중인 아이디입니다.");
+        }
+        if (userRepository.existsByStudentId(dto.getStudentId())) {
+            throw new DuplicateUserException("이미 가입된 학번입니다.");
+        }
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new DuplicateUserException("이미 사용 중인 이메일입니다.");
+        }
+        if (userRepository.existsByPhoneNumber(dto.getPhoneNumber())) {
+            throw new DuplicateUserException("이미 사용 중인 전화번호입니다.");
+        }
+        if (dto.getGithubId() != null && userRepository.existsByGithubId(dto.getGithubId())) {
+            throw new DuplicateUserException("이미 사용 중인 GitHub ID입니다.");
+        }
+    }
+
+    private UserCreateCommand toCreateCommand(SignUpRequestDto dto, Quarter joinedQuarter) {
 
         return UserCreateCommand.builder()
                 .name(dto.getName())
                 .username(dto.getUsername())
                 .password(dto.getPassword())
                 .studentId(dto.getStudentId())
+                .major(dto.getMajor())
+                .subMajor(dto.getSubMajor())
                 .githubId(dto.getGithubId())
                 .phoneNumber(dto.getPhoneNumber())
-                .joinedQuarter(quarterRepository.findById(dto.getJoinedQuarterId())
-                        .orElseThrow(() -> new RuntimeException("존재하지 않는 분기입니다.")))
+                .joinedQuarter(joinedQuarter)
                 .email(dto.getEmail())
                 .isCurrentQuarterActive(true)
                 .build();

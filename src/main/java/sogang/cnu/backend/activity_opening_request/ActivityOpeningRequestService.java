@@ -313,7 +313,11 @@ public class ActivityOpeningRequestService {
         Set<User> participants =
                 new LinkedHashSet<>(request.getInitialMembers());
 
-        participants.add(request.getApplicant());
+        if ("SPECIAL_LECTURE".equals(activityTypeCode)) {
+            participants.removeIf(user -> user.getId().equals(request.getApplicant().getId()));
+        } else {
+            participants.add(request.getApplicant());
+        }
 
         participants.forEach(user -> {
             ActivityParticipant participant = ActivityParticipant.create(

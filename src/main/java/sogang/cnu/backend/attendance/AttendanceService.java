@@ -90,6 +90,7 @@ public class AttendanceService {
                 .orElseThrow(() -> new NotFoundException("Attendance not found"));
         requireAttendanceManager(attendance.getSession());
         validateAttendanceDate(attendance.getSession());
+        validateParticipantForSession(attendance.getSession(), attendance.getParticipant());
         AttendanceUpdateCommand updateCommand = AttendanceUpdateCommand.builder()
                 .status(parseManagedStatus(dto.getStatus()))
                 .build();
@@ -113,6 +114,7 @@ public class AttendanceService {
                 .orElseThrow(() -> new NotFoundException("Activity session not found"));
         requireAttendanceManager(session);
         return attendanceRepository.findBySessionId(sessionId).stream()
+                .filter(attendance -> isAttendanceTarget(attendance.getParticipant()))
                 .map(attendanceMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
@@ -130,6 +132,7 @@ public class AttendanceService {
         // [present, absent(ABSENT+LATE), excused, total]
         Map<UUID, long[]> counts = new HashMap<>();
         for (Attendance attendance : attendanceRepository.findByActivityId(activityId)) {
+            if (!isAttendanceTarget(attendance.getParticipant())) continue;
             long[] c = counts.computeIfAbsent(attendance.getSession().getId(), key -> new long[4]);
             switch (attendance.getStatus()) {
                 case PRESENT -> c[0]++;
@@ -187,6 +190,7 @@ public class AttendanceService {
         Map<UUID, ActivityParticipant> approvedParticipants = activityParticipantRepository
                 .findByActivityId(session.getActivity().getId()).stream()
                 .filter(participant -> participant.getStatus() == ActivityParticipantStatus.APPROVED)
+                .filter(this::isAttendanceTarget)
                 .collect(Collectors.toMap(ActivityParticipant::getId, participant -> participant));
         if (!allParticipantIds.equals(approvedParticipants.keySet())) {
             throw new BadRequestException("승인된 참여자 전원의 출석 상태를 지정해주세요.");
@@ -235,6 +239,9 @@ public class AttendanceService {
         ActivityParticipant participant = activityParticipantRepository.findById(participantId)
                 .orElseThrow(() -> new NotFoundException("Activity participant not found"));
         requireParticipantAccess(participant);
+        if (!isAttendanceTarget(participant)) {
+            throw new BadRequestException("강의 담당자는 출석 대상이 아닙니다.");
+        }
         LocalDate today = LocalDate.now();
         Long presentCount = countStatusThrough(participantId, AttendanceStatus.PRESENT, today);
         Long absentCount = countStatusThrough(participantId, AttendanceStatus.ABSENT, today)
@@ -288,6 +295,20 @@ public class AttendanceService {
         if (participant.getStatus() != ActivityParticipantStatus.APPROVED) {
             throw new BadRequestException("참여가 확정된 학회원만 출석 처리할 수 있습니다.");
         }
+        if (!isAttendanceTarget(participant)) {
+            throw new BadRequestException("강의 담당자는 출석 대상이 아닙니다.");
+        }
+    }
+
+    private boolean isAttendanceTarget(ActivityParticipant participant) {
+        if (participant.getActivity() == null
+                || participant.getActivity().getActivityType() == null
+                || !"SPECIAL_LECTURE".equals(participant.getActivity().getActivityType().getCode())) {
+            return true;
+        }
+        return participant.getUser() == null
+                || participant.getActivity().getAssignee() == null
+                || !participant.getUser().getId().equals(participant.getActivity().getAssignee().getId());
     }
 
     private void validateAttendanceDate(ActivitySession session) {

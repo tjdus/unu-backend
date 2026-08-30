@@ -13,6 +13,7 @@ import sogang.cnu.backend.application.dto.ApplicationLookupRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationLookupResponse;
 import sogang.cnu.backend.application.dto.OperationApplicationRequestDto;
 import sogang.cnu.backend.application.dto.ApplicationVerificationResponse;
+import sogang.cnu.backend.auth.SignupInvitationService;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -41,6 +42,7 @@ public class ApplicationService {
     private final ApplicationAnswerValidator answerValidator;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final SignupInvitationService signupInvitationService;
 
     @Transactional(readOnly = true)
     public ApplicationResponse getById(UUID id) {
@@ -241,6 +243,12 @@ public class ApplicationService {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
+        if (application.getRecruitment().getType() == RecruitmentType.NEW_MEMBER
+                && application.getStatus() == ApplicationStatus.PASSED) {
+            findRecruitmentForUpdate(application.getRecruitment().getId());
+            signupInvitationService.removePassedApplication(application);
+        }
+
         applicationRepository.delete(application);
     }
 
@@ -283,6 +291,15 @@ public class ApplicationService {
 
         ApplicationStatus newStatus = ApplicationStatus.valueOf(status);
         validateStatusTransition(application.getStatus(), newStatus);
+
+        if (application.getRecruitment().getType() == RecruitmentType.NEW_MEMBER) {
+            findRecruitmentForUpdate(application.getRecruitment().getId());
+            if (newStatus == ApplicationStatus.PASSED) {
+                signupInvitationService.addPassedApplication(application);
+            } else if (application.getStatus() == ApplicationStatus.PASSED) {
+                signupInvitationService.removePassedApplication(application);
+            }
+        }
 
         application.updateStatus(newStatus);
         return applicationMapper.toResponseDto(application);

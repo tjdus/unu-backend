@@ -1,6 +1,7 @@
 package sogang.cnu.backend.auth;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -29,10 +30,20 @@ public class AuthController {
     private long refreshTokenExpireMs;
 
     @PostMapping("/signup")
-    public ResponseEntity<SignUpResponseDto> signup(@RequestBody SignUpRequestDto request,
+    public ResponseEntity<SignUpResponseDto> signup(@Valid @RequestBody SignUpRequestDto request,
                                                    @RequestParam String token) {
         SignUpResponseDto signUpResponseDto = authService.signUp(request, token);
         return ResponseEntity.ok(signUpResponseDto);
+    }
+
+    @PostMapping("/signup/verify")
+    public ResponseEntity<SignupEligibilityResponseDto> verifySignupEligibility(
+            @RequestParam String token,
+            @Valid @RequestBody SignupEligibilityRequestDto request
+    ) {
+        return ResponseEntity.ok(
+                authService.verifySignupEligibility(token, request.getStudentId())
+        );
     }
 
     @PostMapping("/login")

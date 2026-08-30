@@ -219,11 +219,26 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
 
-        if (completed && activity.getStatus() != ActivityParticipantStatus.APPROVED) {
-            throw new BadRequestException("참여가 확정된 학회원만 수료 처리할 수 있습니다.");
+        if (completed) {
+            if (activity.getStatus() != ActivityParticipantStatus.APPROVED) {
+                throw new BadRequestException("참여가 확정된 학회원만 수료 처리할 수 있습니다.");
+            }
+            if (isSpecialLectureAssignee(activity)) {
+                throw new BadRequestException("강의 담당자는 수료 대상이 아닙니다.");
+            }
         }
         activity.updateCompleted(completed);
         return activityParticipantMapper.toResponseDto(activity);
+    }
+
+    private boolean isSpecialLectureAssignee(ActivityParticipant participant) {
+        Activity activity = participant.getActivity();
+        return activity != null
+                && activity.getActivityType() != null
+                && "SPECIAL_LECTURE".equals(activity.getActivityType().getCode())
+                && activity.getAssignee() != null
+                && participant.getUser() != null
+                && activity.getAssignee().getId().equals(participant.getUser().getId());
     }
 
     @Transactional

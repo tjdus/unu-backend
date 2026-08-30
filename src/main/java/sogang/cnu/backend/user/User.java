@@ -92,6 +92,8 @@ public class User {
                 .username(command.getUsername())
                 .password(command.getPassword())
                 .studentId(command.getStudentId())
+                .major(command.getMajor())
+                .subMajor(command.getSubMajor())
                 .githubId(command.getGithubId())
                 .phoneNumber(command.getPhoneNumber())
                 .email(command.getEmail())
