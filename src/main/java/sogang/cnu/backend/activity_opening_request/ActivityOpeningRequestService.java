@@ -53,6 +53,18 @@ public class ActivityOpeningRequestService {
 
     @Transactional
     public ActivityOpeningRequestResponseDto createDraft(UUID applicantId, ActivityOpeningRequestDto dto) {
+        return toResponse(createRequest(applicantId, dto));
+    }
+
+    @Transactional
+    public ActivityOpeningRequestResponseDto createAndSubmit(UUID applicantId, ActivityOpeningRequestDto dto) {
+        ActivityOpeningRequest request = createRequest(applicantId, dto);
+        validateSubmissionEligibility(request);
+        request.submit();
+        return toResponse(request);
+    }
+
+    private ActivityOpeningRequest createRequest(UUID applicantId, ActivityOpeningRequestDto dto) {
         User applicant = findApplicant(applicantId);
         RequestReferences references = resolveReferences(applicantId, dto);
         openingPeriodService.requireApplicationOpen(references.quarter().getId());
@@ -79,12 +91,28 @@ public class ActivityOpeningRequestService {
                 .status(ActivityOpeningRequestStatus.DRAFT)
                 .build();
 
-        return toResponse(requestRepository.save(request));
+        return requestRepository.save(request);
     }
 
     @Transactional
     public ActivityOpeningRequestResponseDto update(UUID applicantId, UUID requestId, ActivityOpeningRequestDto dto) {
-        ActivityOpeningRequest request = findOwned(requestId, applicantId);
+        return toResponse(updateRequest(applicantId, requestId, dto));
+    }
+
+    @Transactional
+    public ActivityOpeningRequestResponseDto updateAndSubmit(
+            UUID applicantId,
+            UUID requestId,
+            ActivityOpeningRequestDto dto
+    ) {
+        ActivityOpeningRequest request = updateRequest(applicantId, requestId, dto);
+        validateSubmissionEligibility(request);
+        request.submit();
+        return toResponse(request);
+    }
+
+    private ActivityOpeningRequest updateRequest(UUID applicantId, UUID requestId, ActivityOpeningRequestDto dto) {
+        ActivityOpeningRequest request = findOwnedForUpdate(requestId, applicantId);
         requireEditable(request);
         RequestReferences references = resolveReferences(applicantId, dto);
         requirePeriodOpen(request, references.quarter().getId());
@@ -108,7 +136,7 @@ public class ActivityOpeningRequestService {
                 references.parentActivity(),
                 references.initialMembers()
         );
-        return toResponse(request);
+        return request;
     }
 
     @Transactional
@@ -116,6 +144,7 @@ public class ActivityOpeningRequestService {
         ActivityOpeningRequest request = findOwnedForUpdate(requestId, applicantId);
         requireEditable(request);
         requirePeriodOpen(request, request.getQuarter().getId());
+        validateSubmissionEligibility(request);
         request.submit();
         return toResponse(request);
     }
@@ -214,6 +243,8 @@ public class ActivityOpeningRequestService {
         if (request.getStatus() != ActivityOpeningRequestStatus.SUBMITTED) {
             throw new BadRequestException("제출된 신청만 승인할 수 있습니다.");
         }
+
+        validateSubmissionEligibility(request);
 
         String activityTypeCode = request.getActivityType().getCode();
 
@@ -347,6 +378,9 @@ public class ActivityOpeningRequestService {
         if (specialLecture && (dto.getInstructorCareer() == null || dto.getInstructorCareer().isBlank())) {
             throw new BadRequestException("강의자 경력을 입력해주세요.");
         }
+        if (specialLecture && !references.initialMembers().isEmpty()) {
+            throw new BadRequestException("강의 개설 신청에는 초기 참여자를 지정할 수 없습니다.");
+        }
         if (Boolean.TRUE.equals(dto.getPersonalProject()) && !project) {
             throw new BadRequestException("개인 프로젝트는 프로젝트 유형에서만 선택할 수 있습니다.");
         }
@@ -437,11 +471,25 @@ public class ActivityOpeningRequestService {
 
     private User findApplicant(UUID applicantId) {
         User applicant = findUser(applicantId);
-        if (!SecurityUtils.isManagerOrAdmin() &&
-                applicant.getMemberStatus() != MemberStatus.MEMBER) {
+        requireEligibleApplicant(applicant);
+        return applicant;
+    }
+
+    private void validateSubmissionEligibility(ActivityOpeningRequest request) {
+        requireEligibleApplicant(request.getApplicant());
+        if (request.getInitialMembers().stream()
+                .anyMatch(user -> user.getMemberStatus() != MemberStatus.MEMBER)) {
+            throw new BadRequestException("현재 등록된 학회원만 초기 참여자로 지정할 수 있습니다.");
+        }
+    }
+
+    private void requireEligibleApplicant(User applicant) {
+        boolean privileged = applicant.getUserRoles().stream()
+                .map(userRole -> userRole.getRole().getName())
+                .anyMatch(role -> "ADMIN".equals(role) || "MANAGER".equals(role));
+        if (applicant.getMemberStatus() != MemberStatus.MEMBER && !privileged) {
             throw new ForbiddenException("등록된 학회원만 개설을 신청할 수 있습니다.");
         }
-        return applicant;
     }
 
     private User findUser(UUID userId) {

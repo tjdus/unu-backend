@@ -29,6 +29,14 @@ public class ActivityOpeningRequestController {
         return ResponseEntity.ok(requestService.createDraft(user.getId(), request));
     }
 
+    @PostMapping("/submit")
+    public ResponseEntity<ActivityOpeningRequestResponseDto> createAndSubmit(
+            @CurrentUser CustomUserDetails user,
+            @Valid @RequestBody ActivityOpeningRequestDto request
+    ) {
+        return ResponseEntity.ok(requestService.createAndSubmit(user.getId(), request));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ActivityOpeningRequestResponseDto> update(
             @CurrentUser CustomUserDetails user,
@@ -36,6 +44,15 @@ public class ActivityOpeningRequestController {
             @Valid @RequestBody ActivityOpeningRequestDto request
     ) {
         return ResponseEntity.ok(requestService.update(user.getId(), id, request));
+    }
+
+    @PutMapping("/{id}/submit")
+    public ResponseEntity<ActivityOpeningRequestResponseDto> updateAndSubmit(
+            @CurrentUser CustomUserDetails user,
+            @PathVariable UUID id,
+            @Valid @RequestBody ActivityOpeningRequestDto request
+    ) {
+        return ResponseEntity.ok(requestService.updateAndSubmit(user.getId(), id, request));
     }
 
     @PostMapping("/{id}/submit")

@@ -21,7 +21,6 @@ public class LectureMaterialRequestDto {
     @Size(max = 120, message = "자료 이름은 120자 이내로 입력해주세요.")
     private String materialName;
 
-    @NotBlank(message = "자료 링크를 입력해주세요.")
     @Size(max = 2048, message = "자료 링크가 너무 깁니다.")
     private String driveUrl;
 

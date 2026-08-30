@@ -61,7 +61,7 @@ public class LectureMaterialService {
     public LectureMaterialResponseDto create(LectureMaterialRequestDto request) {
         Activity activity = findActivity(request.getActivityId());
         requireManageable(activity);
-        String driveUrl = validateAndNormalizeMaterialUrl(request.getDriveUrl());
+        String driveUrl = normalizeOptionalStoredMaterialUrl(request.getDriveUrl());
         LectureMaterial material = LectureMaterial.builder()
                 .title(request.getTitle().trim())
                 .description(normalizeDescription(request.getDescription()))
@@ -83,7 +83,7 @@ public class LectureMaterialService {
                 request.getTitle().trim(),
                 normalizeDescription(request.getDescription()),
                 normalizeMaterialName(request.getMaterialName()),
-                validateAndNormalizeMaterialUrl(request.getDriveUrl()),
+                normalizeOptionalStoredMaterialUrl(request.getDriveUrl()),
                 request.getWeekNumber(),
                 activity
         );
@@ -128,6 +128,11 @@ public class LectureMaterialService {
     public String normalizeOptionalMaterialUrl(String value) {
         if (value == null || value.isBlank()) return null;
         return validateAndNormalizeMaterialUrl(value);
+    }
+
+    private String normalizeOptionalStoredMaterialUrl(String value) {
+        String normalized = normalizeOptionalMaterialUrl(value);
+        return normalized == null ? "" : normalized;
     }
 
     private void requireManageable(Activity activity) {
