@@ -28,6 +28,7 @@ public class LectureMaterialService {
     @Transactional(readOnly = true)
     public List<LectureMaterialResponseDto> getAll() {
         return lectureMaterialRepository.findAllByOrderByDisplayOrderAscCreatedAtDesc().stream()
+                .filter(material -> !Boolean.TRUE.equals(material.getPrimary()))
                 .map(this::toResponseDto)
                 .toList();
     }

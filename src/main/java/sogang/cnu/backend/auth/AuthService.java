@@ -11,6 +11,7 @@ import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.security.JwtTokenProvider;
 import sogang.cnu.backend.user.User;
+import sogang.cnu.backend.user.MemberStatus;
 import sogang.cnu.backend.user.UserMapper;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.DuplicateUserException;
@@ -92,8 +93,10 @@ public class AuthService {
         User user = userRepository.findByUsername(loginRequestDto.getUsername())
                 .orElse(null);
 
-        if(user == null || !passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        if(user == null
+                || user.getMemberStatus() == MemberStatus.REMOVED
+                || !passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword())) {
+            throw new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다.");
         }
 
         List<String> roles = getUserRoles(user.getId());
@@ -122,6 +125,9 @@ public class AuthService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("세션이 만료되었습니다."));
+        if (user.getMemberStatus() == MemberStatus.REMOVED) {
+            throw new UnauthorizedException("세션이 만료되었습니다.");
+        }
 
         List<String> roles = getUserRoles(user.getId());
 

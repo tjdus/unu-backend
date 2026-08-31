@@ -86,6 +86,11 @@ public class User {
         this.isCurrentQuarterActive = isCurrentQuarterActive;
     }
 
+    public void markRemoved() {
+        this.memberStatus = MemberStatus.REMOVED;
+        this.isCurrentQuarterActive = false;
+    }
+
     public static User create(UserCreateCommand command) {
         return User.builder()
                 .name(command.getName())

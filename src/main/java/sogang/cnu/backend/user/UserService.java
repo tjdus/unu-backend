@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity_participant.ActivityParticipant;
 import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.CurrentQuarter;
 import sogang.cnu.backend.quarter.CurrentQuarterRepository;
@@ -21,6 +22,7 @@ import sogang.cnu.backend.user_role.UserRole;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -55,6 +57,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAll() {
         return userRepository.findAll().stream()
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
                 .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
@@ -63,6 +66,7 @@ public class UserService {
     public List<UserResponseDto> search(String role, Boolean isCurrentQuarterActive, String joinedQuarter, String name, String studentId) {
         List<User> users = userRepositoryCustom.search(role, isCurrentQuarterActive, joinedQuarter, name, studentId);
         return users.stream()
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
                 .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
@@ -74,6 +78,7 @@ public class UserService {
         }
 
         return userRepositoryCustom.search(null, null, null, name, studentId).stream()
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
                 .limit(20)
                 .map(user -> UserSummaryResponseDto.builder()
                         .id(user.getId())
@@ -132,10 +137,17 @@ public class UserService {
     }
 
     @Transactional
-    public void delete(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-        userRepository.delete(user);
+    public void removeUsers(UUID currentUserId, List<UUID> userIds) {
+        Set<UUID> uniqueIds = new LinkedHashSet<>(userIds);
+        if (uniqueIds.contains(currentUserId)) {
+            throw new BadRequestException("현재 로그인한 계정은 삭제할 수 없습니다.");
+        }
+
+        List<User> users = userRepository.findAllById(uniqueIds);
+        if (users.size() != uniqueIds.size()) {
+            throw new NotFoundException("삭제할 학회원을 찾을 수 없습니다.");
+        }
+        users.forEach(User::markRemoved);
     }
 
     private UUID FIXED_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -163,6 +175,7 @@ public class UserService {
 
         List<User> allUsers = userRepository.findAll();
         for (User user : allUsers) {
+            if (user.getMemberStatus() == MemberStatus.REMOVED) continue;
             user.updateActiveStatus(activeUserIds.contains(user.getId()));
         }
     }
@@ -171,6 +184,9 @@ public class UserService {
     public UserResponseDto updateUserActiveStatus(UUID id, boolean isCurrentQuarterActive) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+        if (user.getMemberStatus() == MemberStatus.REMOVED) {
+            throw new BadRequestException("삭제된 학회원의 활동 상태는 변경할 수 없습니다.");
+        }
         user.updateActiveStatus(isCurrentQuarterActive);
         return userMapper.toResponseDto(user);
     }
