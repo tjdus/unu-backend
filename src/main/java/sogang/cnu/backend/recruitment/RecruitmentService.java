@@ -99,11 +99,11 @@ public class RecruitmentService {
 
     @Transactional(readOnly = true)
     public RecruitmentResponseDto getClosestRecruitment() {
-        Recruitment recruitment = recruitmentRepository
+        return recruitmentRepository
                 .findFirstByTypeAndActiveIsTrueAndEndAtAfterOrderByEndAtAsc(
                         RecruitmentType.NEW_MEMBER, java.time.LocalDateTime.now(SERVICE_ZONE))
-                .orElseThrow(() -> new NotFoundException("No upcoming or ongoing recruitment"));
-        return recruitmentMapper.toResponseDto(recruitment);
+                .map(recruitmentMapper::toResponseDto)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)
