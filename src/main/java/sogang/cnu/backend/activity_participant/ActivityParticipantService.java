@@ -11,6 +11,8 @@ import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRefundAcco
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantSummaryDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityCapacityResponseDto;
+import sogang.cnu.backend.attendance.AttendanceRepository;
+import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -35,6 +37,8 @@ public class ActivityParticipantService {
     private final ActivityParticipantMapper activityParticipantMapper;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final AttendanceReportRepository attendanceReportRepository;
 
 
     @Transactional(readOnly = true)
@@ -247,6 +251,18 @@ public class ActivityParticipantService {
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
         requireOwnerOrManager(activity);
         activityParticipantRepository.delete(activity);
+    }
+
+    @Transactional
+    public void deleteByAdmin(UUID id) {
+        if (!SecurityUtils.isAdmin()) {
+            throw new ForbiddenException("관리자만 참여자를 삭제할 수 있습니다.");
+        }
+        ActivityParticipant participant = activityParticipantRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
+        attendanceReportRepository.deleteByParticipantId(id);
+        attendanceRepository.deleteByParticipantId(id);
+        activityParticipantRepository.delete(participant);
     }
 
     // 본인의 참가 기록이거나 MANAGER/ADMIN이어야 조회·삭제(참가 취소)할 수 있다.

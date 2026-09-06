@@ -34,6 +34,10 @@ public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
     void deleteBySessionId(UUID sessionId);
 
     @Modifying
+    @Query("DELETE FROM Attendance a WHERE a.participant.id = :participantId")
+    void deleteByParticipantId(@Param("participantId") UUID participantId);
+
+    @Modifying
     @Query("DELETE FROM Attendance a WHERE a.participant.activity.id = :activityId")
     void deleteByActivityId(@Param("activityId") UUID activityId);
 }

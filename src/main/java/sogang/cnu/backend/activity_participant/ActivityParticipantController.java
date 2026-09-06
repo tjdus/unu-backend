@@ -71,6 +71,13 @@ public class ActivityParticipantController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{id}/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteByAdmin(@PathVariable UUID id) {
+        activityParticipantService.deleteByAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // 활동 담당자는 자기 활동의 일정·출석 관리를 위해 참여자 명단을 조회할 수 있다.
     @GetMapping("/activities/{id}")
     public ResponseEntity<List<ActivityParticipantResponseDto>> getByActivityId(
