@@ -12,6 +12,7 @@ import sogang.cnu.backend.activity_notice.dto.ActivityNoticeUnreadCountDto;
 import sogang.cnu.backend.activity_notice.dto.ActivityNoticeUnreadSummaryDto;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
 import sogang.cnu.backend.common.exception.NotFoundException;
+import sogang.cnu.backend.quarter.CurrentQuarterService;
 import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
 
@@ -33,6 +34,7 @@ public class ActivityNoticeService {
     private final ActivityAccessGuard activityAccessGuard;
     private final ActivityNoticeReadRepository activityNoticeReadRepository;
     private final UserRepository userRepository;
+    private final CurrentQuarterService currentQuarterService;
 
     @Transactional(readOnly = true)
     public List<ActivityNoticeResponseDto> getByActivityId(UUID userId, UUID activityId) {
@@ -49,8 +51,15 @@ public class ActivityNoticeService {
 
     @Transactional(readOnly = true)
     public ActivityNoticeUnreadSummaryDto getUnreadSummary(UUID userId) {
+        UUID currentQuarterId = currentQuarterService.getCurrentQuarterId();
+        if (currentQuarterId == null) {
+            return ActivityNoticeUnreadSummaryDto.builder()
+                    .totalCount(0)
+                    .activities(List.of())
+                    .build();
+        }
         List<ActivityNoticeUnreadCountDto> activities = activityNoticeReadRepository
-                .findUnreadCounts(userId, ActivityParticipantStatus.APPROVED)
+                .findUnreadCounts(userId, ActivityParticipantStatus.APPROVED, currentQuarterId)
                 .stream()
                 .map(row -> ActivityNoticeUnreadCountDto.builder()
                         .activityId((UUID) row[0])

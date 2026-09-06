@@ -26,7 +26,8 @@ public interface ActivityNoticeReadRepository extends JpaRepository<ActivityNoti
     @Query("""
             SELECT notice.activity.id, COUNT(notice.id)
             FROM ActivityNotice notice
-            WHERE EXISTS (
+            WHERE notice.activity.quarter.id = :quarterId
+              AND EXISTS (
                   SELECT participant.id
                   FROM ActivityParticipant participant
                   WHERE participant.activity.id = notice.activity.id
@@ -50,7 +51,8 @@ public interface ActivityNoticeReadRepository extends JpaRepository<ActivityNoti
             """)
     List<Object[]> findUnreadCounts(
             @Param("userId") UUID userId,
-            @Param("status") ActivityParticipantStatus status
+            @Param("status") ActivityParticipantStatus status,
+            @Param("quarterId") UUID quarterId
     );
 
     @Modifying

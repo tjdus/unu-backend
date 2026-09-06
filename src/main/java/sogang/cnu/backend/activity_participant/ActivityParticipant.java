@@ -78,6 +78,9 @@ public class ActivityParticipant extends BaseEntity {
     @Column(name = "deposit_payment_confirmed_at")
     private LocalDateTime depositPaymentConfirmedAt;
 
+    @Column(name = "privacy_agreed_at")
+    private LocalDateTime privacyAgreedAt;
+
     @Column(name = "promotion_agreed_at")
     private LocalDateTime promotionAgreedAt;
 
@@ -152,6 +155,7 @@ public class ActivityParticipant extends BaseEntity {
         this.refundAccountHolder = accountHolder;
         this.depositPolicyAgreedAt = now;
         this.depositPaymentConfirmedAt = now;
+        this.privacyAgreedAt = now;
         this.promotionAgreedAt = promotionAgreed ? now : null;
     }
 

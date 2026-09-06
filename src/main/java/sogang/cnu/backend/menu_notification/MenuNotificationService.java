@@ -44,8 +44,10 @@ public class MenuNotificationService {
                 userId,
                 cutoff
         );
-        List<UUID> unreadActivityResultIds =
-                activityParticipantRepository.findUnreadResultActivityIds(userId);
+        List<UUID> unreadActivityResultIds = currentQuarter
+                .map(quarter -> activityParticipantRepository.findUnreadResultActivityIds(
+                        userId, quarter.getId()))
+                .orElseGet(List::of);
         return MenuNotificationSummaryDto.builder()
                 .activityCount(newActivityIds.size())
                 .operationRecruitmentCount(newOperationRecruitmentIds.size())

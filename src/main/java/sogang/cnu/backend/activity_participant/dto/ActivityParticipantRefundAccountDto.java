@@ -17,4 +17,5 @@ public class ActivityParticipantRefundAccountDto {
     private String accountNumber;
     private String accountHolder;
     private LocalDateTime paymentConfirmedAt;
+    private LocalDateTime promotionAgreedAt;
 }

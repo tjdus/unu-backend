@@ -19,11 +19,15 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
     @Query("""
             SELECT ap.activity.id FROM ActivityParticipant ap
             WHERE ap.user.id = :userId
+              AND ap.activity.quarter.id = :quarterId
               AND ap.resultChangedAt IS NOT NULL
               AND ap.resultReadAt IS NULL
             ORDER BY ap.resultChangedAt DESC
             """)
-    List<UUID> findUnreadResultActivityIds(@Param("userId") UUID userId);
+    List<UUID> findUnreadResultActivityIds(
+            @Param("userId") UUID userId,
+            @Param("quarterId") UUID quarterId
+    );
     long countByActivityIdAndStatusIn(
             UUID activityId,
             Collection<ActivityParticipantStatus> statuses

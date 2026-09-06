@@ -2,7 +2,6 @@ package sogang.cnu.backend.activity_participant.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import sogang.cnu.backend.activity_participant.LectureParticipationMode;
 
 @Getter
 @NoArgsConstructor
@@ -12,8 +11,8 @@ public class ActivityJoinRequestDto {
     private String refundAccountHolder;
     private Boolean agreedToDepositPolicy;
     private Boolean confirmedDepositPayment;
+    private Boolean agreedToPrivacy;
     private Boolean agreedToPromotion;
     private String appliedPosition;
     private String applicationMessage;
-    private LectureParticipationMode lectureParticipationMode;
 }

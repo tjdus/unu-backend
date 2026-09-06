@@ -119,7 +119,7 @@ public class ActivityParticipantService {
                 recordProjectApplication(existing, request);
             }
             if (isLecture(targetActivity)) {
-                recordLectureParticipationMode(existing, request);
+                existing.recordLectureParticipationMode(LectureParticipationMode.INDIVIDUAL);
             }
             return activityParticipantMapper.toResponseDto(existing);
         }
@@ -138,7 +138,7 @@ public class ActivityParticipantService {
             recordProjectApplication(activityParticipant, request);
         }
         if (isLecture(targetActivity)) {
-            recordLectureParticipationMode(activityParticipant, request);
+            activityParticipant.recordLectureParticipationMode(LectureParticipationMode.INDIVIDUAL);
         }
         activityParticipantRepository.save(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
@@ -182,6 +182,7 @@ public class ActivityParticipantService {
                         .accountNumber(participant.getRefundAccountNumber())
                         .accountHolder(participant.getRefundAccountHolder())
                         .paymentConfirmedAt(participant.getDepositPaymentConfirmedAt())
+                        .promotionAgreedAt(participant.getPromotionAgreedAt())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -461,19 +462,6 @@ public class ActivityParticipantService {
         );
     }
 
-    private void recordLectureParticipationMode(
-            ActivityParticipant participant,
-            ActivityJoinRequestDto request
-    ) {
-        LectureParticipationMode mode = request == null
-                ? null
-                : request.getLectureParticipationMode();
-        if (mode == null) {
-            throw new BadRequestException("수강 방식을 선택해주세요.");
-        }
-        participant.recordLectureParticipationMode(mode);
-    }
-
     private String normalizeReviewMessage(String message) {
         if (message == null || message.isBlank()) {
             return null;
@@ -491,7 +479,8 @@ public class ActivityParticipantService {
     ) {
         if (request == null
                 || !Boolean.TRUE.equals(request.getAgreedToDepositPolicy())
-                || !Boolean.TRUE.equals(request.getConfirmedDepositPayment())) {
+                || !Boolean.TRUE.equals(request.getConfirmedDepositPayment())
+                || !Boolean.TRUE.equals(request.getAgreedToPrivacy())) {
             throw new BadRequestException("보증금 유의사항을 확인하고 필수 항목에 동의해주세요.");
         }
 
