@@ -18,6 +18,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID>, Activ
 
     List<Activity> findByAssigneeId(UUID assigneeId);
 
+    List<Activity> findByStatusNot(ActivityStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Activity a WHERE a.id = :id")
     Optional<Activity> findByIdForUpdate(@Param("id") UUID id);

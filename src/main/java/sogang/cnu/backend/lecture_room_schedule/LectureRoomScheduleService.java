@@ -8,6 +8,8 @@ import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.lecture_room_schedule.command.LectureRoomScheduleCreateCommand;
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleRequestDto;
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleResponseDto;
+import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleImportRequestDto;
+import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleImportResponseDto;
 import sogang.cnu.backend.quarter.CurrentQuarterService;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
@@ -18,7 +20,12 @@ import sogang.cnu.backend.util.SecurityUtils;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -41,6 +48,17 @@ public class LectureRoomScheduleService {
     private static final Set<DayOfWeek> WEEKDAYS = Set.of(
             DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+    );
+
+    private static final Map<Integer, LocalTime> PERIOD_TIME_SLOTS = Map.of(
+            1, LocalTime.of(9, 0),
+            2, LocalTime.of(10, 15),
+            3, LocalTime.of(11, 45),
+            4, LocalTime.of(13, 15),
+            5, LocalTime.of(14, 45),
+            6, LocalTime.of(16, 15),
+            7, LocalTime.of(17, 45),
+            8, LocalTime.of(19, 15)
     );
 
     private final LectureRoomScheduleRepository lectureRoomScheduleRepository;
@@ -102,6 +120,78 @@ public class LectureRoomScheduleService {
     }
 
     @Transactional
+    public LectureRoomScheduleImportResponseDto importGoogleFormResponses(
+            LectureRoomScheduleImportRequestDto dto) {
+        if (!SecurityUtils.isAdmin()) {
+            throw new ForbiddenException("관리자만 구글폼 응답을 가져올 수 있습니다.");
+        }
+
+        Quarter quarter = quarterRepository.findById(dto.getQuarterId())
+                .orElseThrow(() -> new NotFoundException("Quarter not found"));
+
+        Set<String> studentIds = new LinkedHashSet<>();
+        for (LectureRoomScheduleImportRequestDto.UserSchedule userSchedule : dto.getUsers()) {
+            String studentId = userSchedule.getStudentId().trim();
+            if (!studentIds.add(studentId)) {
+                throw new BadRequestException("중복된 학번이 있습니다: " + studentId);
+            }
+        }
+
+        Map<String, User> usersByStudentId = new HashMap<>();
+        userRepository.findAllByStudentIdIn(studentIds)
+                .forEach(user -> usersByStudentId.put(user.getStudentId(), user));
+        List<String> missingStudentIds = studentIds.stream()
+                .filter(studentId -> !usersByStudentId.containsKey(studentId))
+                .toList();
+        if (!missingStudentIds.isEmpty()) {
+            throw new BadRequestException("학회원 계정을 찾을 수 없는 학번이 있습니다: "
+                    + String.join(", ", missingStudentIds));
+        }
+
+        Map<User, Set<ScheduleEntry>> entriesByUser = new LinkedHashMap<>();
+        for (LectureRoomScheduleImportRequestDto.UserSchedule userSchedule : dto.getUsers()) {
+            User user = usersByStudentId.get(userSchedule.getStudentId().trim());
+            Set<ScheduleEntry> entries = new LinkedHashSet<>();
+            for (LectureRoomScheduleImportRequestDto.Slot slot : userSchedule.getSlots()) {
+                DayOfWeek dayOfWeek = parseDayOfWeek(slot.getDayOfWeek());
+                validateWeekday(dayOfWeek);
+                LocalTime timeSlot = PERIOD_TIME_SLOTS.get(slot.getPeriod());
+                if (timeSlot == null) {
+                    throw new BadRequestException("등록 가능한 교시가 아닙니다: " + slot.getPeriod());
+                }
+                entries.add(new ScheduleEntry(dayOfWeek, timeSlot));
+            }
+            entriesByUser.put(user, entries);
+        }
+
+        Set<UUID> userIds = entriesByUser.keySet().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        List<LectureRoomSchedule> existingSchedules =
+                lectureRoomScheduleRepository.findByQuarterIdAndUserIdIn(dto.getQuarterId(), userIds);
+        int deletedCount = existingSchedules.size();
+        lectureRoomScheduleRepository.deleteAllInBatch(existingSchedules);
+
+        List<LectureRoomSchedule> schedulesToCreate = new ArrayList<>();
+        entriesByUser.forEach((user, entries) -> entries.forEach(entry ->
+                schedulesToCreate.add(LectureRoomSchedule.create(
+                        LectureRoomScheduleCreateCommand.builder()
+                                .quarter(quarter)
+                                .dayOfWeek(entry.dayOfWeek())
+                                .timeSlot(entry.timeSlot())
+                                .user(user)
+                                .build()
+                ))));
+        lectureRoomScheduleRepository.saveAll(schedulesToCreate);
+
+        return LectureRoomScheduleImportResponseDto.builder()
+                .userCount(entriesByUser.size())
+                .deletedCount(deletedCount)
+                .createdCount(schedulesToCreate.size())
+                .build();
+    }
+
+    @Transactional
     public void delete(UUID id) {
         LectureRoomSchedule schedule = lectureRoomScheduleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("LectureRoomSchedule not found"));
@@ -148,5 +238,8 @@ public class LectureRoomScheduleService {
         if (!TIME_SLOTS.contains(timeSlot)) {
             throw new BadRequestException("등록 가능한 학회실 관리 시간이 아닙니다.");
         }
+    }
+
+    private record ScheduleEntry(DayOfWeek dayOfWeek, LocalTime timeSlot) {
     }
 }

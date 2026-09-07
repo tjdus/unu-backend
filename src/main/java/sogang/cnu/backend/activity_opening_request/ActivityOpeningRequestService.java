@@ -306,6 +306,9 @@ public class ActivityOpeningRequestService {
                     .instructorCareer(request.getInstructorCareer())
                     .build()
         );
+        activity.synchronizeStatusFromSchedule(
+                LocalDate.now(java.time.ZoneId.of("Asia/Seoul"))
+        );
 
         Activity savedActivity = activityRepository.save(activity);
         lectureMaterialService.syncPrimaryMaterial(savedActivity, request.getMaterialUrl());

@@ -33,6 +33,8 @@ import sogang.cnu.backend.user.User;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.util.SecurityUtils;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -96,6 +98,7 @@ public class ActivityService {
         validateRecruitmentPeriod(dto);
         ActivityCreateCommand createCommand = toCreateCommand(dto);
         Activity activity = Activity.create(createCommand);
+        activity.synchronizeStatusFromSchedule(todayInSeoul());
         Activity savedActivity = activityRepository.save(activity);
         lectureMaterialService.syncPrimaryMaterial(savedActivity, dto.getMaterialUrl());
         registerAssigneeAsParticipant(savedActivity);
@@ -110,6 +113,7 @@ public class ActivityService {
         checkPermission(userId, activity);
         if (!SecurityUtils.isManagerOrAdmin()) {
             activity.update(toAssigneeUpdateCommand(activity, dto));
+            activity.synchronizeStatusFromSchedule(todayInSeoul());
             lectureMaterialService.syncPrimaryMaterial(activity, dto.getMaterialUrl());
             return activityMapper.toResponseDto(activity);
         }
@@ -125,6 +129,7 @@ public class ActivityService {
         validateParticipantLimitAgainstCurrentCount(activity, participantLimit);
         validateRecruitmentPeriod(dto);
         activity.update(toUpdateCommand(dto, activityType, depositAmount, participantLimit));
+        activity.synchronizeStatusFromSchedule(todayInSeoul());
         lectureMaterialService.syncPrimaryMaterial(activity, dto.getMaterialUrl());
         return activityMapper.toResponseDto(activity);
     }
@@ -134,8 +139,24 @@ public class ActivityService {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
 
-        activity.updateStatus(ActivityStatus.valueOf(status));
+        ActivityStatus requestedStatus = ActivityStatus.valueOf(status);
+        if (requestedStatus == ActivityStatus.OPEN
+                && (activity.getRecruitmentStartDate() == null || activity.getRecruitmentEndDate() == null)) {
+            throw new BadRequestException("모집 중 상태에는 모집 기간이 필요합니다.");
+        }
+        activity.updateStatus(requestedStatus);
+        activity.synchronizeStatusFromSchedule(todayInSeoul());
         return activityMapper.toResponseDto(activity);
+    }
+
+    @Transactional
+    public int synchronizeScheduledStatuses() {
+        LocalDate today = todayInSeoul();
+        int changed = 0;
+        for (Activity activity : activityRepository.findByStatusNot(ActivityStatus.COMPLETED)) {
+            if (activity.synchronizeStatusFromSchedule(today)) changed++;
+        }
+        return changed;
     }
 
     @Transactional
@@ -202,10 +223,15 @@ public class ActivityService {
 
     /** 모집 기간은 선택이지만, 넣는다면 개설 승인 경로와 같은 규칙을 지켜야 한다. */
     private void validateRecruitmentPeriod(ActivityRequestDto dto) {
-        java.time.LocalDate start = dto.getRecruitmentStartDate();
-        java.time.LocalDate end = dto.getRecruitmentEndDate();
+        LocalDate start = dto.getRecruitmentStartDate();
+        LocalDate end = dto.getRecruitmentEndDate();
 
-        if (start == null && end == null) return;
+        if (start == null && end == null) {
+            if ("OPEN".equals(dto.getStatus())) {
+                throw new BadRequestException("모집 중 상태에는 모집 기간이 필요합니다.");
+            }
+            return;
+        }
         if (start == null || end == null) {
             throw new BadRequestException("모집 시작일과 종료일을 모두 입력해주세요.");
         }
@@ -444,6 +470,10 @@ public class ActivityService {
         if (limit < currentCount) {
             throw new BadRequestException("추가 참여 정원을 현재 신청·참여 인원보다 적게 설정할 수 없습니다.");
         }
+    }
+
+    private LocalDate todayInSeoul() {
+        return LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 
 }

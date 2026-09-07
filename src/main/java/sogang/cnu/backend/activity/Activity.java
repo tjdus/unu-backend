@@ -113,6 +113,29 @@ public class Activity extends BaseEntity {
         this.status = newStatus;
     }
 
+    public boolean synchronizeStatusFromSchedule(LocalDate today) {
+        if (status == ActivityStatus.COMPLETED) {
+            return false;
+        }
+
+        ActivityStatus synchronizedStatus;
+        if (endDate != null && today.isAfter(endDate)) {
+            synchronizedStatus = ActivityStatus.COMPLETED;
+        } else if (recruitmentStartDate == null || recruitmentEndDate == null) {
+            return false;
+        } else if (today.isBefore(recruitmentStartDate)) {
+            synchronizedStatus = ActivityStatus.CREATED;
+        } else if (!today.isAfter(recruitmentEndDate)) {
+            synchronizedStatus = ActivityStatus.OPEN;
+        } else {
+            synchronizedStatus = ActivityStatus.ONGOING;
+        }
+
+        if (status == synchronizedStatus) return false;
+        status = synchronizedStatus;
+        return true;
+    }
+
     public void restoreOpeningDetails(String operationPlan, String instructorCareer) {
         if ((this.operationPlan == null || this.operationPlan.isBlank())
                 && operationPlan != null && !operationPlan.isBlank()) {

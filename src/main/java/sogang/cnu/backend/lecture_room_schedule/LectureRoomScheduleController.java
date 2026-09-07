@@ -1,11 +1,14 @@
 package sogang.cnu.backend.lecture_room_schedule;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleRequestDto;
 import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleResponseDto;
+import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleImportRequestDto;
+import sogang.cnu.backend.lecture_room_schedule.dto.LectureRoomScheduleImportResponseDto;
 import sogang.cnu.backend.security.CurrentUser;
 import sogang.cnu.backend.security.CustomUserDetails;
 
@@ -43,6 +46,13 @@ public class LectureRoomScheduleController {
             @CurrentUser CustomUserDetails user,
             @RequestBody LectureRoomScheduleRequestDto dto) {
         return ResponseEntity.ok(lectureRoomScheduleService.createForMe(user.getId(), dto));
+    }
+
+    @PostMapping("/imports/google-form")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<LectureRoomScheduleImportResponseDto> importGoogleFormResponses(
+            @Valid @RequestBody LectureRoomScheduleImportRequestDto dto) {
+        return ResponseEntity.ok(lectureRoomScheduleService.importGoogleFormResponses(dto));
     }
 
     // 본인 일정 취소 또는 운영진의 배정 해제. 소유자 확인은 서비스에서 한다.
