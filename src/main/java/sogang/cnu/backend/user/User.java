@@ -86,6 +86,14 @@ public class User {
         this.isCurrentQuarterActive = isCurrentQuarterActive;
     }
 
+    public boolean activateForCurrentQuarter() {
+        if (memberStatus == MemberStatus.REMOVED || Boolean.TRUE.equals(isCurrentQuarterActive)) {
+            return false;
+        }
+        isCurrentQuarterActive = true;
+        return true;
+    }
+
     public void markRemoved() {
         this.memberStatus = MemberStatus.REMOVED;
         this.isCurrentQuarterActive = false;

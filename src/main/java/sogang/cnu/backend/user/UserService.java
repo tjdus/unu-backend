@@ -169,7 +169,7 @@ public class UserService {
                 .findByActivityQuarterId(currentQuarter.getId());
 
         Set<UUID> activeUserIds = participants.stream()
-                .filter(ap -> ap.getStatus() == ActivityParticipantStatus.APPROVED || ap.getStatus() == ActivityParticipantStatus.APPLIED)
+                .filter(ap -> ap.getStatus() == ActivityParticipantStatus.APPROVED)
                 .map(ap -> ap.getUser().getId())
                 .collect(Collectors.toSet());
 

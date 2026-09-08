@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.dto.CurrentQuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
+import sogang.cnu.backend.user.UserService;
 
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ public class CurrentQuarterService {
     private final CurrentQuarterRepository currentQuarterRepository;
     private final QuarterRepository quarterRepository;
     private final QuarterMapper quarterMapper;
+    private final UserService userService;
 
     private UUID FIXED_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
@@ -48,6 +50,7 @@ public class CurrentQuarterService {
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
 
         currentQuarter.update(quarter);
+        userService.calculateAndUpdateCurrentQuarterActive();
         return quarterMapper.toResponseDto(currentQuarter.getQuarter());
     }
 

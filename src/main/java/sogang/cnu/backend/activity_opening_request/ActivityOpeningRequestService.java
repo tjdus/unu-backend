@@ -332,6 +332,7 @@ public class ActivityOpeningRequestService {
             );
 
             participantRepository.save(participant);
+            user.activateForCurrentQuarter();
         });
 
         request.approve(

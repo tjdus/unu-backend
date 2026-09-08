@@ -219,6 +219,7 @@ public class ActivityService {
                         .build()
         );
         activityParticipantRepository.save(participant);
+        activity.getAssignee().activateForCurrentQuarter();
     }
 
     /** 모집 기간은 선택이지만, 넣는다면 개설 승인 경로와 같은 규칙을 지켜야 한다. */

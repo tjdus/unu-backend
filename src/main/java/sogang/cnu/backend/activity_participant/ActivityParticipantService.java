@@ -17,6 +17,7 @@ import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.user.User;
+import sogang.cnu.backend.user.MemberStatus;
 import sogang.cnu.backend.user.UserRepository;
 import sogang.cnu.backend.util.SecurityUtils;
 
@@ -69,6 +70,7 @@ public class ActivityParticipantService {
                 .build();
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
         activityParticipantRepository.save(activityParticipant);
+        activateUserIfApproved(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
     }
 
@@ -121,6 +123,7 @@ public class ActivityParticipantService {
             if (isLecture(targetActivity)) {
                 existing.recordLectureParticipationMode(LectureParticipationMode.INDIVIDUAL);
             }
+            activateUserIfApproved(existing);
             return activityParticipantMapper.toResponseDto(existing);
         }
 
@@ -141,6 +144,7 @@ public class ActivityParticipantService {
             activityParticipant.recordLectureParticipationMode(LectureParticipationMode.INDIVIDUAL);
         }
         activityParticipantRepository.save(activityParticipant);
+        activateUserIfApproved(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
     }
 
@@ -164,8 +168,26 @@ public class ActivityParticipantService {
                         today,
                         ActivityStatus.COMPLETED
                 );
-        participants.forEach(ActivityParticipant::confirmOnActivityStart);
+        participants.forEach(participant -> {
+            participant.confirmOnActivityStart();
+            activateUserIfApproved(participant);
+        });
         return participants.size();
+    }
+
+    @Transactional
+    public int activateApprovedParticipantsForQuarter(UUID quarterId) {
+        Set<User> users = activityParticipantRepository.findByActivityQuarterId(quarterId).stream()
+                .filter(participant -> participant.getStatus() == ActivityParticipantStatus.APPROVED)
+                .map(ActivityParticipant::getUser)
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
+                .collect(Collectors.toSet());
+
+        int activated = 0;
+        for (User user : users) {
+            if (user.activateForCurrentQuarter()) activated++;
+        }
+        return activated;
     }
 
     @Transactional(readOnly = true)
@@ -410,6 +432,14 @@ public class ActivityParticipantService {
             participant.updateCompleted(false);
         }
         participant.updateStatus(newStatus);
+        activateUserIfApproved(participant);
+    }
+
+    private void activateUserIfApproved(ActivityParticipant participant) {
+        if (participant.getStatus() == ActivityParticipantStatus.APPROVED
+                && participant.getUser() != null) {
+            participant.getUser().activateForCurrentQuarter();
+        }
     }
 
     private long countCapacityParticipants(Activity activity) {
