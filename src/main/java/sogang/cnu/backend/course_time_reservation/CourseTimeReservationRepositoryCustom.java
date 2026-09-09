@@ -9,6 +9,8 @@ public interface CourseTimeReservationRepositoryCustom {
 
     boolean existsOverlapping(UUID userId, LocalDateTime newStart, LocalDateTime newEnd, UUID excludeId);
 
+    boolean existsActivityOverlapping(UUID activityId, LocalDateTime newStart, LocalDateTime newEnd, UUID excludeId);
+
     long sumMinutesOnKstDate(UUID userId, LocalDate kstDate, UUID excludeId);
 
     List<CourseTimeReservation> findByUserAndFilters(UUID userId, UUID activityId, LocalDate kstDate);

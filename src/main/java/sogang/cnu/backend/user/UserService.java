@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity_participant.ActivityParticipant;
 import sogang.cnu.backend.activity_participant.ActivityParticipantRepository;
 import sogang.cnu.backend.activity_participant.ActivityParticipantStatus;
+import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.CurrentQuarter;
 import sogang.cnu.backend.quarter.CurrentQuarterRepository;
@@ -16,10 +17,12 @@ import sogang.cnu.backend.role.Role;
 import sogang.cnu.backend.role.RoleRepository;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user.dto.UserRoleUpdateRequestDto;
+import sogang.cnu.backend.user.dto.UserSummaryResponseDto;
 import sogang.cnu.backend.user_role.UserRole;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -54,6 +57,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAll() {
         return userRepository.findAll().stream()
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
                 .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
@@ -62,8 +66,51 @@ public class UserService {
     public List<UserResponseDto> search(String role, Boolean isCurrentQuarterActive, String joinedQuarter, String name, String studentId) {
         List<User> users = userRepositoryCustom.search(role, isCurrentQuarterActive, joinedQuarter, name, studentId);
         return users.stream()
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
                 .map(userMapper::toResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponseDto> searchSummaries(String name, String studentId) {
+        if ((name == null || name.isBlank()) && (studentId == null || studentId.isBlank())) {
+            return List.of();
+        }
+
+        return userRepositoryCustom.search(null, null, null, name, studentId).stream()
+                .filter(user -> user.getMemberStatus() != MemberStatus.REMOVED)
+                .limit(20)
+                .map(user -> UserSummaryResponseDto.builder()
+                        .id(user.getId())
+                        .name(user.getName())
+                        .studentId(user.getStudentId())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponseDto> searchActiveSummaries(String query) {
+        if (query == null || query.trim().length() < 2) {
+            return List.of();
+        }
+
+        String normalized = query.trim();
+        boolean studentIdQuery = normalized.chars().allMatch(Character::isDigit);
+        return userRepositoryCustom.search(
+                        null,
+                        null,
+                        null,
+                        studentIdQuery ? null : normalized,
+                        studentIdQuery ? normalized : null
+                ).stream()
+                .filter(user -> user.getMemberStatus() == MemberStatus.MEMBER)
+                .limit(10)
+                .map(user -> UserSummaryResponseDto.builder()
+                        .id(user.getId())
+                        .name(user.getName())
+                        .studentId(user.getStudentId())
+                        .build())
+                .toList();
     }
 
     @Transactional
@@ -83,15 +130,24 @@ public class UserService {
                 .map(role -> UserRole.builder().user(user).role(role).build())
                 .collect(Collectors.toList());
         user.getUserRoles().addAll(userRoles);
+        // flush 해야 UserRole의 생성 id가 발급된다. 없으면 응답의 userRoles[].id가 전부 null이다.
+        entityManager.flush();
 
         return userMapper.toResponseDto(user);
     }
 
     @Transactional
-    public void delete(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-        userRepository.delete(user);
+    public void removeUsers(UUID currentUserId, List<UUID> userIds) {
+        Set<UUID> uniqueIds = new LinkedHashSet<>(userIds);
+        if (uniqueIds.contains(currentUserId)) {
+            throw new BadRequestException("현재 로그인한 계정은 삭제할 수 없습니다.");
+        }
+
+        List<User> users = userRepository.findAllById(uniqueIds);
+        if (users.size() != uniqueIds.size()) {
+            throw new NotFoundException("삭제할 학회원을 찾을 수 없습니다.");
+        }
+        users.forEach(User::markRemoved);
     }
 
     private UUID FIXED_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -113,12 +169,13 @@ public class UserService {
                 .findByActivityQuarterId(currentQuarter.getId());
 
         Set<UUID> activeUserIds = participants.stream()
-                .filter(ap -> ap.getStatus() == ActivityParticipantStatus.APPROVED || ap.getStatus() == ActivityParticipantStatus.APPLIED)
+                .filter(ap -> ap.getStatus() == ActivityParticipantStatus.APPROVED)
                 .map(ap -> ap.getUser().getId())
                 .collect(Collectors.toSet());
 
         List<User> allUsers = userRepository.findAll();
         for (User user : allUsers) {
+            if (user.getMemberStatus() == MemberStatus.REMOVED) continue;
             user.updateActiveStatus(activeUserIds.contains(user.getId()));
         }
     }
@@ -127,6 +184,9 @@ public class UserService {
     public UserResponseDto updateUserActiveStatus(UUID id, boolean isCurrentQuarterActive) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+        if (user.getMemberStatus() == MemberStatus.REMOVED) {
+            throw new BadRequestException("삭제된 학회원의 활동 상태는 변경할 수 없습니다.");
+        }
         user.updateActiveStatus(isCurrentQuarterActive);
         return userMapper.toResponseDto(user);
     }

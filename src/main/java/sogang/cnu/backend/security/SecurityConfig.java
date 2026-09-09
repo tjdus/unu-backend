@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import sogang.cnu.backend.user.UserRepository;
 
 import java.util.Arrays;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Value("${cors.allowed-origins}")
     private String[] allowedOrigins;
@@ -43,14 +45,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/signup", "/api/auth/login",
-                                "/api/public/**")
-                        .permitAll()// 회원가입, 로그인은 인증 없이해야함
+                        .requestMatchers("/api/auth/signup", "/api/auth/signup/verify", "/api/auth/login", "/api/auth/refresh",
+                                "/api/auth/logout", "/api/public/**")
+                        .permitAll()// 회원가입, 로그인, 토큰 재발급, 로그아웃은 인증 없이 호출 가능해야 함
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-         .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+         .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, userRepository), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

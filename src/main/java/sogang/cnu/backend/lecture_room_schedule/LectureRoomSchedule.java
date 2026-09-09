@@ -52,4 +52,8 @@ public class LectureRoomSchedule extends BaseEntity {
                 .user(command.getUser())
                 .build();
     }
+
+    public void changeTimeSlot(LocalTime timeSlot) {
+        this.timeSlot = timeSlot;
+    }
 }

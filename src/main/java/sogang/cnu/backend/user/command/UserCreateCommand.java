@@ -16,10 +16,11 @@ public class UserCreateCommand {
     private String username;
     private String password;
     private String studentId;
+    private String major;
+    private String subMajor;
     private String githubId;
     private String phoneNumber;
     private String email;
     private Boolean isCurrentQuarterActive;
     private Quarter joinedQuarter;
 }
-

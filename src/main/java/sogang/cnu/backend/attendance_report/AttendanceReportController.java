@@ -1,5 +1,6 @@
 package sogang.cnu.backend.attendance_report;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class AttendanceReportController {
     }
 
     @PostMapping("")
-    public ResponseEntity<AttendanceReportResponseDto> submitReport(@RequestBody AttendanceReportRequestDto dto) {
+    public ResponseEntity<AttendanceReportResponseDto> submitReport(@Valid @RequestBody AttendanceReportRequestDto dto) {
         return ResponseEntity.ok(attendanceReportService.submitReport(dto));
     }
 }

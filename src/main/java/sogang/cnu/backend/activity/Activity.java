@@ -23,6 +23,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Activity extends BaseEntity {
+    private static final int DEFAULT_DEPOSIT_AMOUNT = 30_000;
+    private static final int DEFAULT_LECTURE_PARTICIPANT_LIMIT = 5;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -55,6 +58,35 @@ public class Activity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String budgetNote;
 
+    private LocalDate recruitmentStartDate;
+    private LocalDate recruitmentEndDate;
+
+    @Column(name = "is_listed")
+    @Builder.Default
+    private Boolean listed = true;
+
+    @Column(name = "deposit_amount")
+    private Integer depositAmount;
+
+    @Column(name = "participant_limit")
+    private Integer participantLimit;
+
+    /** 추가 팀원을 모집할 때 희망하는 포지션 안내 */
+    @Column(name = "recruitment_positions", columnDefinition = "TEXT")
+    private String recruitmentPositions;
+
+    /** 강의자 경력. 강의 개설 신청에서 받아 승인 시 그대로 가져온다. */
+    @Column(name = "instructor_career", columnDefinition = "TEXT")
+    private String instructorCareer;
+
+    /** 강의계획서·스터디계획서. 개설 신청의 운영 계획서를 승인 시 그대로 가져온다. */
+    @Column(name = "operation_plan", columnDefinition = "TEXT")
+    private String operationPlan;
+
+    /** 활동 내용에서 안내할 디스코드 초대 링크 (선택) */
+    @Column(name = "discord_url", length = 2048)
+    private String discordUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_activity_id")
     private Activity parentActivity;
@@ -71,10 +103,60 @@ public class Activity extends BaseEntity {
         this.parentActivity = command.getParentActivity();
         this.budget = command.getBudget();
         this.budgetNote = command.getBudgetNote();
+        this.depositAmount = command.getDepositAmount();
+        this.participantLimit = command.getParticipantLimit();
+        this.recruitmentPositions = command.getRecruitmentPositions();
+        this.discordUrl = command.getDiscordUrl();
+        this.operationPlan = command.getOperationPlan();
+        this.instructorCareer = command.getInstructorCareer();
+        this.recruitmentStartDate = command.getRecruitmentStartDate();
+        this.recruitmentEndDate = command.getRecruitmentEndDate();
+        if (command.getListed() != null) {
+            this.listed = command.getListed();
+        }
     }
 
     public void updateStatus(ActivityStatus newStatus) {
         this.status = newStatus;
+    }
+
+    public boolean synchronizeStatusFromSchedule(LocalDate today) {
+        if (status == ActivityStatus.COMPLETED) {
+            return false;
+        }
+
+        ActivityStatus synchronizedStatus;
+        if (endDate != null && today.isAfter(endDate)) {
+            synchronizedStatus = ActivityStatus.COMPLETED;
+        } else if (recruitmentStartDate == null || recruitmentEndDate == null) {
+            return false;
+        } else if (today.isBefore(recruitmentStartDate)) {
+            synchronizedStatus = ActivityStatus.CREATED;
+        } else if (!today.isAfter(recruitmentEndDate)) {
+            synchronizedStatus = ActivityStatus.OPEN;
+        } else {
+            synchronizedStatus = ActivityStatus.ONGOING;
+        }
+
+        if (status == synchronizedStatus) return false;
+        status = synchronizedStatus;
+        return true;
+    }
+
+    public void restoreOpeningDetails(String operationPlan, String instructorCareer) {
+        if ((this.operationPlan == null || this.operationPlan.isBlank())
+                && operationPlan != null && !operationPlan.isBlank()) {
+            this.operationPlan = operationPlan.trim();
+        }
+        if ((this.instructorCareer == null || this.instructorCareer.isBlank())
+                && instructorCareer != null && !instructorCareer.isBlank()) {
+            this.instructorCareer = instructorCareer.trim();
+        }
+    }
+
+    /** 스터디는 담당자도 함께 공부하므로 참여자로 등록한다. */
+    public boolean includesAssigneeAsParticipant() {
+        return activityType != null && "STUDY".equals(activityType.getCode());
     }
 
     @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -92,13 +174,54 @@ public class Activity extends BaseEntity {
                 .status(command.getStatus())
                 .startDate(command.getStartDate())
                 .endDate(command.getEndDate())
+                .recruitmentStartDate(command.getRecruitmentStartDate())
+                .recruitmentEndDate(command.getRecruitmentEndDate())
+                .listed(command.getListed() == null ? true : command.getListed())
                 .activityType(command.getActivityType())
                 .assignee(command.getAssignee())
                 .quarter(command.getQuarter())
                 .parentActivity(command.getParentActivity())
                 .budget(command.getBudget())
                 .budgetNote(command.getBudgetNote())
+                .depositAmount(defaultDepositAmount(
+                        command.getActivityType(),
+                        command.getDepositAmount()
+                ))
+                .participantLimit(defaultParticipantLimit(
+                        command.getActivityType(),
+                        command.getParticipantLimit()
+                ))
+                .recruitmentPositions(command.getRecruitmentPositions())
+                .discordUrl(command.getDiscordUrl())
+                .operationPlan(command.getOperationPlan())
+                .instructorCareer(command.getInstructorCareer())
                 .build();
         return activity;
+    }
+
+    public Integer getDepositAmount() {
+        return defaultDepositAmount(activityType, depositAmount);
+    }
+
+    public Integer getParticipantLimit() {
+        return defaultParticipantLimit(activityType, participantLimit);
+    }
+
+    private static Integer defaultDepositAmount(ActivityType activityType, Integer amount) {
+        if (amount != null) return amount;
+        if (activityType == null) return 0;
+        String code = activityType.getCode();
+        return "STUDY".equals(code)
+                || "SPECIAL_LECTURE".equals(code)
+                || "LECTURE".equals(code)
+                ? DEFAULT_DEPOSIT_AMOUNT
+                : 0;
+    }
+
+    private static Integer defaultParticipantLimit(ActivityType activityType, Integer limit) {
+        if (limit != null) return limit;
+        return activityType != null && "LECTURE".equals(activityType.getCode())
+                ? DEFAULT_LECTURE_PARTICIPANT_LIMIT
+                : null;
     }
 }

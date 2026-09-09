@@ -1,16 +1,21 @@
 package sogang.cnu.backend.attendance;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.attendance.dto.AttendanceBulkRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceRequestDto;
 import sogang.cnu.backend.attendance.dto.AttendanceResponseDto;
 import sogang.cnu.backend.attendance.dto.AttendanceStatsResponseDto;
+import sogang.cnu.backend.attendance.dto.SessionAttendanceSummaryDto;
 
 import java.util.List;
 import java.util.UUID;
 
+// 출석 데이터는 수료 실적에 반영되므로 생성·수정·삭제와 전체/세션 단위 조회는 운영진만 가능해야 한다.
+// 단, 학회원 홈에서 본인 출석 통계(stats)를 보여주므로 그 조회만 인증된 사용자에게 열어둔다.
 @RestController
 @RequestMapping("/api/attendances")
 @RequiredArgsConstructor
@@ -18,6 +23,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @GetMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<AttendanceResponseDto>> getAll() {
         return ResponseEntity.ok(attendanceService.getAll());
     }
@@ -49,21 +55,29 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getBySessionId(id));
     }
 
+    // 일정 관리 탭의 세션별 출석 요약: 회차마다 개별 호출하는 대신 활동 단위로 한 번에 집계한다.
+    @GetMapping("/activities/{activityId}/session-summary")
+    public ResponseEntity<List<SessionAttendanceSummaryDto>> getSessionSummariesByActivity(
+            @PathVariable UUID activityId) {
+        return ResponseEntity.ok(attendanceService.getSessionSummariesByActivity(activityId));
+    }
+
     @GetMapping("/participants/{id}")
     public ResponseEntity<List<AttendanceResponseDto>> getByParticipantId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.getByParticipantId(id));
     }
 
     @PostMapping("/bulk")
-    public ResponseEntity<List<AttendanceResponseDto>> bulkCreate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
+    public ResponseEntity<List<AttendanceResponseDto>> bulkCreate(@Valid @RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
         return ResponseEntity.ok(attendanceService.bulkCreate(attendanceBulkRequestDto));
     }
 
     @PatchMapping("/bulk")
-    public ResponseEntity<List<AttendanceResponseDto>> bulkUpdate(@RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
+    public ResponseEntity<List<AttendanceResponseDto>> bulkUpdate(@Valid @RequestBody AttendanceBulkRequestDto attendanceBulkRequestDto) {
         return ResponseEntity.ok(attendanceService.bulkUpdate(attendanceBulkRequestDto));
     }
 
+    // 학회원 본인 홈 화면에서 자기 출석 통계를 보여주므로 인증된 사용자면 조회 가능하게 둔다(집계 수치만 반환).
     @GetMapping("/stats/participants/{id}")
     public ResponseEntity<AttendanceStatsResponseDto> getAttendanceStatsByParticipantId(@PathVariable UUID id) {
         return ResponseEntity.ok(attendanceService.countStatusParticipantId(id));

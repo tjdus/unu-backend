@@ -9,15 +9,33 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDate;
 
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
     List<Attendance> findBySessionId(UUID sessionId);
     List<Attendance> findByParticipantId(UUID participantId);
 
+    @Query("SELECT a FROM Attendance a WHERE a.session.activity.id = :activityId")
+    List<Attendance> findByActivityId(@Param("activityId") UUID activityId);
+
     Long countByParticipantIdAndStatus(UUID participantId, AttendanceStatus status);
 
+    Long countByParticipantIdAndStatusAndSessionDateLessThanEqual(
+            UUID participantId,
+            AttendanceStatus status,
+            LocalDate date
+    );
+
     Optional<Attendance> findBySessionIdAndParticipantId(UUID sessionId, UUID participantId);
+
+    boolean existsBySessionId(UUID sessionId);
+
+    void deleteBySessionId(UUID sessionId);
+
+    @Modifying
+    @Query("DELETE FROM Attendance a WHERE a.participant.id = :participantId")
+    void deleteByParticipantId(@Param("participantId") UUID participantId);
 
     @Modifying
     @Query("DELETE FROM Attendance a WHERE a.participant.activity.id = :activityId")

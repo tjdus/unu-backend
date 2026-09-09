@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.dto.CurrentQuarterRequestDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
+import sogang.cnu.backend.user.UserService;
 
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ public class CurrentQuarterService {
     private final CurrentQuarterRepository currentQuarterRepository;
     private final QuarterRepository quarterRepository;
     private final QuarterMapper quarterMapper;
+    private final UserService userService;
 
     private UUID FIXED_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
@@ -32,6 +34,15 @@ public class CurrentQuarterService {
         return quarterMapper.toResponseDto(quarter);
     }
 
+    /** 현재 분기의 ID. 설정된 현재 분기가 없으면 null. (readOnly 경로에서 안전하도록 생성은 하지 않는다.) */
+    @Transactional(readOnly = true)
+    public UUID getCurrentQuarterId() {
+        return currentQuarterRepository.findById(FIXED_ID)
+                .map(CurrentQuarter::getQuarter)
+                .map(Quarter::getId)
+                .orElse(null);
+    }
+
     @Transactional
     public QuarterResponseDto update(CurrentQuarterRequestDto requestDto) {
         CurrentQuarter currentQuarter = getOne();
@@ -39,6 +50,7 @@ public class CurrentQuarterService {
                 .orElseThrow(() -> new NotFoundException("Quarter not found"));
 
         currentQuarter.update(quarter);
+        userService.calculateAndUpdateCurrentQuarterActive();
         return quarterMapper.toResponseDto(currentQuarter.getQuarter());
     }
 

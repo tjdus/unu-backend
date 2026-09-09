@@ -28,7 +28,8 @@ public class JwtTokenProvider {
     private static final String ACCESS_TOKEN_TYPE = "access";
     private static final String REFRESH_TOKEN_TYPE = "refresh";
     private static final String SIGNUP_TOKEN_TYPE = "signup";
-    private static final long SIGNUP_TOKEN_EXPIRE_TIME = 86400000L; // 24 hours
+    private static final String APPLICATION_TOKEN_TYPE = "application";
+    private static final long APPLICATION_TOKEN_EXPIRE_TIME = 1800000L; // 30 minutes
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -36,7 +37,7 @@ public class JwtTokenProvider {
     @Value("${jwt.access-token-expire-time:3600000}")
     private long accessTokenExpireTime;
 
-    @Value("${jwt.refresh-token-expire-time:604800000}")
+    @Value("${jwt.refresh-token-expire-time:14400000}")
     private long refreshTokenExpireTime;
 
     private SecretKey key;
@@ -81,17 +82,28 @@ public class JwtTokenProvider {
         return generateToken(id, List.of(), refreshTokenExpireTime, REFRESH_TOKEN_TYPE);
     }
 
-    public String generateSignupToken() {
-        long now = System.currentTimeMillis();
-        Claims claims = Jwts.claims().setSubject("signup-invite");
+    public String generateSignupToken(UUID invitationId) {
+        Claims claims = Jwts.claims().setSubject(invitationId.toString());
         claims.put(TOKEN_TYPE_CLAIM, SIGNUP_TOKEN_TYPE);
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + SIGNUP_TOKEN_EXPIRE_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String generateApplicationToken(UUID applicationId) {
+        return generateToken(applicationId, List.of(), APPLICATION_TOKEN_EXPIRE_TIME, APPLICATION_TOKEN_TYPE);
+    }
+
+    public boolean isApplicationTokenFor(String token, UUID applicationId) {
+        try {
+            Claims claims = getClaims(token);
+            return APPLICATION_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))
+                    && applicationId.toString().equals(claims.getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     public boolean isSignupToken(String token) {
@@ -122,6 +134,11 @@ public class JwtTokenProvider {
     public boolean isRefreshToken(String token) {
         Claims claims = getClaims(token);
         return REFRESH_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
+    }
+
+    public boolean isAccessToken(String token) {
+        Claims claims = getClaims(token);
+        return ACCESS_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
     }
 
     public boolean isTokenExpired(String token) {

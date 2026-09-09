@@ -32,6 +32,9 @@ public class Recruitment extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "completion_message", columnDefinition = "TEXT")
+    private String completionMessage;
+
     @Column(nullable = false)
     private LocalDateTime startAt;
 
@@ -45,6 +48,10 @@ public class Recruitment extends BaseEntity {
     @Column(nullable = false)
     private Boolean active;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recruitment_type")
+    private RecruitmentType type;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "form_id", nullable = false)
     private Form form;
@@ -56,23 +63,36 @@ public class Recruitment extends BaseEntity {
     public void update(RecruitmentUpdateCommand command) {
         this.title = command.getTitle();
         this.description = command.getDescription();
+        this.completionMessage = command.getCompletionMessage();
         this.startAt = command.getStartAt();
         this.endAt = command.getEndAt();
         this.quarter = command.getQuarter();
         this.active = command.getActive();
         this.form = command.getForm();
+        this.type = command.getType();
     }
 
     public static Recruitment create(RecruitmentCreateCommand command) {
         return Recruitment.builder()
                 .title(command.getTitle())
                 .description(command.getDescription())
+                .completionMessage(command.getCompletionMessage())
                 .startAt(command.getStartAt())
                 .endAt(command.getEndAt())
                 .quarter(command.getQuarter())
                 .active(command.getActive())
                 .form(command.getForm())
+                .type(command.getType())
                 .build();
     }
-}
 
+    public RecruitmentType getType() {
+        return type == null ? RecruitmentType.NEW_MEMBER : type;
+    }
+
+    public void assignDefaultType() {
+        if (type == null) {
+            type = RecruitmentType.NEW_MEMBER;
+        }
+    }
+}

@@ -9,11 +9,15 @@ import sogang.cnu.backend.application.dto.*;
 import java.util.List;
 import java.util.UUID;
 
+// 이 컨트롤러는 관리자 전용 지원자 관리 화면(/manage/applications)에서만 쓰인다.
+// 지원자 본인의 조회/취소는 ApplicationPublicController의 비밀번호 검증 경로로 완전히 분리돼 있다.
 @RestController
 @RequestMapping("/api/applications")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
 public class ApplicationController {
     private final ApplicationService applicationService;
+    private final ApplicationLectureRoomScheduleService applicationLectureRoomScheduleService;
 
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponse> getById(@PathVariable UUID id) {
@@ -30,6 +34,12 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.updateStatus(id, request.getStatus()));
     }
 
+    @PostMapping("/{id}/lecture-room-schedule")
+    public ResponseEntity<ApplicationLectureRoomScheduleImportResponse> importLectureRoomSchedule(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(applicationLectureRoomScheduleService.importSchedule(id));
+    }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancel(@PathVariable UUID id) {
         applicationService.cancel(id);
@@ -43,4 +53,3 @@ public class ApplicationController {
     }
 
 }
-

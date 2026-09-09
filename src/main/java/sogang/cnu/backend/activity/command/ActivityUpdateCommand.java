@@ -24,5 +24,13 @@ public class ActivityUpdateCommand {
     private Activity parentActivity;
     private Long budget;
     private String budgetNote;
+    private Integer depositAmount;
+    private Integer participantLimit;
+    private Boolean listed;
+    private String recruitmentPositions;
+    private String discordUrl;
+    private String operationPlan;
+    private String instructorCareer;
+    private LocalDate recruitmentStartDate;
+    private LocalDate recruitmentEndDate;
 }
-

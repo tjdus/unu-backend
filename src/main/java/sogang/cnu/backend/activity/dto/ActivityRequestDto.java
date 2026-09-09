@@ -22,4 +22,14 @@ public class ActivityRequestDto {
     private UUID parentActivityId;
     private Long budget;
     private String budgetNote;
+    private Integer depositAmount;
+    private Integer participantLimit;
+    private Boolean listed;
+    private String recruitmentPositions;
+    private String discordUrl;
+    private String operationPlan;
+    private String instructorCareer;
+    private String materialUrl;
+    private LocalDate recruitmentStartDate;
+    private LocalDate recruitmentEndDate;
 }

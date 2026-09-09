@@ -22,6 +22,7 @@ import sogang.cnu.backend.user_role.UserRole;
 import sogang.cnu.backend.user_role.UserRoleRepository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -84,42 +85,57 @@ public class DataInitializer implements ApplicationRunner {
         cq.update(currentQuarter);
         currentQuarterRepository.save(cq);
 
-        log.info("Seeded {} quarters; current quarter set to 2026 SPRING", defs.size());
+        log.info("Seeded {} quarters; current quarter set to 2026 SUMMER", defs.size());
     }
 
     // ── Types ─────────────────────────────────────────────────────────────────
 
     private void initActivityTypes() {
-        if (activityTypeRepository.count() > 0) return;
-
+        boolean initializeAllTypes = activityTypeRepository.count() == 0;
         record ActivityTypeDef(String name, String code) {}
 
         List<ActivityTypeDef> defs = List.of(
             new ActivityTypeDef("프로젝트", "PROJECT"),
             new ActivityTypeDef("스터디", "STUDY"),
-            new ActivityTypeDef("온라인 강의", "ONLINE_COURSE")
+            new ActivityTypeDef("온라인 강의", "ONLINE_COURSE"),
+            new ActivityTypeDef("인강", "LECTURE"),
+            new ActivityTypeDef("강의", "SPECIAL_LECTURE")
         );
 
+        List<String> created = new ArrayList<>();
         for (ActivityTypeDef d : defs) {
+            if (!initializeAllTypes && !"SPECIAL_LECTURE".equals(d.code())) continue;
+            if (activityTypeRepository.findByCode(d.code()).isPresent()) continue;
             activityTypeRepository.save(ActivityType.builder()
                     .name(d.name)
                     .code(d.code())
                     .build());
+            created.add(d.name());
         }
 
-        log.info("Seeded activity types: 프로젝트, 스터디, 온라인 강의");
+        if (!created.isEmpty()) {
+            log.info("Seeded activity types: {}", String.join(", ", created));
+        }
     }
 
     // ── Roles ─────────────────────────────────────────────────────────────────
 
     private void initRoles() {
-        if (roleRepository.count() > 0) return;
+        // 전체 건수로 스킵하면 기존 DB에 새 역할을 추가할 수 없으므로 없는 것만 골라 넣는다.
+        List<String> names = List.of(
+            "MEMBER", "MANAGER", "ADMIN", "LECTURE_ROOM_MANAGER", "BLOG_MANAGER"
+        );
 
-        for (String name : List.of("MEMBER", "MANAGER", "ADMIN")) {
+        List<String> created = new ArrayList<>();
+        for (String name : names) {
+            if (roleRepository.findByName(name).isPresent()) continue;
             roleRepository.save(Role.builder().name(name).build());
+            created.add(name);
         }
 
-        log.info("Seeded roles: MEMBER, MANAGER, ADMIN");
+        if (!created.isEmpty()) {
+            log.info("Seeded roles: {}", String.join(", ", created));
+        }
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────

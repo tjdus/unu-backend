@@ -1,10 +1,17 @@
 package sogang.cnu.backend.activity_participant;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import sogang.cnu.backend.activity_participant.dto.ActivityParticipantCompletionDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRequestDto;
+import sogang.cnu.backend.activity_participant.dto.ActivityJoinRequestDto;
+import sogang.cnu.backend.activity_participant.dto.ActivityParticipantRefundAccountDto;
 import sogang.cnu.backend.activity_participant.dto.ActivityParticipantResponseDto;
+import sogang.cnu.backend.activity_participant.dto.ActivityParticipantSummaryDto;
+import sogang.cnu.backend.activity_participant.dto.ActivityCapacityResponseDto;
 import sogang.cnu.backend.security.CurrentUser;
 import sogang.cnu.backend.security.CustomUserDetails;
 
@@ -18,16 +25,21 @@ import java.util.UUID;
 public class ActivityParticipantController {
     private final ActivityParticipantService activityParticipantService;
 
+    // 활동 전체를 가로지르는 참가자 목록이므로 운영진만 조회할 수 있어야 한다.
     @GetMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<ActivityParticipantResponseDto>> getAll() {
         return ResponseEntity.ok(activityParticipantService.getAll());
     }
 
+    // 본인 참가는 /activities/{id}/me로 별도 제공되므로, 이 범용 생성은 운영진 전용이다.
     @PostMapping("")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivityParticipantResponseDto> create(@RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
         return ResponseEntity.ok(activityParticipantService.create(activityParticipantRequestDto));
     }
 
+    // 본인 것인지는 서비스에서 다시 확인한다.
     @GetMapping("/{id}")
     public ResponseEntity<ActivityParticipantResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(activityParticipantService.getById(id));
@@ -39,24 +51,44 @@ public class ActivityParticipantController {
     }
 
     @PatchMapping("/{id}/completed")
-    public ResponseEntity<ActivityParticipantResponseDto> updateCompleted(@PathVariable UUID id) {
-        return ResponseEntity.ok(activityParticipantService.updateCompleted(id));
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ActivityParticipantResponseDto> updateCompleted(
+            @PathVariable UUID id,
+            @Valid @RequestBody ActivityParticipantCompletionDto dto) {
+        return ResponseEntity.ok(activityParticipantService.updateCompleted(id, dto.getCompleted()));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ActivityParticipantResponseDto> update(@PathVariable UUID id, @RequestBody ActivityParticipantRequestDto activityParticipantRequestDto) {
         return ResponseEntity.ok(activityParticipantService.update(id, activityParticipantRequestDto));
     }
 
+    // 본인 참가 취소(활동에서 나가기) 용도로 쓰이므로, 본인 것인지는 서비스에서 확인한다.
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable UUID id) {
         activityParticipantService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{id}/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteByAdmin(@PathVariable UUID id) {
+        activityParticipantService.deleteByAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 활동 담당자는 자기 활동의 일정·출석 관리를 위해 참여자 명단을 조회할 수 있다.
     @GetMapping("/activities/{id}")
     public ResponseEntity<List<ActivityParticipantResponseDto>> getByActivityId(
             @PathVariable("id") UUID activityId) {
         return ResponseEntity.ok(activityParticipantService.getByActivityId(activityId));
+    }
+
+    @GetMapping("/activities/{id}/members")
+    public ResponseEntity<List<ActivityParticipantSummaryDto>> getVisibleMembers(
+            @PathVariable("id") UUID activityId) {
+        return ResponseEntity.ok(activityParticipantService.getVisibleMembers(activityId));
     }
 
     @GetMapping("/activities/{id}/me")
@@ -69,11 +101,28 @@ public class ActivityParticipantController {
     @PostMapping("/activities/{id}/me")
     public ResponseEntity<ActivityParticipantResponseDto> joinActivity(
             @CurrentUser CustomUserDetails user,
-            @PathVariable("id") UUID activityId) {
-        return ResponseEntity.ok(activityParticipantService.createWithUserIdAndActivityId(user.getId(), activityId));
+            @PathVariable("id") UUID activityId,
+            @RequestBody(required = false) ActivityJoinRequestDto request) {
+        return ResponseEntity.ok(activityParticipantService.createWithUserIdAndActivityId(
+                user.getId(), activityId, request));
     }
 
+    @GetMapping("/activities/{id}/capacity")
+    public ResponseEntity<ActivityCapacityResponseDto> getCapacity(
+            @PathVariable("id") UUID activityId) {
+        return ResponseEntity.ok(activityParticipantService.getCapacity(activityId));
+    }
+
+    @GetMapping("/activities/{id}/refund-accounts")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<List<ActivityParticipantRefundAccountDto>> getRefundAccounts(
+            @PathVariable("id") UUID activityId) {
+        return ResponseEntity.ok(activityParticipantService.getRefundAccountsByActivityId(activityId));
+    }
+
+    // 임의의 유저의 활동 이력 전체이므로 운영진 전용이다. 본인 이력은 /me로 조회한다.
     @GetMapping("/users/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<List<ActivityParticipantResponseDto>> getByUserId(
             @PathVariable("id") UUID userId) {
         return ResponseEntity.ok(activityParticipantService.getByUserId(userId));

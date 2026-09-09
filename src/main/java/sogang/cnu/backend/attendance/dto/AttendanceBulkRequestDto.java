@@ -1,5 +1,6 @@
 package sogang.cnu.backend.attendance.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +12,7 @@ import java.util.UUID;
 @Setter
 @Builder
 public class AttendanceBulkRequestDto {
+    @NotNull(message = "활동 회차를 선택해주세요.")
     private UUID sessionId;
     private List<UUID> presentParticipantIds;
     private List<UUID> absentParticipantIds;

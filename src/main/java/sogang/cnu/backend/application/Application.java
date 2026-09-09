@@ -1,7 +1,7 @@
 package sogang.cnu.backend.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Type;
@@ -28,6 +28,9 @@ public class Application extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruitment_id", nullable = false)
     private Recruitment recruitment;
+
+    @Column(name = "applicant_user_id")
+    private UUID applicantUserId;
 
     @Column(nullable = false)
     private String name;
@@ -71,9 +74,14 @@ public class Application extends BaseEntity {
         this.status = newStatus;
     }
 
+    public void updateAnswers(JsonNode newAnswers) {
+        this.answers = newAnswers;
+    }
+
     public static Application create(ApplicationCreateCommand command) {
         return Application.builder()
                 .recruitment(command.getRecruitment())
+                .applicantUserId(command.getApplicantUserId())
                 .name(command.getName())
                 .studentId(command.getStudentId())
                 .major(command.getMajor())
@@ -97,6 +105,6 @@ public class Application extends BaseEntity {
         this.email = command.getEmail();
         this.githubId = command.getGithubId();
         this.phoneNumber = command.getPhoneNumber();
+        this.answers = command.getAnswers();
     }
 }
-

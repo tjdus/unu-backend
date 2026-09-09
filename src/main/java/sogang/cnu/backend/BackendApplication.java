@@ -10,6 +10,7 @@ import java.util.TimeZone;
 @SpringBootApplication
 @EnableJpaAuditing(auditorAwareRef = "auditorAwareImpl")
 @EnableMethodSecurity(prePostEnabled = true)
+@org.springframework.scheduling.annotation.EnableScheduling
 public class BackendApplication {
 
 	public static void main(String[] args) {

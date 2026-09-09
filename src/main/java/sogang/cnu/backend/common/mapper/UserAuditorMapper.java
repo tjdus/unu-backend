@@ -23,6 +23,7 @@ public class UserAuditorMapper {
                             .name(user.getName())
                             .username(user.getUsername())
                             .studentId(user.getStudentId())
+                            .githubId(user.getGithubId())
                             .build())
                     .orElseGet(() -> AuditorDto.builder()
                             .id(id)

@@ -14,4 +14,5 @@ public class AuditorDto {
     private String name;
     private String username;
     private String studentId;
+    private String githubId;
 }

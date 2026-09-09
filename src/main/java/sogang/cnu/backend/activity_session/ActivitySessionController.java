@@ -1,10 +1,12 @@
 package sogang.cnu.backend.activity_session;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import sogang.cnu.backend.activity_session.dto.ActivitySessionRequestDto;
+import sogang.cnu.backend.activity_session.dto.ActivitySessionBulkRequestDto;
 import sogang.cnu.backend.activity_session.dto.ActivitySessionResponseDto;
 import java.util.List;
 import java.util.UUID;
@@ -15,14 +17,22 @@ import java.util.UUID;
 public class ActivitySessionController {
     private final ActivitySessionService activitySessionService;
 
+    // 회차 조회는 학회원 홈/활동 화면에서 쓰이므로 열어두고, 회차 생성·수정·삭제만 운영진으로 제한한다.
     @GetMapping("")
     public ResponseEntity<List<ActivitySessionResponseDto>> getAll() {
         return ResponseEntity.ok(activitySessionService.getAll());
     }
 
     @PostMapping("")
-    public ResponseEntity<ActivitySessionResponseDto> create(@RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
+    public ResponseEntity<ActivitySessionResponseDto> create(@Valid @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
         return ResponseEntity.ok(activitySessionService.create(activitySessionRequestDto));
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<List<ActivitySessionResponseDto>> createBulk(
+            @Valid @RequestBody ActivitySessionBulkRequestDto request
+    ) {
+        return ResponseEntity.ok(activitySessionService.createBulk(request));
     }
 
     @GetMapping("/{id}")
@@ -31,7 +41,7 @@ public class ActivitySessionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ActivitySessionResponseDto> update(@PathVariable UUID id, @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
+    public ResponseEntity<ActivitySessionResponseDto> update(@PathVariable UUID id, @Valid @RequestBody ActivitySessionRequestDto activitySessionRequestDto) {
         return ResponseEntity.ok(activitySessionService.update(id, activitySessionRequestDto));
     }
 

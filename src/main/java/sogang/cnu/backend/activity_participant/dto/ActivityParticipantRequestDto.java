@@ -13,4 +13,5 @@ public class ActivityParticipantRequestDto {
     private UUID activityId;
     private UUID userId;
     private String status;
+    private String reviewMessage;
 }

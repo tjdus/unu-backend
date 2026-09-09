@@ -5,9 +5,10 @@ import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.common.domain.dto.AuditorDto;
 import sogang.cnu.backend.form.dto.FormResponseDto;
+import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
+import sogang.cnu.backend.recruitment.RecruitmentType;
 
 import java.util.UUID;
-import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 
 @Getter
 @Setter
@@ -16,6 +17,7 @@ public class RecruitmentResponseDto {
     private UUID id;
     private String title;
     private String description;
+    private String completionMessage;
     private String startAt;
     private String endAt;
     private QuarterResponseDto quarter;
@@ -25,5 +27,5 @@ public class RecruitmentResponseDto {
     private String modifiedAt;
     private AuditorDto createdBy;
     private AuditorDto modifiedBy;
+    private RecruitmentType type;
 }
-
