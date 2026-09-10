@@ -13,6 +13,7 @@ import sogang.cnu.backend.activity_participant.dto.ActivityParticipantSummaryDto
 import sogang.cnu.backend.activity_participant.dto.ActivityCapacityResponseDto;
 import sogang.cnu.backend.attendance.AttendanceRepository;
 import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
+import sogang.cnu.backend.budget.StudyDepositLedgerService;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.ForbiddenException;
 import sogang.cnu.backend.common.exception.NotFoundException;
@@ -40,6 +41,7 @@ public class ActivityParticipantService {
     private final UserRepository userRepository;
     private final AttendanceRepository attendanceRepository;
     private final AttendanceReportRepository attendanceReportRepository;
+    private final StudyDepositLedgerService studyDepositLedgerService;
 
 
     @Transactional(readOnly = true)
@@ -116,6 +118,7 @@ public class ActivityParticipantService {
             existing.updateStatus(initialStatus);
             if (requiresDeposit(targetActivity)) {
                 recordDepositApplication(existing, request);
+                studyDepositLedgerService.recordDeposit(existing);
             }
             if (isProject(targetActivity)) {
                 recordProjectApplication(existing, request);
@@ -144,6 +147,9 @@ public class ActivityParticipantService {
             activityParticipant.recordLectureParticipationMode(LectureParticipationMode.INDIVIDUAL);
         }
         activityParticipantRepository.save(activityParticipant);
+        if (requiresDeposit(targetActivity)) {
+            studyDepositLedgerService.recordDeposit(activityParticipant);
+        }
         activateUserIfApproved(activityParticipant);
         return activityParticipantMapper.toResponseDto(activityParticipant);
     }
@@ -254,8 +260,18 @@ public class ActivityParticipantService {
                 throw new BadRequestException("강의 담당자는 수료 대상이 아닙니다.");
             }
         }
-        activity.updateCompleted(completed);
+        applyCompletedChange(activity, completed);
         return activityParticipantMapper.toResponseDto(activity);
+    }
+
+    private void applyCompletedChange(ActivityParticipant participant, boolean completed) {
+        boolean before = Boolean.TRUE.equals(participant.getCompleted());
+        participant.updateCompleted(completed);
+        if (!before && completed) {
+            studyDepositLedgerService.recordRefund(participant);
+        } else if (before && !completed) {
+            studyDepositLedgerService.voidRefund(participant);
+        }
     }
 
     private boolean isSpecialLectureAssignee(ActivityParticipant participant) {
@@ -273,6 +289,7 @@ public class ActivityParticipantService {
         ActivityParticipant activity = activityParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
         requireOwnerOrManager(activity);
+        studyDepositLedgerService.voidAllForParticipant(activity);
         activityParticipantRepository.delete(activity);
     }
 
@@ -285,6 +302,7 @@ public class ActivityParticipantService {
                 .orElseThrow(() -> new NotFoundException("ActivityParticipant not found"));
         attendanceReportRepository.deleteByParticipantId(id);
         attendanceRepository.deleteByParticipantId(id);
+        studyDepositLedgerService.voidAllForParticipant(participant);
         activityParticipantRepository.delete(participant);
     }
 
@@ -429,7 +447,7 @@ public class ActivityParticipantService {
     ) {
         validateCapacityTransition(participant, newStatus);
         if (newStatus != ActivityParticipantStatus.APPROVED) {
-            participant.updateCompleted(false);
+            applyCompletedChange(participant, false);
         }
         participant.updateStatus(newStatus);
         activateUserIfApproved(participant);

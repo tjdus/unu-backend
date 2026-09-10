@@ -129,6 +129,29 @@ public class BudgetService {
                 .orElse(0L);
     }
 
+    // 스터디 보증금 등 파생 합계를 특정 카테고리의 actualAmount로 동기화 (find-or-create)
+    @Transactional
+    public void syncCategoryActualAmount(UUID quarterId, Integer month, BudgetCategory category, long totalAmount) {
+        Quarter quarter = quarterRepository.findById(quarterId)
+                .orElseThrow(() -> new IllegalArgumentException("분기를 찾을 수 없습니다."));
+
+        BudgetPlan plan = budgetPlanRepository.findByQuarterIdAndMonth(quarterId, month)
+                .orElseGet(() -> budgetPlanRepository.save(
+                        BudgetPlan.builder().quarter(quarter).month(month).build()));
+
+        BudgetItem item = budgetItemRepository.findFirstByBudgetPlanIdAndCategory(plan.getId(), category)
+                .orElseGet(() -> budgetItemRepository.save(
+                        BudgetItem.builder()
+                                .budgetPlan(plan)
+                                .category(category)
+                                .plannedAmount(0L)
+                                .actualAmount(0L)
+                                .displayOrder(null)
+                                .build()));
+
+        item.update(item.getPlannedAmount(), totalAmount, item.getNote(), item.getDisplayOrder());
+    }
+
     private BudgetItem buildItem(BudgetPlan plan, BudgetItemRequestDto dto) {
         return BudgetItem.builder()
                 .budgetPlan(plan)
