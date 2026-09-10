@@ -7,6 +7,7 @@ import sogang.cnu.backend.activity.Activity;
 import sogang.cnu.backend.activity.ActivityStatus;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -64,5 +65,29 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
             @Param("status") ActivityParticipantStatus status,
             @Param("today") LocalDate today,
             @Param("excludedActivityStatus") ActivityStatus excludedActivityStatus
+    );
+
+    @Query("""
+            SELECT ap FROM ActivityParticipant ap
+            WHERE ap.status = :status
+              AND ap.createdAt > :since
+            ORDER BY ap.createdAt DESC
+            """)
+    List<ActivityParticipant> findNewApplicants(
+            @Param("status") ActivityParticipantStatus status,
+            @Param("since") LocalDateTime since
+    );
+
+    @Query("""
+            SELECT ap FROM ActivityParticipant ap
+            WHERE ap.status = :status
+              AND ap.createdAt > :since
+              AND ap.activity.id IN :activityIds
+            ORDER BY ap.createdAt DESC
+            """)
+    List<ActivityParticipant> findNewApplicantsForActivities(
+            @Param("status") ActivityParticipantStatus status,
+            @Param("since") LocalDateTime since,
+            @Param("activityIds") Collection<UUID> activityIds
     );
 }
