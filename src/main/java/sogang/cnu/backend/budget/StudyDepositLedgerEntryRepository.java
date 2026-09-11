@@ -42,4 +42,13 @@ public interface StudyDepositLedgerEntryRepository extends JpaRepository<StudyDe
             @Param("month") Integer month,
             @Param("category") BudgetCategory category
     );
+
+    @Query("SELECT e FROM StudyDepositLedgerEntry e " +
+            "JOIN FETCH e.activityParticipant p " +
+            "JOIN FETCH p.activity a " +
+            "JOIN FETCH p.user u " +
+            "JOIN FETCH e.quarter q " +
+            "WHERE q.year = :year " +
+            "ORDER BY e.occurredAt ASC")
+    List<StudyDepositLedgerEntry> findDetailByYear(@Param("year") Integer year);
 }
