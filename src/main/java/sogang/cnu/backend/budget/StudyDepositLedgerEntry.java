@@ -16,6 +16,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import sogang.cnu.backend.activity_participant.ActivityParticipant;
 import sogang.cnu.backend.common.domain.BaseEntity;
 import sogang.cnu.backend.quarter.Quarter;
@@ -48,6 +50,7 @@ public class StudyDepositLedgerEntry extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_participant_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ActivityParticipant activityParticipant;
 
     @Enumerated(EnumType.STRING)

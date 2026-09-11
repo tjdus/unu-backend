@@ -15,6 +15,14 @@ public interface StudyDepositLedgerEntryRepository extends JpaRepository<StudyDe
 
     void deleteByActivityParticipantId(UUID activityParticipantId);
 
+    /**
+     * 활동 삭제 시 정리해야 할 원장 행 목록.
+     * 참여자는 Activity에서 cascade 삭제되지만 이 FK는 ON DELETE CASCADE가 아니므로 명시적 정리가 필요하다.
+     */
+    @Query("SELECT e FROM StudyDepositLedgerEntry e JOIN FETCH e.quarter " +
+            "WHERE e.activityParticipant.activity.id = :activityId")
+    List<StudyDepositLedgerEntry> findByActivityId(@Param("activityId") UUID activityId);
+
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM StudyDepositLedgerEntry e " +
             "WHERE e.quarter.id = :quarterId AND e.month = :month AND e.category = :category")
     long sumAmount(

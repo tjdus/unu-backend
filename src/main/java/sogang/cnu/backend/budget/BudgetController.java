@@ -2,6 +2,7 @@ package sogang.cnu.backend.budget;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.budget.dto.BudgetPlanRequestDto;
 import sogang.cnu.backend.budget.dto.BudgetPlanResponseDto;
@@ -9,9 +10,11 @@ import sogang.cnu.backend.budget.dto.BudgetPlanResponseDto;
 import java.util.List;
 import java.util.UUID;
 
+// 학회 예산은 총무(운영진) 전용 데이터 — 일반 학회원이 직접 API를 호출해 열람/변경할 수 없어야 한다
 @RestController
 @RequestMapping("/api/budget")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
 public class BudgetController {
 
     private final BudgetService budgetService;

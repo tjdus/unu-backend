@@ -13,6 +13,7 @@ import sogang.cnu.backend.quarter.QuarterRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,28 @@ public class StudyDepositLedgerService {
         voidEntry(participant, BudgetCategory.INCOME_STUDY_DEPOSIT);
         voidEntry(participant, BudgetCategory.EXPENSE_STUDY_DEPOSIT_REFUND);
     }
+
+    /**
+     * 활동이 삭제될 때 그 활동 참여자들의 원장 행을 모두 제거한다.
+     * 참여자는 Activity에서 cascade 삭제되지만 원장 FK가 이를 막으므로 활동 삭제 전에 먼저 호출해야 한다.
+     */
+    public void voidAllForActivity(UUID activityId) {
+        List<StudyDepositLedgerEntry> entries = ledgerRepository.findByActivityId(activityId);
+        if (entries.isEmpty()) {
+            return;
+        }
+        // 삭제 전에 영향받는 (분기, 월, 카테고리) 조합을 모아둔다 (삭제 후에는 조회할 수 없다)
+        Set<MonthlyCategory> affected = entries.stream()
+                .map(e -> new MonthlyCategory(e.getQuarter().getId(), e.getMonth(), e.getCategory()))
+                .collect(Collectors.toSet());
+
+        ledgerRepository.deleteAll(entries);
+        ledgerRepository.flush();
+
+        affected.forEach(key -> resync(key.quarterId(), key.month(), key.category()));
+    }
+
+    private record MonthlyCategory(UUID quarterId, Integer month, BudgetCategory category) {}
 
     @Transactional(readOnly = true)
     public List<StudyDepositLedgerEntryDto> getDetail(UUID quarterId, Integer month, BudgetCategory category) {

@@ -21,6 +21,7 @@ import sogang.cnu.backend.activity.dto.ActivityRequestDto;
 import sogang.cnu.backend.activity.dto.ActivityResponseDto;
 import sogang.cnu.backend.attendance.AttendanceRepository;
 import sogang.cnu.backend.attendance_report.AttendanceReportRepository;
+import sogang.cnu.backend.budget.StudyDepositLedgerService;
 import sogang.cnu.backend.course_time_reservation.CourseTimeReservationRepository;
 import sogang.cnu.backend.activity_notice.ActivityNoticeRepository;
 import sogang.cnu.backend.activity_notice.ActivityNoticeReadRepository;
@@ -60,6 +61,7 @@ public class ActivityService {
     private final ActivityNoticeReadRepository activityNoticeReadRepository;
     private final ActivityOpeningRequestRepository activityOpeningRequestRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
+    private final StudyDepositLedgerService studyDepositLedgerService;
     private final PermissionChecker permissionChecker;
 
     @Transactional(readOnly = true)
@@ -182,6 +184,8 @@ public class ActivityService {
                 });
         activityOpeningRequestRepository.detachParentActivity(id);
         activityRepository.detachChildActivities(id);
+        // 참여자는 Activity에서 cascade 삭제되므로, 참여자를 참조하는 보증금 원장 행을 먼저 정리한다
+        studyDepositLedgerService.voidAllForActivity(id);
         activityRepository.delete(activity);
     }
 

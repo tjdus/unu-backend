@@ -10,7 +10,13 @@ import java.util.UUID;
  * 예산 항목 (수입/지출 개별 항목)
  */
 @Entity
-@Table(name = "budget_items")
+@Table(
+    name = "budget_items",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_budget_item_plan_category",
+        columnNames = {"budget_plan_id", "category"}
+    )
+)
 @Getter
 @Builder
 @NoArgsConstructor

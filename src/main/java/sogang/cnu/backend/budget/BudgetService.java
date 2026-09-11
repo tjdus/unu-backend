@@ -6,10 +6,14 @@ import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.budget.dto.BudgetItemRequestDto;
 import sogang.cnu.backend.budget.dto.BudgetPlanRequestDto;
 import sogang.cnu.backend.budget.dto.BudgetPlanResponseDto;
+import sogang.cnu.backend.common.exception.BadRequestException;
+import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,26 +37,27 @@ public class BudgetService {
     // 특정 월 예산 계획 조회
     public BudgetPlanResponseDto getByQuarterAndMonth(UUID quarterId, Integer month) {
         BudgetPlan plan = budgetPlanRepository.findByQuarterIdAndMonth(quarterId, month)
-                .orElseThrow(() -> new IllegalArgumentException("예산 계획을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("예산 계획을 찾을 수 없습니다."));
         return BudgetPlanResponseDto.from(plan);
     }
 
     // 예산 계획 단건 조회
     public BudgetPlanResponseDto getById(UUID id) {
         BudgetPlan plan = budgetPlanRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("예산 계획을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("예산 계획을 찾을 수 없습니다."));
         return BudgetPlanResponseDto.from(plan);
     }
 
     // 예산 계획 생성 (월별 항목 포함)
     @Transactional
     public BudgetPlanResponseDto create(BudgetPlanRequestDto dto) {
+        validateNoDuplicateCategory(dto);
         Quarter quarter = quarterRepository.findById(dto.getQuarterId())
-                .orElseThrow(() -> new IllegalArgumentException("분기를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
 
         // 이미 해당 월 계획이 있으면 예외
         if (budgetPlanRepository.findByQuarterIdAndMonth(dto.getQuarterId(), dto.getMonth()).isPresent()) {
-            throw new IllegalStateException("해당 분기/월의 예산 계획이 이미 존재합니다.");
+            throw new BadRequestException("해당 분기/월의 예산 계획이 이미 존재합니다.");
         }
 
         BudgetPlan plan = BudgetPlan.builder()
@@ -78,13 +83,16 @@ public class BudgetService {
     // 예산 계획 수정 (항목 전체 교체)
     @Transactional
     public BudgetPlanResponseDto update(UUID id, BudgetPlanRequestDto dto) {
+        validateNoDuplicateCategory(dto);
         BudgetPlan plan = budgetPlanRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("예산 계획을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("예산 계획을 찾을 수 없습니다."));
 
         plan.update(dto.getNote());
 
         // 기존 항목 전체 삭제 후 재등록
+        // (카테고리 유니크 제약이 있으므로 재등록 INSERT 전에 삭제를 먼저 DB에 반영해야 한다)
         budgetItemRepository.deleteByBudgetPlanId(id);
+        budgetItemRepository.flush();
         plan.getItems().clear();
 
         if (dto.getItems() != null) {
@@ -102,38 +110,43 @@ public class BudgetService {
     @Transactional
     public void delete(UUID id) {
         BudgetPlan plan = budgetPlanRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("예산 계획을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("예산 계획을 찾을 수 없습니다."));
         budgetPlanRepository.delete(plan);
     }
 
-    // 전월 이월금 자동 계산: 전달 실제 마진을 반환
+    // 전월 이월금 자동 계산: 전달 실제 마진을 반환.
+    // 전달이 다른 학기(1월이면 이전 연도 12월)에 속할 수 있으므로 분기가 아닌 연도+월 기준으로 찾는다.
     public Long getPreviousMonthCarryover(UUID quarterId, Integer month) {
-        int prevMonth = month - 1;
-        UUID targetQuarterId = quarterId;
+        Quarter quarter = quarterRepository.findById(quarterId)
+                .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
 
-        // 1월이면 이전 분기의 마지막 달을 찾아야 하나 일단 0 반환
+        int prevMonth = month - 1;
+        int prevYear = quarter.getYear();
         if (prevMonth < 1) {
-            return 0L;
+            prevMonth = 12;
+            prevYear -= 1;
         }
 
-        return budgetPlanRepository.findByQuarterIdAndMonth(targetQuarterId, prevMonth)
-                .map(plan -> {
-                    long actualIncome = plan.getItems().stream()
-                            .filter(i -> i.getCategory().name().startsWith("INCOME_") && i.getActualAmount() != null)
-                            .mapToLong(BudgetItem::getActualAmount).sum();
-                    long actualExpense = plan.getItems().stream()
-                            .filter(i -> i.getCategory().name().startsWith("EXPENSE_") && i.getActualAmount() != null)
-                            .mapToLong(i -> Math.abs(i.getActualAmount())).sum();
-                    return actualIncome - actualExpense;
-                })
-                .orElse(0L);
+        return budgetPlanRepository.findByYearAndMonthWithItems(prevYear, prevMonth).stream()
+                .mapToLong(BudgetService::actualMargin)
+                .sum();
+    }
+
+    private static long actualMargin(BudgetPlan plan) {
+        long actualIncome = plan.getItems().stream()
+                .filter(i -> i.getCategory().name().startsWith("INCOME_") && i.getActualAmount() != null)
+                .mapToLong(BudgetItem::getActualAmount).sum();
+        long actualExpense = plan.getItems().stream()
+                .filter(i -> i.getCategory().name().startsWith("EXPENSE_") && i.getActualAmount() != null)
+                .mapToLong(i -> Math.abs(i.getActualAmount())).sum();
+        return actualIncome - actualExpense;
     }
 
     // 스터디 보증금 등 파생 합계를 특정 카테고리의 actualAmount로 동기화 (find-or-create)
     @Transactional
     public void syncCategoryActualAmount(UUID quarterId, Integer month, BudgetCategory category, long totalAmount) {
         Quarter quarter = quarterRepository.findById(quarterId)
-                .orElseThrow(() -> new IllegalArgumentException("분기를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
 
         BudgetPlan plan = budgetPlanRepository.findByQuarterIdAndMonth(quarterId, month)
                 .orElseGet(() -> budgetPlanRepository.save(
@@ -150,6 +163,19 @@ public class BudgetService {
                                 .build()));
 
         item.update(item.getPlannedAmount(), totalAmount, item.getNote(), item.getDisplayOrder());
+    }
+
+    // 한 달에 같은 카테고리 항목이 두 개 이상 오면 DB 유니크 제약에 걸리므로 미리 걸러 400으로 응답한다
+    private void validateNoDuplicateCategory(BudgetPlanRequestDto dto) {
+        if (dto.getItems() == null) {
+            return;
+        }
+        Set<BudgetCategory> seen = new HashSet<>();
+        for (BudgetItemRequestDto item : dto.getItems()) {
+            if (!seen.add(item.getCategory())) {
+                throw new BadRequestException("같은 카테고리 항목이 중복되었습니다: " + item.getCategory());
+            }
+        }
     }
 
     private BudgetItem buildItem(BudgetPlan plan, BudgetItemRequestDto dto) {
