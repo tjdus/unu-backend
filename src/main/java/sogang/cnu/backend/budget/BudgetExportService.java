@@ -11,6 +11,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.activity_participant.ActivityParticipant;
+import sogang.cnu.backend.quarter.Quarter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,8 +42,14 @@ public class BudgetExportService {
 
     @Transactional(readOnly = true)
     public byte[] exportYear(int year) {
-        List<BudgetPlan> plans = budgetPlanRepository.findByYearWithItems(year);
-        List<StudyDepositLedgerEntry> ledgerEntries = ledgerRepository.findDetailByYear(year);
+        // 겨울학기(quarter.year = year-1)에 속한 1~2월까지 포함하려고 두 해의 분기를 후보로 가져온 뒤 달력 연도로 거른다
+        List<Integer> candidateYears = List.of(year - 1, year);
+        List<BudgetPlan> plans = budgetPlanRepository.findByQuarterYearsWithItems(candidateYears).stream()
+                .filter(plan -> isInCalendarYear(plan.getQuarter(), plan.getMonth(), year))
+                .toList();
+        List<StudyDepositLedgerEntry> ledgerEntries = ledgerRepository.findDetailByQuarterYears(candidateYears).stream()
+                .filter(entry -> isInCalendarYear(entry.getQuarter(), entry.getMonth(), year))
+                .toList();
 
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -120,6 +127,11 @@ public class BudgetExportService {
         }
         writeAmountRow(sheet, styles, rowIdx++, prefix + " 마진", margin, styles.amountBold);
         return rowIdx;
+    }
+
+    private boolean isInCalendarYear(Quarter quarter, Integer month, int year) {
+        if (month == null || month < 1 || month > MONTH_COUNT) return false;
+        return BudgetCalendar.toYearMonth(quarter, month).getYear() == year;
     }
 
     /** 카테고리별 월(1~12) 금액 집계. 같은 연도에 분기가 여러 개면 같은 월끼리 합산한다. */

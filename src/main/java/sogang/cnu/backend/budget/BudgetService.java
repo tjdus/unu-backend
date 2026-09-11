@@ -11,6 +11,7 @@ import sogang.cnu.backend.common.exception.NotFoundException;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 
+import java.time.YearMonth;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -115,19 +116,19 @@ public class BudgetService {
     }
 
     // 전월 이월금 자동 계산: 전달 실제 마진을 반환.
-    // 전달이 다른 학기(1월이면 이전 연도 12월)에 속할 수 있으므로 분기가 아닌 연도+월 기준으로 찾는다.
+    // 전달이 다른 학기(겨울학기, 이전 연도 12월 등)에 속할 수 있으므로 실제 달력 연월 기준으로 찾는다.
     public Long getPreviousMonthCarryover(UUID quarterId, Integer month) {
+        if (month == null || month < 1 || month > 12) {
+            throw new BadRequestException("월은 1~12 사이여야 합니다.");
+        }
         Quarter quarter = quarterRepository.findById(quarterId)
                 .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
 
-        int prevMonth = month - 1;
-        int prevYear = quarter.getYear();
-        if (prevMonth < 1) {
-            prevMonth = 12;
-            prevYear -= 1;
-        }
+        YearMonth prev = BudgetCalendar.toYearMonth(quarter, month).minusMonths(1);
+        List<Integer> candidateYears = List.of(prev.getYear() - 1, prev.getYear());
 
-        return budgetPlanRepository.findByYearAndMonthWithItems(prevYear, prevMonth).stream()
+        return budgetPlanRepository.findByQuarterYearsAndMonthWithItems(candidateYears, prev.getMonthValue()).stream()
+                .filter(plan -> BudgetCalendar.toYearMonth(plan.getQuarter(), plan.getMonth()).equals(prev))
                 .mapToLong(BudgetService::actualMargin)
                 .sum();
     }

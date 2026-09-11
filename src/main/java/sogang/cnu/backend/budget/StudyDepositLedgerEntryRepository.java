@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,7 +49,7 @@ public interface StudyDepositLedgerEntryRepository extends JpaRepository<StudyDe
             "JOIN FETCH p.activity a " +
             "JOIN FETCH p.user u " +
             "JOIN FETCH e.quarter q " +
-            "WHERE q.year = :year " +
+            "WHERE q.year IN :years " +
             "ORDER BY e.occurredAt ASC")
-    List<StudyDepositLedgerEntry> findDetailByYear(@Param("year") Integer year);
+    List<StudyDepositLedgerEntry> findDetailByQuarterYears(@Param("years") Collection<Integer> years);
 }
