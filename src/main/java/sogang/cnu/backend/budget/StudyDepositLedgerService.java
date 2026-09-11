@@ -92,7 +92,7 @@ public class StudyDepositLedgerService {
         }
         UUID quarterId = currentQuarterService.getCurrentQuarterId();
         if (quarterId == null) {
-            log.warn("현재 분기가 설정되지 않아 스터디 보증금 가계부 항목을 기록하지 않음. participantId={}, category={}",
+            log.warn("현재 분기가 설정되지 않아 스터디 보증금 예산안 항목을 기록하지 않음. participantId={}, category={}",
                     participant.getId(), category);
             return; // 참여 신청/수료 처리 자체는 막지 않는다
         }

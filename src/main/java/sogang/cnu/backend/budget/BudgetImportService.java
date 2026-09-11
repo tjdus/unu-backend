@@ -37,7 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * BudgetExportService가 만든 '예산안' 시트를 다시 읽어 가계부에 반영한다.
+ * BudgetExportService가 만든 '예산안' 시트를 다시 읽어 시스템 예산안에 반영한다.
  * 미리보기(preview)는 저장 없이 월별 변경 내역만 계산하고, 적용(apply)은 같은 계산 후
  * 오류가 하나라도 있으면 아무것도 저장하지 않는다(all-or-nothing).
  */
@@ -139,7 +139,7 @@ public class BudgetImportService {
         try {
             return WorkbookFactory.create(file.getInputStream());
         } catch (IOException | RuntimeException e) {
-            throw new BadRequestException("엑셀 파일을 열 수 없습니다. 가계부에서 내려받은 .xlsx 양식인지 확인해주세요.");
+            throw new BadRequestException("엑셀 파일을 열 수 없습니다. 예산 관리 화면에서 내려받은 .xlsx 양식인지 확인해주세요.");
         }
     }
 
@@ -156,7 +156,7 @@ public class BudgetImportService {
         int headerRow = findHeaderRow(sheet);
         int year = findYear(sheet, headerRow < 0 ? HEADER_SEARCH_ROWS : headerRow);
         if (year == 0) {
-            errors.add("제목 셀에서 연도를 찾을 수 없습니다. (예: '2026년 가계부')");
+            errors.add("제목 셀에서 연도를 찾을 수 없습니다. (예: '2026년 예산안')");
         }
         if (headerRow < 0) {
             errors.add("'항목 / 1월 … 12월' 헤더 행을 찾을 수 없습니다.");

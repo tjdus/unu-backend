@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * 가계부 데이터를 총무의 기존 구글 시트 양식(.xlsx)으로 내보낸다.
+ * 예산안 데이터를 총무의 기존 구글 시트 양식(.xlsx)으로 내보낸다.
  * 시트 구성: '예산안'(카테고리 행 × 1~12월 열, 예상 블록 + 실제 블록), '수입지출 총액'(스터디 보증금 건별 내역).
  */
 @Service
@@ -59,7 +59,7 @@ public class BudgetExportService {
             workbook.write(out);
             return out.toByteArray();
         } catch (IOException e) {
-            throw new UncheckedIOException("가계부 엑셀 생성에 실패했습니다.", e);
+            throw new UncheckedIOException("예산안 엑셀 생성에 실패했습니다.", e);
         }
     }
 
@@ -72,7 +72,7 @@ public class BudgetExportService {
 
         int rowIdx = 0;
         Row titleRow = sheet.createRow(rowIdx++);
-        setText(titleRow, COL_LABEL, year + "년 가계부", styles.title);
+        setText(titleRow, COL_LABEL, year + "년 예산안", styles.title);
 
         Row headerRow = sheet.createRow(rowIdx++);
         setText(headerRow, COL_LABEL, "항목", styles.header);

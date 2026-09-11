@@ -3,7 +3,7 @@ package sogang.cnu.backend.budget;
 import java.util.List;
 
 /**
- * 가계부 엑셀(.xlsx) 양식의 항목 순서/라벨 정의.
+ * 예산안 엑셀(.xlsx) 양식의 항목 순서/라벨 정의.
  * 총무가 쓰던 구글 시트의 '예산안' 탭 행 구성을 그대로 따른다.
  * 내보내기(BudgetExportService)와 추후 업로드 파서가 같은 정의를 공유하도록 한 곳에 모아둔다.
  */

@@ -450,7 +450,7 @@ public class ActivityParticipantService {
             applyCompletedChange(participant, false);
         }
         if (newStatus == ActivityParticipantStatus.REJECTED) {
-            // 반려된 신청자는 참여하지 않으므로 수납 처리된 보증금도 가계부에서 되돌린다
+            // 반려된 신청자는 참여하지 않으므로 수납 처리된 보증금도 예산안에서 되돌린다
             // (본인이 신청을 취소하는 경로와 동일한 처리)
             studyDepositLedgerService.voidAllForParticipant(participant);
         }

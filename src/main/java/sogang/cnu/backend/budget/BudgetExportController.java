@@ -29,7 +29,7 @@ public class BudgetExportController {
         byte[] body = budgetExportService.exportYear(year);
 
         // 한글 파일명은 RFC 5987 형식으로 인코딩해야 브라우저에서 깨지지 않는다
-        String filename = URLEncoder.encode(year + "년_가계부.xlsx", StandardCharsets.UTF_8)
+        String filename = URLEncoder.encode(year + "년_예산안.xlsx", StandardCharsets.UTF_8)
                 .replace("+", "%20");
 
         return ResponseEntity.ok()
