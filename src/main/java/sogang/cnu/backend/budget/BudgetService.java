@@ -26,12 +26,16 @@ public class BudgetService {
     private final BudgetPlanRepository budgetPlanRepository;
     private final BudgetItemRepository budgetItemRepository;
     private final QuarterRepository quarterRepository;
+    // 파생 항목(보증금·건별 상세 내역)을 다시 계산할 때 원천 데이터를 직접 읽는다.
+    // 각 원천 서비스는 BudgetService를 쓰고 있어서 서비스끼리 참조하면 순환이 된다.
+    private final StudyDepositLedgerEntryRepository studyDepositLedgerEntryRepository;
+    private final BudgetExpenseEntryRepository budgetExpenseEntryRepository;
 
     // 분기별 예산 계획 목록 조회
     public List<BudgetPlanResponseDto> getByQuarter(UUID quarterId) {
         return budgetPlanRepository.findByQuarterIdWithItems(quarterId)
                 .stream()
-                .map(BudgetPlanResponseDto::from)
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -39,14 +43,14 @@ public class BudgetService {
     public BudgetPlanResponseDto getByQuarterAndMonth(UUID quarterId, Integer month) {
         BudgetPlan plan = budgetPlanRepository.findByQuarterIdAndMonth(quarterId, month)
                 .orElseThrow(() -> new NotFoundException("예산 계획을 찾을 수 없습니다."));
-        return BudgetPlanResponseDto.from(plan);
+        return toResponse(plan);
     }
 
     // 예산 계획 단건 조회
     public BudgetPlanResponseDto getById(UUID id) {
         BudgetPlan plan = budgetPlanRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("예산 계획을 찾을 수 없습니다."));
-        return BudgetPlanResponseDto.from(plan);
+        return toResponse(plan);
     }
 
     // 예산 계획 생성 (월별 항목 포함)
@@ -78,7 +82,8 @@ public class BudgetService {
             savedPlan.getItems().addAll(items);
         }
 
-        return BudgetPlanResponseDto.from(savedPlan);
+        applyDerivedAmounts(savedPlan);
+        return toResponse(savedPlan);
     }
 
     // 예산 계획 수정 (항목 전체 교체)
@@ -104,7 +109,8 @@ public class BudgetService {
             plan.getItems().addAll(items);
         }
 
-        return BudgetPlanResponseDto.from(plan);
+        applyDerivedAmounts(plan);
+        return toResponse(plan);
     }
 
     // 예산 계획 삭제
@@ -133,6 +139,14 @@ public class BudgetService {
                 .sum();
     }
 
+    /** 응답에 "이 달에 상세 내역으로 잠긴 항목" 목록을 함께 실어 화면이 입력칸을 막을 수 있게 한다 */
+    private BudgetPlanResponseDto toResponse(BudgetPlan plan) {
+        BudgetPlanResponseDto dto = BudgetPlanResponseDto.from(plan);
+        dto.setEntryManagedCategories(budgetExpenseEntryRepository.findCategoriesWithEntries(
+                plan.getQuarter().getId(), plan.getMonth()));
+        return dto;
+    }
+
     private static long actualMargin(BudgetPlan plan) {
         long actualIncome = plan.getItems().stream()
                 .filter(i -> i.getCategory().name().startsWith("INCOME_") && i.getActualAmount() != null)
@@ -143,11 +157,20 @@ public class BudgetService {
         return actualIncome - actualExpense;
     }
 
-    // 스터디 보증금 등 파생 합계를 특정 카테고리의 예상·실제 금액에 함께 동기화 (find-or-create).
-    // 총무님 시트도 보증금은 한 줄에 예산(예상)과 실제를 같은 금액으로 적는다 — 받는 순간 금액이 확정되므로
-    // 예상을 따로 세우지 않는다. 그래서 두 값을 같이 맞춰 예상 마진과 실제 마진이 어긋나지 않게 한다.
+    /**
+     * 보증금처럼 예상·실제가 같은 금액인 파생 카테고리 동기화.
+     * 총무님 시트도 보증금은 한 줄에 예산(예상)과 실제를 같은 금액으로 적는다 — 받는 순간 금액이 확정되므로
+     * 예상을 따로 세우지 않는다. 그래서 두 값을 같이 맞춰 예상 마진과 실제 마진이 어긋나지 않게 한다.
+     */
     @Transactional
     public void syncCategoryAmounts(UUID quarterId, Integer month, BudgetCategory category, long totalAmount) {
+        syncCategoryAmounts(quarterId, month, category, totalAmount, totalAmount);
+    }
+
+    // 파생 합계를 특정 카테고리의 예상·실제 금액에 동기화 (계획/항목이 없으면 생성)
+    @Transactional
+    public void syncCategoryAmounts(UUID quarterId, Integer month, BudgetCategory category,
+                                    long plannedTotal, long actualTotal) {
         Quarter quarter = quarterRepository.findById(quarterId)
                 .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
 
@@ -165,7 +188,51 @@ public class BudgetService {
                                 .displayOrder(null)
                                 .build()));
 
-        item.update(totalAmount, totalAmount, item.getNote(), item.getDisplayOrder());
+        item.update(plannedTotal, actualTotal, item.getNote(), item.getDisplayOrder());
+    }
+
+    /**
+     * 계획을 저장한 뒤 파생 카테고리(보증금·건별 상세 내역)의 금액을 원천 데이터에서 다시 계산한다.
+     * 화면 편집 모달은 이 항목들의 입력칸을 잠그지만, 엑셀 업로드나 API 직접 호출로도 못 덮어쓰게 하려면
+     * 저장 경로에서 한 번 더 맞춰야 한다.
+     */
+    private void applyDerivedAmounts(BudgetPlan plan) {
+        UUID quarterId = plan.getQuarter().getId();
+        Integer month = plan.getMonth();
+
+        // 보증금은 항상, 건별 상세 내역은 그 달에 내역이 있을 때만 원천에서 다시 계산한다
+        List<BudgetCategory> derived = new java.util.ArrayList<>(BudgetCategory.DEPOSIT_CATEGORIES);
+        derived.addAll(budgetExpenseEntryRepository.findCategoriesWithEntries(quarterId, month));
+
+        for (BudgetCategory category : derived) {
+            long planned;
+            long actual;
+            if (BudgetCategory.DEPOSIT_CATEGORIES.contains(category)) {
+                planned = studyDepositLedgerEntryRepository.sumAmount(quarterId, month, category);
+                actual = planned;
+            } else {
+                planned = budgetExpenseEntryRepository.sumPlanned(quarterId, month, category);
+                actual = budgetExpenseEntryRepository.sumActual(quarterId, month, category);
+            }
+
+            BudgetItem item = plan.getItems().stream()
+                    .filter(i -> i.getCategory() == category)
+                    .findFirst()
+                    .orElse(null);
+            if (item == null) {
+                // 원천 데이터도 없으면 빈 항목을 만들지 않는다
+                if (planned == 0 && actual == 0) continue;
+                item = budgetItemRepository.save(BudgetItem.builder()
+                        .budgetPlan(plan)
+                        .category(category)
+                        .plannedAmount(planned)
+                        .actualAmount(actual)
+                        .build());
+                plan.getItems().add(item);
+                continue;
+            }
+            item.update(planned, actual, item.getNote(), item.getDisplayOrder());
+        }
     }
 
     // 한 달에 같은 카테고리 항목이 두 개 이상 오면 DB 유니크 제약에 걸리므로 미리 걸러 400으로 응답한다

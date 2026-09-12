@@ -2,6 +2,7 @@ package sogang.cnu.backend.budget.dto;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import sogang.cnu.backend.budget.BudgetCategory;
 import sogang.cnu.backend.budget.BudgetItem;
 import sogang.cnu.backend.budget.BudgetPlan;
@@ -28,6 +29,11 @@ public class BudgetPlanResponseDto {
     private Long actualIncome;       // 실제 수입 합계
     private Long actualExpense;      // 실제 지출 합계 (양수로 표현)
     private Long actualMargin;       // 실제 마진 (실제 수입 - 실제 지출)
+
+    // 그 달에 건별 상세 내역이 있어 금액을 직접 못 고치는 카테고리 (서비스에서 채운다)
+    @Setter
+    @Builder.Default
+    private List<BudgetCategory> entryManagedCategories = List.of();
 
     public static BudgetPlanResponseDto from(BudgetPlan plan) {
         List<BudgetItemResponseDto> itemDtos = plan.getItems().stream()

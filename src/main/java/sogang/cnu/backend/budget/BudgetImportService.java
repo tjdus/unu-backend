@@ -51,11 +51,6 @@ public class BudgetImportService {
     private static final int COL_FIRST_MONTH = 1;       // B열 = 1월
     private static final int HEADER_SEARCH_ROWS = 10;
 
-    // 보증금 원장에서 자동 계산되는 예상·실제금액 — 화면 편집 모달처럼 업로드로도 덮어쓰지 않는다
-    private static final Set<BudgetCategory> AUTO_SYNCED = EnumSet.of(
-            BudgetCategory.INCOME_STUDY_DEPOSIT,
-            BudgetCategory.EXPENSE_STUDY_DEPOSIT_REFUND
-    );
 
     private static final List<BudgetSheetLayout.CategoryRow> CATEGORY_ROWS = flattenLayout();
     private static final Map<String, BudgetCategory> CATEGORY_BY_LABEL = new LinkedHashMap<>();
@@ -70,6 +65,9 @@ public class BudgetImportService {
             LABEL_BY_CATEGORY.put(row.category(), row.label());
             DISPLAY_ORDER.put(row.category(), i + 1);
         }
+        // 이름이 바뀐 항목의 옛 라벨 — 예전에 내려받은 파일도 그대로 올릴 수 있게 함께 받아준다
+        CATEGORY_BY_LABEL.put("3-1. 지피티", BudgetCategory.EXPENSE_GPTEE);
+
         // 계산 행·그룹 헤더는 가져오지 않는다
         IGNORED_LABELS.add("소계");
         for (Block block : Block.values()) {
@@ -82,6 +80,7 @@ public class BudgetImportService {
     private final BudgetPlanRepository budgetPlanRepository;
     private final BudgetItemRepository budgetItemRepository;
     private final QuarterRepository quarterRepository;
+    private final BudgetExpenseEntryRepository budgetExpenseEntryRepository;
 
     @Transactional(readOnly = true)
     public BudgetImportResultDto preview(MultipartFile file) {
@@ -326,10 +325,12 @@ public class BudgetImportService {
             YearMonth yearMonth = YearMonth.of(year, m);
             BudgetPlan existing = findExistingPlan(candidatePlans, yearMonth, warnings);
             Map<BudgetCategory, BudgetItem> existingItems = existing == null ? Map.of() : itemsByCategory(existing);
+            // 보증금은 항상, 건별 상세 내역은 그 달에 내역이 있을 때만 파일 값으로 못 덮어쓴다
+            Set<BudgetCategory> autoSynced = autoSyncedCategories(existing);
 
-            warnAutoSyncedMismatch(parsed, m, existingItems, warnings);
+            warnAutoSyncedMismatch(parsed, m, existingItems, autoSynced, warnings);
 
-            if (!hasData(parsed, m)) {
+            if (!hasData(parsed, m, autoSynced)) {
                 months.add(new MonthResult(m, Status.SKIP, quarterName(existing), List.of()));
                 continue;
             }
@@ -351,11 +352,11 @@ public class BudgetImportService {
 
                 Long filePlanned = parsed.value(Block.PLANNED, category, m);
                 Long fileActual = parsed.value(Block.ACTUAL, category, m);
-                boolean autoSynced = AUTO_SYNCED.contains(category);
-                long afterPlanned = autoSynced || filePlanned == null
+                boolean locked = autoSynced.contains(category);
+                long afterPlanned = locked || filePlanned == null
                         ? beforePlanned
                         : normalize(category, filePlanned);
-                long afterActual = autoSynced || fileActual == null
+                long afterActual = locked || fileActual == null
                         ? beforeActual
                         : normalize(category, fileActual);
 
@@ -378,10 +379,10 @@ public class BudgetImportService {
         return new ImportPlan(new BudgetImportResultDto(year, months, warnings, errors), writes);
     }
 
-    /** 자동 연동이 아닌 항목의 예상·실제금액 중 0이 아닌 값이 하나라도 있으면 반영 대상 월 */
-    private boolean hasData(ParsedSheet parsed, int month) {
+    /** 그 달에 잠기지 않은 항목 중 예상·실제금액이 0이 아닌 값이 하나라도 있으면 반영 대상 월 */
+    private boolean hasData(ParsedSheet parsed, int month, Set<BudgetCategory> autoSynced) {
         for (BudgetSheetLayout.CategoryRow row : CATEGORY_ROWS) {
-            if (AUTO_SYNCED.contains(row.category())) continue;
+            if (autoSynced.contains(row.category())) continue;
             Long planned = parsed.value(Block.PLANNED, row.category(), month);
             if (planned != null && planned != 0) return true;
             Long actual = parsed.value(Block.ACTUAL, row.category(), month);
@@ -390,9 +391,20 @@ public class BudgetImportService {
         return false;
     }
 
+    /** 그 달에 값을 덮어쓰면 안 되는 카테고리 — 보증금은 항상, 건별 상세 내역은 내역이 있을 때만 */
+    private Set<BudgetCategory> autoSyncedCategories(BudgetPlan existing) {
+        Set<BudgetCategory> locked = EnumSet.copyOf(BudgetCategory.DEPOSIT_CATEGORIES);
+        if (existing != null) {
+            locked.addAll(budgetExpenseEntryRepository.findCategoriesWithEntries(
+                    existing.getQuarter().getId(), existing.getMonth()));
+        }
+        return locked;
+    }
+
     private void warnAutoSyncedMismatch(ParsedSheet parsed, int month,
-                                        Map<BudgetCategory, BudgetItem> existingItems, List<String> warnings) {
-        for (BudgetCategory category : AUTO_SYNCED) {
+                                        Map<BudgetCategory, BudgetItem> existingItems,
+                                        Set<BudgetCategory> autoSynced, List<String> warnings) {
+        for (BudgetCategory category : autoSynced) {
             BudgetItem item = existingItems.get(category);
             warnIfDiffers(parsed, month, category, Block.PLANNED,
                     amountOrZero(item == null ? null : item.getPlannedAmount()), warnings);
@@ -407,8 +419,11 @@ public class BudgetImportService {
         if (fileAmount == null) return;
         long fileValue = normalize(category, fileAmount);
         if (fileValue == systemValue) return;
+        String source = BudgetCategory.DEPOSIT_CATEGORIES.contains(category)
+                ? "보증금 신청/수료 기록"
+                : "예산 관리 화면의 상세 내역";
         warnings.add(month + "월 '" + LABEL_BY_CATEGORY.get(category) + "' " + block.label
-                + "금액은 보증금 신청/수료 기록에서 자동 계산되는 값이라 반영하지 않습니다. (파일 "
+                + "금액은 " + source + "에서 자동 계산되는 값이라 반영하지 않습니다. (파일 "
                 + won(fileValue) + " / 시스템 " + won(systemValue) + ")");
     }
 

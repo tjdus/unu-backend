@@ -25,13 +25,15 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * 예산안 데이터를 총무의 기존 구글 시트 양식(.xlsx)으로 내보낸다.
  * 시트 구성(총무 시트와 같은 순서): '예산안'(카테고리 행 × 1~12월 열, 예상 블록 + 실제 블록),
- * '실거래'(양식만 — 시스템에 건별 거래 데이터가 없음), '수입지출 총액'(스터디 보증금 건별 내역).
+ * '실거래'(양식만 — 시스템에 건별 거래 데이터가 없음),
+ * '수입지출 총액'(구역별 건별 내역: 스터디 보증금 원장 + 지출 상세 내역).
  */
 @Service
 @RequiredArgsConstructor
@@ -56,6 +58,7 @@ public class BudgetExportService {
 
     private final BudgetPlanRepository budgetPlanRepository;
     private final StudyDepositLedgerEntryRepository ledgerRepository;
+    private final BudgetExpenseEntryRepository expenseEntryRepository;
 
     @Transactional(readOnly = true)
     public byte[] exportYear(int year) {
@@ -67,13 +70,16 @@ public class BudgetExportService {
         List<StudyDepositLedgerEntry> ledgerEntries = ledgerRepository.findDetailByQuarterYears(candidateYears).stream()
                 .filter(entry -> isInCalendarYear(entry.getQuarter(), entry.getMonth(), year))
                 .toList();
+        List<BudgetExpenseEntry> expenseEntries = expenseEntryRepository.findDetailByQuarterYears(candidateYears).stream()
+                .filter(entry -> isInCalendarYear(entry.getQuarter(), entry.getMonth(), year))
+                .toList();
 
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Styles styles = new Styles(workbook);
             writePlanSheet(workbook, styles, year, plans);
             writeTransactionSheet(workbook, styles);
-            writeDepositSheet(workbook, styles, ledgerEntries);
+            writeDepositSheet(workbook, styles, ledgerEntries, expenseEntries);
             // 수식 결과를 파일에 함께 저장한다. 엑셀 없이 열어도(업로드 파싱 포함) 값이 보이고,
             // 엑셀에서 금액을 고치면 엑셀이 수식을 다시 계산한다.
             XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
@@ -254,34 +260,47 @@ public class BudgetExportService {
 
     // ---------- 시트 3: 수입지출 총액 ----------
 
+    /** 구역 한 줄 — 보증금 원장과 지출 건별 내역을 같은 모양으로 쓰기 위한 공통 형태 */
+    private record SectionRow(String label, Long planned, Long actual, String dateText, String note) {
+        static SectionRow labelOnly(String label) {
+            return new SectionRow(label, null, null, null, null);
+        }
+    }
+
     /**
      * 총무 시트처럼 구역(강의형 스터디 / 참여형 스터디 / 인터넷 강의 / MT / 개총&종총 / 기타비용)을
-     * 검은 구분선으로 나눠 세로로 쌓는다. 보증금 원장이 있는 두 스터디 구역만 값이 채워지고,
-     * 나머지는 시스템에 건별 지출 데이터가 없어 양식(머리글 + 최종 합계)만 만든다.
+     * 검은 구분선으로 나눠 세로로 쌓는다. 보증금은 원장에서, 나머지는 지출 건별 상세 내역에서 채운다.
+     * 내역이 없는 MT·개총&종총 구역은 시트에 있던 항목명을 빈 줄로 남겨 총무가 바로 적을 수 있게 한다.
      */
     private void writeDepositSheet(Workbook workbook, Styles styles,
-                                    List<StudyDepositLedgerEntry> entries) {
+                                    List<StudyDepositLedgerEntry> depositEntries,
+                                    List<BudgetExpenseEntry> expenseEntries) {
         Sheet sheet = workbook.createSheet("수입지출 총액");
 
-        List<StudyDepositLedgerEntry> lectureStudy = entries.stream()
-                .filter(this::isLectureStudy).toList();
-        List<StudyDepositLedgerEntry> participationStudy = entries.stream()
-                .filter(entry -> !isLectureStudy(entry)).toList();
+        List<SectionRow> lectureStudy = depositEntries.stream()
+                .filter(this::isLectureStudy).map(this::toSectionRow).toList();
+        List<SectionRow> participationStudy = depositEntries.stream()
+                .filter(entry -> !isLectureStudy(entry)).map(this::toSectionRow).toList();
 
         int rowIdx = 0;
-        rowIdx = writeDepositSection(sheet, styles, rowIdx, "강의형 스터디", lectureStudy);
+        rowIdx = writeSection(sheet, styles, rowIdx, "강의형 스터디", lectureStudy);
         rowIdx = writeDivider(sheet, styles, rowIdx);
-        rowIdx = writeDepositSection(sheet, styles, rowIdx, "참여형 스터디", participationStudy);
+        rowIdx = writeSection(sheet, styles, rowIdx, "참여형 스터디", participationStudy);
         rowIdx = writeDivider(sheet, styles, rowIdx);
-        rowIdx = writeBlankSection(sheet, styles, rowIdx, "인터넷 강의", List.of());
+        rowIdx = writeSection(sheet, styles, rowIdx, "인터넷 강의",
+                expenseRows(expenseEntries, List.of(), BudgetCategory.EXPENSE_ONLINE_COURSE));
         rowIdx = writeDivider(sheet, styles, rowIdx);
-        rowIdx = writeBlankSection(sheet, styles, rowIdx, "MT", MT_ITEMS);
+        rowIdx = writeSection(sheet, styles, rowIdx, "MT",
+                expenseRows(expenseEntries, MT_ITEMS, BudgetCategory.EXPENSE_MT));
         rowIdx = writeDivider(sheet, styles, rowIdx);
-        rowIdx = writeBlankSection(sheet, styles, rowIdx, "개총&종총", GENERAL_MEETING_ITEMS);
+        rowIdx = writeSection(sheet, styles, rowIdx, "개총&종총",
+                expenseRows(expenseEntries, GENERAL_MEETING_ITEMS, BudgetCategory.EXPENSE_GENERAL_MEETING));
         rowIdx = writeDivider(sheet, styles, rowIdx);
-        rowIdx = writeBlankSection(sheet, styles, rowIdx, "기타비용", List.of());
+        rowIdx = writeSection(sheet, styles, rowIdx, "기타비용",
+                expenseRows(expenseEntries, List.of(),
+                        BudgetCategory.EXPENSE_OFFICE_SNACK, BudgetCategory.EXPENSE_OTHER));
 
-        writeQuarterSummary(sheet, styles, entries, rowIdx);
+        writeQuarterSummary(sheet, styles, depositEntries, rowIdx);
 
         sheet.setColumnWidth(0, 40 * 256);
         for (int c = 1; c <= 7; c++) {
@@ -300,61 +319,73 @@ public class BudgetExportService {
         return "SPECIAL_LECTURE".equals(code) || "LECTURE".equals(code);
     }
 
+    /** 보증금 줄: 시트처럼 예산(예상)과 실제를 같은 금액으로 적는다 (받는 순간 금액이 확정되므로) */
+    private SectionRow toSectionRow(StudyDepositLedgerEntry entry) {
+        ActivityParticipant participant = entry.getActivityParticipant();
+        boolean refund = entry.getCategory() == BudgetCategory.EXPENSE_STUDY_DEPOSIT_REFUND;
+        String label = "%s %s %s %s".formatted(
+                entry.getQuarter().getName(),
+                participant.getUser().getName(),
+                participant.getActivity().getTitle(),
+                refund ? "환불" : "보증금");
+        return new SectionRow(label, entry.getAmount(), entry.getAmount(),
+                entry.getOccurredAt().format(DATE_FORMAT), participant.getUser().getStudentId());
+    }
+
+    /** 지출 건별 내역 줄. 내역이 없으면 시트에 있던 항목명을 빈 줄로 남긴다 */
+    private List<SectionRow> expenseRows(List<BudgetExpenseEntry> entries, List<String> fallbackLabels,
+                                          BudgetCategory... categories) {
+        Set<BudgetCategory> targets = Set.of(categories);
+        List<SectionRow> rows = entries.stream()
+                .filter(entry -> targets.contains(entry.getCategory()))
+                .map(entry -> new SectionRow(
+                        entry.getLabel(),
+                        entry.getPlannedAmount(),
+                        entry.getActualAmount(),
+                        entry.getOccurredAt() == null ? null : entry.getOccurredAt().format(DATE_FORMAT),
+                        entry.getNote()))
+                .toList();
+        if (!rows.isEmpty()) return rows;
+        return fallbackLabels.stream().map(SectionRow::labelOnly).toList();
+    }
+
     /**
-     * 보증금 구역: 총무 시트처럼 한 줄에 예산(예상)과 실제를 같은 금액으로 적고,
-     * 누계·차이·최종 합계는 수식으로 둔다 — 금액을 고치면 아래 누계와 합계가 따라 바뀐다.
+     * 구역 하나: 제목 + 머리글 + 내역 줄 + 여유 칸 + 최종 합계.
+     * 누계·차이·최종 합계는 수식이라 총무가 엑셀에서 금액을 고치면 따라 바뀐다.
      */
-    private int writeDepositSection(Sheet sheet, Styles styles, int rowIdx, String sectionName,
-                                     List<StudyDepositLedgerEntry> entries) {
-        rowIdx = writeSectionHeader(sheet, styles, rowIdx, sectionName);
-        int firstRow = rowIdx;
-
-        for (StudyDepositLedgerEntry entry : entries) {
-            ActivityParticipant participant = entry.getActivityParticipant();
-            boolean refund = entry.getCategory() == BudgetCategory.EXPENSE_STUDY_DEPOSIT_REFUND;
-
-            Row row = sheet.createRow(rowIdx++);
-            setText(row, 0, "%s %s %s %s".formatted(
-                    entry.getQuarter().getName(),
-                    participant.getUser().getName(),
-                    participant.getActivity().getTitle(),
-                    refund ? "환불" : "보증금"), styles.label);
-            int excelRow = row.getRowNum() + 1;
-            boolean firstEntry = row.getRowNum() == firstRow;
-            setAmount(row, 1, entry.getAmount(), styles.amount);                        // 예산
-            setFormula(row, 2, firstEntry ? "B%d".formatted(excelRow)                   // (예상)소계 누계
-                    : "C%d+B%d".formatted(excelRow - 1, excelRow), styles.amount);
-            setAmount(row, 3, entry.getAmount(), styles.amount);                        // 실제 내역
-            setFormula(row, 4, firstEntry ? "D%d".formatted(excelRow)                   // (실제)소계 누계
-                    : "E%d+D%d".formatted(excelRow - 1, excelRow), styles.amount);
-            setFormula(row, 5, "D%d-B%d".formatted(excelRow, excelRow), styles.amount); // 차이
-            setText(row, 6, entry.getOccurredAt().format(DATE_FORMAT), styles.label);
-            setText(row, 7, participant.getUser().getStudentId(), styles.label);
-        }
-
-        rowIdx += SPARE_ROWS;  // 총무가 직접 줄을 추가할 여유 칸
-        return writeSectionTotalRow(sheet, styles, rowIdx, firstRow, rowIdx - 1);
-    }
-
-    /** 건별 데이터가 없는 구역: 항목 이름만(있으면) 넣고 금액 칸은 비워 둔다 */
-    private int writeBlankSection(Sheet sheet, Styles styles, int rowIdx, String sectionName,
-                                   List<String> itemLabels) {
-        rowIdx = writeSectionHeader(sheet, styles, rowIdx, sectionName);
-        int firstRow = rowIdx;
-        for (String itemLabel : itemLabels) {
-            setText(sheet.createRow(rowIdx++), 0, itemLabel, styles.label);
-        }
-        rowIdx += SPARE_ROWS;
-        return writeSectionTotalRow(sheet, styles, rowIdx, firstRow, rowIdx - 1);
-    }
-
-    private int writeSectionHeader(Sheet sheet, Styles styles, int rowIdx, String sectionName) {
+    private int writeSection(Sheet sheet, Styles styles, int rowIdx, String sectionName,
+                              List<SectionRow> rows) {
         setText(sheet.createRow(rowIdx++), 0, sectionName, styles.title);
         Row headerRow = sheet.createRow(rowIdx++);
         for (int i = 0; i < TRANSACTION_HEADERS.length; i++) {
             setText(headerRow, i, TRANSACTION_HEADERS[i], styles.header);
         }
-        return rowIdx;
+
+        int firstRow = rowIdx;
+        for (SectionRow sectionRow : rows) {
+            Row row = sheet.createRow(rowIdx++);
+            setText(row, 0, sectionRow.label(), styles.label);
+            if (sectionRow.planned() != null || sectionRow.actual() != null) {
+                int excelRow = row.getRowNum() + 1;
+                boolean firstEntry = row.getRowNum() == firstRow;
+                setAmount(row, 1, sectionRow.planned() == null ? 0 : sectionRow.planned(), styles.amount);
+                setFormula(row, 2, firstEntry ? "B%d".formatted(excelRow)                   // (예상)소계 누계
+                        : "C%d+B%d".formatted(excelRow - 1, excelRow), styles.amount);
+                setAmount(row, 3, sectionRow.actual() == null ? 0 : sectionRow.actual(), styles.amount);
+                setFormula(row, 4, firstEntry ? "D%d".formatted(excelRow)                   // (실제)소계 누계
+                        : "E%d+D%d".formatted(excelRow - 1, excelRow), styles.amount);
+                setFormula(row, 5, "D%d-B%d".formatted(excelRow, excelRow), styles.amount); // 차이
+            }
+            if (sectionRow.dateText() != null) {
+                setText(row, 6, sectionRow.dateText(), styles.label);
+            }
+            if (sectionRow.note() != null) {
+                setText(row, 7, sectionRow.note(), styles.label);
+            }
+        }
+
+        rowIdx += SPARE_ROWS;  // 총무가 직접 줄을 추가할 여유 칸
+        return writeSectionTotalRow(sheet, styles, rowIdx, firstRow, rowIdx - 1);
     }
 
     /** 구역 맨 아래 '최종 합계' 행 — 예상·실제 열을 각각 합산하는 수식 */
