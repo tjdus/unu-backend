@@ -22,10 +22,12 @@ public class BudgetPlanResponseDto {
     private List<BudgetItemResponseDto> items;
 
     // 자동 계산 필드
-    private Long totalIncome;        // 수입 합계
-    private Long totalExpense;       // 지출 합계 (양수로 표현)
-    private Long plannedMargin;      // 예상 마진 (수입 - 지출)
-    private Long actualMargin;       // 실제 마진
+    private Long totalIncome;        // 예상 수입 합계
+    private Long totalExpense;       // 예상 지출 합계 (양수로 표현)
+    private Long plannedMargin;      // 예상 마진 (예상 수입 - 예상 지출)
+    private Long actualIncome;       // 실제 수입 합계
+    private Long actualExpense;      // 실제 지출 합계 (양수로 표현)
+    private Long actualMargin;       // 실제 마진 (실제 수입 - 실제 지출)
 
     public static BudgetPlanResponseDto from(BudgetPlan plan) {
         List<BudgetItemResponseDto> itemDtos = plan.getItems().stream()
@@ -70,6 +72,8 @@ public class BudgetPlanResponseDto {
                 .totalIncome(totalIncome)
                 .totalExpense(totalExpense)
                 .plannedMargin(totalIncome - totalExpense)
+                .actualIncome(actualIncome)
+                .actualExpense(actualExpense)
                 .actualMargin(actualIncome - actualExpense)
                 .build();
     }
