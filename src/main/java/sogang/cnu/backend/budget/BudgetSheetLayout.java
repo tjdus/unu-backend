@@ -35,7 +35,7 @@ public final class BudgetSheetLayout {
                     new CategoryRow("2-2. 멘토 보수", BudgetCategory.EXPENSE_MENTOR_FEE)
             )),
             new Group("3. 정기결제", List.of(
-                    new CategoryRow("3-1. 지피티", BudgetCategory.EXPENSE_GPTEE),
+                    new CategoryRow("3-1. LLM", BudgetCategory.EXPENSE_GPTEE),
                     new CategoryRow("3-2. 톡서랍", BudgetCategory.EXPENSE_TOKSRAP),
                     new CategoryRow("3-3. 디스코드", BudgetCategory.EXPENSE_DISCORD),
                     new CategoryRow("3-4. 구글 워크스페이스", BudgetCategory.EXPENSE_GOOGLE_WORKSPACE),
