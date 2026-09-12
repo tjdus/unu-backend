@@ -143,9 +143,11 @@ public class BudgetService {
         return actualIncome - actualExpense;
     }
 
-    // 스터디 보증금 등 파생 합계를 특정 카테고리의 actualAmount로 동기화 (find-or-create)
+    // 스터디 보증금 등 파생 합계를 특정 카테고리의 예상·실제 금액에 함께 동기화 (find-or-create).
+    // 총무님 시트도 보증금은 한 줄에 예산(예상)과 실제를 같은 금액으로 적는다 — 받는 순간 금액이 확정되므로
+    // 예상을 따로 세우지 않는다. 그래서 두 값을 같이 맞춰 예상 마진과 실제 마진이 어긋나지 않게 한다.
     @Transactional
-    public void syncCategoryActualAmount(UUID quarterId, Integer month, BudgetCategory category, long totalAmount) {
+    public void syncCategoryAmounts(UUID quarterId, Integer month, BudgetCategory category, long totalAmount) {
         Quarter quarter = quarterRepository.findById(quarterId)
                 .orElseThrow(() -> new NotFoundException("분기를 찾을 수 없습니다."));
 
@@ -163,7 +165,7 @@ public class BudgetService {
                                 .displayOrder(null)
                                 .build()));
 
-        item.update(item.getPlannedAmount(), totalAmount, item.getNote(), item.getDisplayOrder());
+        item.update(totalAmount, totalAmount, item.getNote(), item.getDisplayOrder());
     }
 
     // 한 달에 같은 카테고리 항목이 두 개 이상 오면 DB 유니크 제약에 걸리므로 미리 걸러 400으로 응답한다

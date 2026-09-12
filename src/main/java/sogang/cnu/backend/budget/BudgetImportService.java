@@ -51,7 +51,7 @@ public class BudgetImportService {
     private static final int COL_FIRST_MONTH = 1;       // B열 = 1월
     private static final int HEADER_SEARCH_ROWS = 10;
 
-    // 보증금 원장에서 자동 계산되는 실제금액 — 화면 편집 모달처럼 업로드로도 덮어쓰지 않는다
+    // 보증금 원장에서 자동 계산되는 예상·실제금액 — 화면 편집 모달처럼 업로드로도 덮어쓰지 않는다
     private static final Set<BudgetCategory> AUTO_SYNCED = EnumSet.of(
             BudgetCategory.INCOME_STUDY_DEPOSIT,
             BudgetCategory.EXPENSE_STUDY_DEPOSIT_REFUND
@@ -351,8 +351,11 @@ public class BudgetImportService {
 
                 Long filePlanned = parsed.value(Block.PLANNED, category, m);
                 Long fileActual = parsed.value(Block.ACTUAL, category, m);
-                long afterPlanned = filePlanned == null ? beforePlanned : normalize(category, filePlanned);
-                long afterActual = AUTO_SYNCED.contains(category) || fileActual == null
+                boolean autoSynced = AUTO_SYNCED.contains(category);
+                long afterPlanned = autoSynced || filePlanned == null
+                        ? beforePlanned
+                        : normalize(category, filePlanned);
+                long afterActual = autoSynced || fileActual == null
                         ? beforeActual
                         : normalize(category, fileActual);
 
@@ -375,12 +378,12 @@ public class BudgetImportService {
         return new ImportPlan(new BudgetImportResultDto(year, months, warnings, errors), writes);
     }
 
-    /** 예상금액이나 (자동 연동이 아닌) 실제금액 중 0이 아닌 값이 하나라도 있으면 반영 대상 월 */
+    /** 자동 연동이 아닌 항목의 예상·실제금액 중 0이 아닌 값이 하나라도 있으면 반영 대상 월 */
     private boolean hasData(ParsedSheet parsed, int month) {
         for (BudgetSheetLayout.CategoryRow row : CATEGORY_ROWS) {
+            if (AUTO_SYNCED.contains(row.category())) continue;
             Long planned = parsed.value(Block.PLANNED, row.category(), month);
             if (planned != null && planned != 0) return true;
-            if (AUTO_SYNCED.contains(row.category())) continue;
             Long actual = parsed.value(Block.ACTUAL, row.category(), month);
             if (actual != null && actual != 0) return true;
         }
@@ -390,17 +393,23 @@ public class BudgetImportService {
     private void warnAutoSyncedMismatch(ParsedSheet parsed, int month,
                                         Map<BudgetCategory, BudgetItem> existingItems, List<String> warnings) {
         for (BudgetCategory category : AUTO_SYNCED) {
-            Long fileActual = parsed.value(Block.ACTUAL, category, month);
-            if (fileActual == null) continue;
-            long fileValue = normalize(category, fileActual);
             BudgetItem item = existingItems.get(category);
-            long systemValue = amountOrZero(item == null ? null : item.getActualAmount());
-            if (fileValue != systemValue) {
-                warnings.add(month + "월 '" + LABEL_BY_CATEGORY.get(category)
-                        + "' 실제금액은 보증금 신청/수료 기록에서 자동 계산되는 값이라 반영하지 않습니다. (파일 "
-                        + won(fileValue) + " / 시스템 " + won(systemValue) + ")");
-            }
+            warnIfDiffers(parsed, month, category, Block.PLANNED,
+                    amountOrZero(item == null ? null : item.getPlannedAmount()), warnings);
+            warnIfDiffers(parsed, month, category, Block.ACTUAL,
+                    amountOrZero(item == null ? null : item.getActualAmount()), warnings);
         }
+    }
+
+    private void warnIfDiffers(ParsedSheet parsed, int month, BudgetCategory category,
+                               Block block, long systemValue, List<String> warnings) {
+        Long fileAmount = parsed.value(block, category, month);
+        if (fileAmount == null) return;
+        long fileValue = normalize(category, fileAmount);
+        if (fileValue == systemValue) return;
+        warnings.add(month + "월 '" + LABEL_BY_CATEGORY.get(category) + "' " + block.label
+                + "금액은 보증금 신청/수료 기록에서 자동 계산되는 값이라 반영하지 않습니다. (파일 "
+                + won(fileValue) + " / 시스템 " + won(systemValue) + ")");
     }
 
     private BudgetPlan findExistingPlan(List<BudgetPlan> candidates, YearMonth yearMonth, List<String> warnings) {

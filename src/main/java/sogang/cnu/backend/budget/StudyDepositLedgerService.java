@@ -125,6 +125,6 @@ public class StudyDepositLedgerService {
 
     private void resync(UUID quarterId, Integer month, BudgetCategory category) {
         long total = ledgerRepository.sumAmount(quarterId, month, category);
-        budgetService.syncCategoryActualAmount(quarterId, month, category, total);
+        budgetService.syncCategoryAmounts(quarterId, month, category, total);
     }
 }
