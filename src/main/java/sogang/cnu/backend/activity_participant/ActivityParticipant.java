@@ -103,6 +103,11 @@ public class ActivityParticipant extends BaseEntity {
     @Column(name = "result_read_at")
     private LocalDateTime resultReadAt;
 
+    // 본인이 참여를 신청(반려 후 재신청 포함)한 시각. 담당자 자동 등록·운영진 직접 추가는 신청이 아니라 비워 둔다.
+    // 운영진 신청자 알림은 이 값을 기준으로 새 신청을 센다.
+    @Column(name = "applied_at")
+    private LocalDateTime appliedAt;
+
     public void updateStatus(ActivityParticipantStatus newStatus) {
         if (this.status == newStatus) return;
 
@@ -130,6 +135,10 @@ public class ActivityParticipant extends BaseEntity {
         }
         updateStatus(ActivityParticipantStatus.APPROVED);
         this.joinedAt = activity.getStartDate().atStartOfDay();
+    }
+
+    public void markApplied() {
+        this.appliedAt = LocalDateTime.now();
     }
 
     public void markResultRead() {

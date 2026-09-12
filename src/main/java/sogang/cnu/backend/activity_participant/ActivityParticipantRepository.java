@@ -69,24 +69,24 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
 
     @Query("""
             SELECT ap FROM ActivityParticipant ap
-            WHERE ap.status = :status
-              AND ap.createdAt > :since
-            ORDER BY ap.createdAt DESC
+            WHERE ap.status IN :statuses
+              AND ap.appliedAt > :since
+            ORDER BY ap.appliedAt DESC
             """)
     List<ActivityParticipant> findNewApplicants(
-            @Param("status") ActivityParticipantStatus status,
+            @Param("statuses") Collection<ActivityParticipantStatus> statuses,
             @Param("since") LocalDateTime since
     );
 
     @Query("""
             SELECT ap FROM ActivityParticipant ap
-            WHERE ap.status = :status
-              AND ap.createdAt > :since
+            WHERE ap.status IN :statuses
+              AND ap.appliedAt > :since
               AND ap.activity.id IN :activityIds
-            ORDER BY ap.createdAt DESC
+            ORDER BY ap.appliedAt DESC
             """)
     List<ActivityParticipant> findNewApplicantsForActivities(
-            @Param("status") ActivityParticipantStatus status,
+            @Param("statuses") Collection<ActivityParticipantStatus> statuses,
             @Param("since") LocalDateTime since,
             @Param("activityIds") Collection<UUID> activityIds
     );

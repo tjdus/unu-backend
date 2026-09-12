@@ -116,6 +116,7 @@ public class ActivityParticipantService {
             }
             validateAvailableCapacity(targetActivity, initialStatus);
             existing.updateStatus(initialStatus);
+            existing.markApplied();
             if (requiresDeposit(targetActivity)) {
                 recordDepositApplication(existing, request);
                 studyDepositLedgerService.recordDeposit(existing);
@@ -137,6 +138,7 @@ public class ActivityParticipantService {
                 .status(initialStatus)
                 .build();
         ActivityParticipant activityParticipant = ActivityParticipant.create(createCommand);
+        activityParticipant.markApplied();
         if (requiresDeposit(targetActivity)) {
             recordDepositApplication(activityParticipant, request);
         }

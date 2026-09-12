@@ -24,6 +24,11 @@ public class ApplicantNotificationService {
 
     private static final LocalDateTime EPOCH_FALLBACK = LocalDateTime.of(2000, 1, 1, 0, 0);
 
+    // 스터디·강의는 시작일에 자동 확정되고 시작 후 신청은 바로 확정되므로 상태로 거르지 않고 "새로 신청한 사람"을 센다.
+    // 확인 전에 반려되었거나 신청을 취소(삭제)한 경우만 빠진다.
+    private static final List<ActivityParticipantStatus> NOTIFIABLE_STATUSES =
+            List.of(ActivityParticipantStatus.APPLIED, ActivityParticipantStatus.APPROVED);
+
     private final ManagerApplicantCheckpointRepository checkpointRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
     private final ActivityRepository activityRepository;
@@ -49,7 +54,7 @@ public class ApplicantNotificationService {
 
     private ApplicantNotificationSummaryDto buildSummary(UUID userId, LocalDateTime since) {
         List<ActivityParticipant> newApplicants = SecurityUtils.isManagerOrAdmin()
-                ? activityParticipantRepository.findNewApplicants(ActivityParticipantStatus.APPLIED, since)
+                ? activityParticipantRepository.findNewApplicants(NOTIFIABLE_STATUSES, since)
                 : findScopedToAssignee(userId, since);
 
         Map<UUID, List<ActivityParticipant>> byActivity = newApplicants.stream()
@@ -78,6 +83,6 @@ public class ApplicantNotificationService {
             return List.of();
         }
         return activityParticipantRepository.findNewApplicantsForActivities(
-                ActivityParticipantStatus.APPLIED, since, activityIds);
+                NOTIFIABLE_STATUSES, since, activityIds);
     }
 }
