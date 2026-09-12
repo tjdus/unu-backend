@@ -161,6 +161,9 @@ public class BudgetImportService {
             errors.add("'항목 / 1월 … 12월' 헤더 행을 찾을 수 없습니다.");
         }
         if (!errors.isEmpty()) {
+            // 기존 구글 시트를 그대로 올린 경우가 대부분이다 — 양식이 달라 읽을 수 없다는 점을 안내한다
+            errors.add("예산 관리 화면의 '엑셀 다운로드'로 받은 파일을 고쳐서 올려주세요. "
+                    + "기존에 쓰시던 시트는 항목 이름과 행 구성이 달라 아직 읽지 못합니다.");
             return new ParsedSheet(year, Map.of(), warnings, errors);
         }
 
