@@ -20,8 +20,6 @@ public class ActivityRequestDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private UUID parentActivityId;
-    private Long budget;
-    private String budgetNote;
     private Integer depositAmount;
     private Integer participantLimit;
     private Boolean listed;

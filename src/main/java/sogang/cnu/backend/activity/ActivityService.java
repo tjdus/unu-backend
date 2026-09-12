@@ -302,8 +302,6 @@ public class ActivityService {
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
                 .parentActivity(findParentActivity(dto.getParentActivityId()))
-                .budget(dto.getBudget())
-                .budgetNote(dto.getBudgetNote())
                 .depositAmount(depositAmountForType(
                         activityType,
                         dto.getDepositAmount()
@@ -388,8 +386,6 @@ public class ActivityService {
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
                 .parentActivity(findParentActivity(dto.getParentActivityId()))
-                .budget(dto.getBudget())
-                .budgetNote(dto.getBudgetNote())
                 .depositAmount(depositAmount)
                 .participantLimit(participantLimit)
                 .listed(dto.getListed())

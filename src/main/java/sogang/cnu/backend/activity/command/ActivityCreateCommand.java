@@ -23,8 +23,6 @@ public class ActivityCreateCommand {
     private LocalDate recruitmentStartDate;
     private LocalDate recruitmentEndDate;
     private Activity parentActivity;
-    private Long budget;
-    private String budgetNote;
     private Boolean listed;
     private Integer depositAmount;
     private Integer participantLimit;

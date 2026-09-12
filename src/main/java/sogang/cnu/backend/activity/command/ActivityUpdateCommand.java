@@ -22,8 +22,6 @@ public class ActivityUpdateCommand {
     private LocalDate startDate;
     private LocalDate endDate;
     private Activity parentActivity;
-    private Long budget;
-    private String budgetNote;
     private Integer depositAmount;
     private Integer participantLimit;
     private Boolean listed;

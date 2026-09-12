@@ -26,8 +26,6 @@ public class ActivityResponseDto {
     private String recruitmentStartDate;
     private String recruitmentEndDate;
     private UUID parentActivityId;
-    private Long budget;
-    private String budgetNote;
     private Boolean listed;
     private Integer depositAmount;
     private Integer participantLimit;

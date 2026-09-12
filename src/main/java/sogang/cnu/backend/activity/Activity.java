@@ -53,11 +53,6 @@ public class Activity extends BaseEntity {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    private Long budget;
-
-    @Column(columnDefinition = "TEXT")
-    private String budgetNote;
-
     private LocalDate recruitmentStartDate;
     private LocalDate recruitmentEndDate;
 
@@ -101,8 +96,6 @@ public class Activity extends BaseEntity {
         this.assignee = command.getAssignee();
         this.quarter = command.getQuarter();
         this.parentActivity = command.getParentActivity();
-        this.budget = command.getBudget();
-        this.budgetNote = command.getBudgetNote();
         this.depositAmount = command.getDepositAmount();
         this.participantLimit = command.getParticipantLimit();
         this.recruitmentPositions = command.getRecruitmentPositions();
@@ -181,8 +174,6 @@ public class Activity extends BaseEntity {
                 .assignee(command.getAssignee())
                 .quarter(command.getQuarter())
                 .parentActivity(command.getParentActivity())
-                .budget(command.getBudget())
-                .budgetNote(command.getBudgetNote())
                 .depositAmount(defaultDepositAmount(
                         command.getActivityType(),
                         command.getDepositAmount()
