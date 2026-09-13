@@ -61,6 +61,7 @@ public class ActivityService {
     private final ActivityOpeningRequestRepository activityOpeningRequestRepository;
     private final ActivityParticipantRepository activityParticipantRepository;
     private final PermissionChecker permissionChecker;
+    private final ActivityAccessGuard activityAccessGuard;
 
     @Transactional(readOnly = true)
     public ActivityResponseDto getById(UUID userId, UUID id) {
@@ -73,14 +74,14 @@ public class ActivityService {
             throw new NotFoundException("Activity not found");
         }
 
-        return activityMapper.toResponseDto(activity);
+        return toVisibleResponseDto(activity);
     }
 
     @Transactional(readOnly = true)
     public List<ActivityResponseDto> getAll() {
         return activityRepository.findAll().stream()
                 .filter(this::isListed)
-                .map(activityMapper::toResponseDto)
+                .map(this::toListResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -189,8 +190,33 @@ public class ActivityService {
     public List<ActivityResponseDto> search(ActivitySearchQuery query, boolean includeUnlisted, UUID userId) {
         return activityRepository.search(query).stream()
                 .filter(activity -> isVisibleInSearch(activity, includeUnlisted, userId))
-                .map(activityMapper::toResponseDto)
+                .map(this::toListResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    private ActivityResponseDto toVisibleResponseDto(Activity activity) {
+        ActivityResponseDto response = activityMapper.toResponseDto(activity);
+        if (!activityAccessGuard.canView(activity)) {
+            hidePrivateFields(response);
+        }
+        return response;
+    }
+
+    private ActivityResponseDto toListResponseDto(Activity activity) {
+        ActivityResponseDto response = activityMapper.toResponseDto(activity);
+        if (!SecurityUtils.isManagerOrAdmin()) {
+            hidePrivateFields(response);
+        }
+        return response;
+    }
+
+    private void hidePrivateFields(ActivityResponseDto response) {
+        response.setDiscordUrl(null);
+        response.setCreatedBy(null);
+        response.setModifiedBy(null);
+        if (!"LECTURE".equals(response.getActivityType().getCode())) {
+            response.setParticipantLimit(null);
+        }
     }
 
     private boolean isVisibleInSearch(Activity activity, boolean includeUnlisted, UUID userId) {

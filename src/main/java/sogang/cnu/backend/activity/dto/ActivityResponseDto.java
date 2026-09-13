@@ -8,7 +8,6 @@ import sogang.cnu.backend.common.domain.dto.AuditorDto;
 
 import java.util.UUID;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
-import sogang.cnu.backend.user.dto.UserResponseDto;
 
 @Getter
 @Setter
@@ -19,7 +18,7 @@ public class ActivityResponseDto {
     private String description;
     private String status;
     private ActivityTypeResponseDto activityType;
-    private UserResponseDto assignee;
+    private ActivityAssigneeResponseDto assignee;
     private QuarterResponseDto quarter;
     private String startDate;
     private String endDate;

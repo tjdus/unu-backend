@@ -7,6 +7,6 @@ import lombok.Getter;
 @Builder
 public class ActivityCapacityResponseDto {
     private Integer participantLimit;
-    private long participantCount;
+    private Long participantCount;
     private boolean full;
 }

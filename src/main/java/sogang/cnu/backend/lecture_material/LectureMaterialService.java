@@ -53,8 +53,11 @@ public class LectureMaterialService {
 
     @Transactional(readOnly = true)
     public List<LectureMaterialResponseDto> getByActivityId(UUID activityId) {
+        Activity activity = findActivity(activityId);
+        boolean canViewAll = activityAccessGuard.canView(activity);
         return lectureMaterialRepository.findAllByActivityIdOrderByCreatedAtDesc(activityId).stream()
-                .map(this::toResponseDto)
+                .filter(material -> canViewAll || isPublicActivityMaterial(material))
+                .map(material -> canViewAll ? toResponseDto(material) : toPublicResponseDto(material))
                 .toList();
     }
 
@@ -207,6 +210,20 @@ public class LectureMaterialService {
                 .activityTitle(material.getActivity() == null ? null : material.getActivity().getTitle())
                 .createdAt(material.getCreatedAt())
                 .modifiedAt(material.getModifiedAt())
+                .build();
+    }
+
+    private boolean isPublicActivityMaterial(LectureMaterial material) {
+        return Boolean.TRUE.equals(material.getPrimary()) || material.getWeekNumber() == null;
+    }
+
+    private LectureMaterialResponseDto toPublicResponseDto(LectureMaterial material) {
+        return LectureMaterialResponseDto.builder()
+                .id(material.getId())
+                .title(material.getTitle())
+                .driveUrl(material.getDriveUrl())
+                .weekNumber(material.getWeekNumber())
+                .primary(Boolean.TRUE.equals(material.getPrimary()))
                 .build();
     }
 }
