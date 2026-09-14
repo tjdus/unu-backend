@@ -107,6 +107,14 @@ public class RecruitmentService {
     }
 
     @Transactional(readOnly = true)
+    public RecruitmentResponseDto getPublicRecruitment(UUID id) {
+        Recruitment recruitment = recruitmentRepository.findById(id)
+                .filter(item -> item.getType() == RecruitmentType.NEW_MEMBER)
+                .orElseThrow(() -> new NotFoundException("Recruitment not found"));
+        return recruitmentMapper.toResponseDto(recruitment);
+    }
+
+    @Transactional(readOnly = true)
     public List<RecruitmentResponseDto> getOperationRecruitments() {
         return recruitmentRepository.findAllByTypeOrderByStartAtDesc(RecruitmentType.INTERNAL_OPERATION).stream()
                 .map(recruitmentMapper::toResponseDto)

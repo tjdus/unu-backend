@@ -25,6 +25,11 @@ public class RecruitmentPublicController {
         return ResponseEntity.ok(recruitmentService.getClosestRecruitment());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<RecruitmentResponseDto> getRecruitment(@PathVariable UUID id) {
+        return ResponseEntity.ok(recruitmentService.getPublicRecruitment(id));
+    }
+
     @GetMapping("/{id}/completion-message")
     public ResponseEntity<RecruitmentCompletionMessageResponseDto> getCompletionMessage(
             @PathVariable UUID id
