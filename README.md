@@ -10,14 +10,7 @@
 - Spring Security (JWT, `@PreAuthorize` 권한 제어)
 - Apache POI (예산안 엑셀 내보내기·업로드)
 
-## 실행
 
-로컬 설정 파일 `src/main/resources/application-local.properties`에 DB 비밀번호와 JWT 시크릿을 넣은 뒤 실행합니다.
-(이 파일은 저장소에 커밋하지 않습니다.)
-
-```bash
-SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
-```
 
 ## 주요 도메인
 
