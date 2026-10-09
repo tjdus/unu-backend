@@ -13,6 +13,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ActivityParticipantRepository extends JpaRepository<ActivityParticipant, UUID> {
+    @Query("""
+            SELECT ap FROM ActivityParticipant ap
+            JOIN FETCH ap.user
+            JOIN FETCH ap.activity activity
+            LEFT JOIN FETCH activity.quarter
+            WHERE ap.status IN (sogang.cnu.backend.activity_participant.ActivityParticipantStatus.APPROVED,
+                                sogang.cnu.backend.activity_participant.ActivityParticipantStatus.APPLIED)
+            """)
+    List<ActivityParticipant> findForMemberSummary();
+
     Optional<ActivityParticipant> findByUserIdAndActivityId(UUID userId, UUID activityId);
     List<ActivityParticipant> findByUserId(UUID userId);
     List<ActivityParticipant> findByActivityId(UUID activityId);

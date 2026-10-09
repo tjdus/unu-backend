@@ -6,6 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sogang.cnu.backend.user.dto.UserResponseDto;
 import sogang.cnu.backend.user.dto.UserSummaryResponseDto;
+import sogang.cnu.backend.user.dto.MemberActivitySummaryDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,6 +16,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final MemberActivitySummaryService memberActivitySummaryService;
+
+    @GetMapping("/activity-summary")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<List<MemberActivitySummaryDto>> getActivitySummary() {
+        return ResponseEntity.ok(memberActivitySummaryService.getAll());
+    }
 
     @GetMapping("")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")

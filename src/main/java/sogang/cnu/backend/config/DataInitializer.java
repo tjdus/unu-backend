@@ -123,7 +123,7 @@ public class DataInitializer implements ApplicationRunner {
     private void initRoles() {
         // 전체 건수로 스킵하면 기존 DB에 새 역할을 추가할 수 없으므로 없는 것만 골라 넣는다.
         List<String> names = List.of(
-            "MEMBER", "MANAGER", "ADMIN", "LECTURE_ROOM_MANAGER", "BLOG_MANAGER"
+            "MEMBER", "MANAGER", "ADMIN", "LECTURE_ROOM_MANAGER", "BLOG_MANAGER", "ALUMNI"
         );
 
         List<String> created = new ArrayList<>();
