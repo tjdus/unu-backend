@@ -283,6 +283,19 @@ public class ImageService {
         deleteFile(filename);
     }
 
+    /**
+     * Permanently removes this post's images whose URL is not in {@code keepUrls} — e.g. a
+     * thumbnail that was removed or replaced — instead of leaving them for the TEMP cleanup.
+     */
+    @Transactional
+    public void deleteUnreferencedPostImages(UUID postId, PostType postType, Collection<String> keepUrls) {
+        List<Image> unreferenced = imageRepository.findByPostIdAndPostType(postId, postType).stream()
+                .filter(img -> !keepUrls.contains(img.getUrl()))
+                .toList();
+        unreferenced.forEach(img -> deleteFile(img.getFilename()));
+        imageRepository.deleteAll(unreferenced);
+    }
+
     /** Called when a post is permanently deleted — removes all linked images. */
     @Transactional
     public void deletePostImages(UUID postId, PostType postType) {

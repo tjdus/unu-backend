@@ -14,6 +14,7 @@ import sogang.cnu.backend.util.SecurityUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,7 +66,7 @@ public class AboutExampleService {
         validate(dto);
 
         String thumbnailUrl = imageService.syncImages(
-                null, PostType.ABOUT_EXAMPLE, "", dto.getThumbnailUrl().trim()
+                null, PostType.ABOUT_EXAMPLE, "", thumbnailOf(dto)
         );
         AboutExample example = AboutExample.builder()
                 .category(dto.getCategory())
@@ -84,8 +85,14 @@ public class AboutExampleService {
         validate(dto);
 
         AboutExample example = findById(id);
+        String requestedThumbnail = thumbnailOf(dto);
+        // A thumbnail that was removed or replaced is deleted from storage right away.
+        imageService.deleteUnreferencedPostImages(
+                id, PostType.ABOUT_EXAMPLE,
+                requestedThumbnail.isEmpty() ? Set.of() : Set.of(requestedThumbnail)
+        );
         String thumbnailUrl = imageService.syncImages(
-                id, PostType.ABOUT_EXAMPLE, "", dto.getThumbnailUrl().trim()
+                id, PostType.ABOUT_EXAMPLE, "", requestedThumbnail
         );
         example.setCategory(dto.getCategory());
         example.setTitle(dto.getTitle().trim());
@@ -120,9 +127,11 @@ public class AboutExampleService {
         if (dto.getDescription() == null || dto.getDescription().isBlank()) {
             throw new BadRequestException("설명을 입력해 주세요.");
         }
-        if (dto.getThumbnailUrl() == null || dto.getThumbnailUrl().isBlank()) {
-            throw new BadRequestException("대표 이미지를 등록해 주세요.");
-        }
+    }
+
+    /** The thumbnail is optional: none is stored as an empty string. */
+    private String thumbnailOf(AboutExampleRequestDto dto) {
+        return dto.getThumbnailUrl() == null ? "" : dto.getThumbnailUrl().trim();
     }
 
     private void requireManager() {
