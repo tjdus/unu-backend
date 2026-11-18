@@ -17,7 +17,6 @@ public class ApplicationResponse {
     private UUID recruitmentId;
     private String recruitmentTitle;
     private RecruitmentType recruitmentType;
-    private UUID formId;
     private String name;
     private String studentId;
     private String major;

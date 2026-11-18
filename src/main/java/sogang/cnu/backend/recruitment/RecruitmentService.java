@@ -7,8 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sogang.cnu.backend.common.PermissionChecker;
 import sogang.cnu.backend.common.exception.BadRequestException;
 import sogang.cnu.backend.common.exception.NotFoundException;
-import sogang.cnu.backend.form.Form;
-import sogang.cnu.backend.form.FormRepository;
+import sogang.cnu.backend.application.ApplicationAnswerValidator;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.quarter.QuarterRepository;
 import sogang.cnu.backend.recruitment.command.RecruitmentCreateCommand;
@@ -29,7 +28,7 @@ public class RecruitmentService {
 
     private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentMapper recruitmentMapper;
-    private final FormRepository formRepository;
+    private final ApplicationAnswerValidator answerValidator;
     private final QuarterRepository quarterRepository;
     private final PermissionChecker permissionChecker;
 
@@ -153,10 +152,6 @@ public class RecruitmentService {
         }
     }
 
-    private Form findForm(UUID formId) {
-        return formRepository.findById(formId)
-                .orElseThrow(() -> new NotFoundException("Form not found"));
-    }
 
     private Quarter findQuarter(UUID quarterId) {
         if (quarterId == null) {
@@ -175,7 +170,7 @@ public class RecruitmentService {
                 .endAt(dto.getEndAt())
                 .quarter(findQuarter(dto.getQuarterId()))
                 .active(dto.getActive() != null ? dto.getActive() : true)
-                .form(findForm(dto.getFormId()))
+                .questions(answerValidator.normalizeQuestions(dto.getQuestions()))
                 .type(resolveType(dto.getType()))
                 .build();
     }
@@ -189,7 +184,7 @@ public class RecruitmentService {
                 .endAt(dto.getEndAt())
                 .quarter(findQuarter(dto.getQuarterId()))
                 .active(dto.getActive())
-                .form(findForm(dto.getFormId()))
+                .questions(answerValidator.normalizeQuestions(dto.getQuestions()))
                 .type(resolveType(dto.getType()))
                 .build();
     }

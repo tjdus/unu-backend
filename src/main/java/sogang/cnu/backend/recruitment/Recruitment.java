@@ -1,10 +1,12 @@
 package sogang.cnu.backend.recruitment;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 import sogang.cnu.backend.application.Application;
 import sogang.cnu.backend.common.domain.BaseEntity;
-import sogang.cnu.backend.form.Form;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.recruitment.command.RecruitmentCreateCommand;
 import sogang.cnu.backend.recruitment.command.RecruitmentUpdateCommand;
@@ -52,9 +54,10 @@ public class Recruitment extends BaseEntity {
     @Column(name = "recruitment_type")
     private RecruitmentType type;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "form_id", nullable = false)
-    private Form form;
+    /** Questions of this recruitment's application form ({ version, questions: [...] }). */
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private JsonNode questions;
 
     @Builder.Default
     @OneToMany(mappedBy = "recruitment", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -68,7 +71,7 @@ public class Recruitment extends BaseEntity {
         this.endAt = command.getEndAt();
         this.quarter = command.getQuarter();
         this.active = command.getActive();
-        this.form = command.getForm();
+        this.questions = command.getQuestions();
         this.type = command.getType();
     }
 
@@ -81,7 +84,7 @@ public class Recruitment extends BaseEntity {
                 .endAt(command.getEndAt())
                 .quarter(command.getQuarter())
                 .active(command.getActive())
-                .form(command.getForm())
+                .questions(command.getQuestions())
                 .type(command.getType())
                 .build();
     }

@@ -7,8 +7,6 @@ import lombok.*;
 import org.hibernate.annotations.Type;
 import sogang.cnu.backend.common.domain.BaseEntity;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -33,9 +31,6 @@ public class FormTemplate extends BaseEntity {
     @Column(columnDefinition = "json")
     private JsonNode schema;
 
-    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Form> forms = new ArrayList<>();
 
     public void update(String title, String description, JsonNode schema) {
         this.title = title;

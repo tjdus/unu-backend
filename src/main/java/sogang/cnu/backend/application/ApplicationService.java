@@ -99,7 +99,7 @@ public class ApplicationService {
                 recruitmentId, user.getStudentId(), ApplicationStatus.CANCELED)) {
             throw new BadRequestException("이미 제출한 신청서가 있습니다.");
         }
-        answerValidator.validate(recruitment.getForm().getSchema(), dto.getAnswers());
+        answerValidator.validate(recruitment.getQuestions(), dto.getAnswers());
 
         ApplicationCreateCommand command = ApplicationCreateCommand.builder()
                 .recruitment(recruitment)
@@ -112,7 +112,7 @@ public class ApplicationService {
                 .githubId(trimToNull(user.getGithubId()))
                 .phoneNumber(valueOrEmpty(user.getPhoneNumber()))
                 .answers(dto.getAnswers())
-                .formSnapshot(recruitment.getForm().getSchema())
+                .formSnapshot(recruitment.getQuestions())
                 .password(null)
                 .build();
 
@@ -178,7 +178,7 @@ public class ApplicationService {
         validateRecruitmentActive(recruitment);
         validateRecruitmentPeriod(recruitment);
         validateNoDuplicate(recruitment.getId(), studentId, email, null);
-        answerValidator.validate(recruitment.getForm().getSchema(), dto.getAnswers());
+        answerValidator.validate(recruitment.getQuestions(), dto.getAnswers());
 
         ApplicationCreateCommand command = ApplicationCreateCommand.builder()
                 .recruitment(recruitment)
@@ -190,7 +190,7 @@ public class ApplicationService {
                 .githubId(trimToNull(dto.getGithubId()))
                 .phoneNumber(dto.getPhoneNumber().trim())
                 .answers(dto.getAnswers())
-                .formSnapshot(recruitment.getForm().getSchema())
+                .formSnapshot(recruitment.getQuestions())
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .build();
 

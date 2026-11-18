@@ -52,6 +52,37 @@ public class ApplicationAnswerValidator {
         });
     }
 
+    private static final Set<String> QUESTION_TYPES =
+            Set.of("SHORT_TEXT", "LONG_TEXT", "SINGLE_CHOICE", "MULTIPLE_CHOICE");
+
+    /**
+     * Checks a recruitment's questions ({ version, questions: [...] }) and returns them as an
+     * object, so they are always stored in one shape (a JSON string is parsed first).
+     */
+    public JsonNode normalizeQuestions(JsonNode rawSchema) {
+        JsonNode schema = normalizeSchema(rawSchema);
+        JsonNode questions = schema.get("questions");
+        if (!schema.isObject() || questions == null || !questions.isArray()) {
+            throw new BadRequestException("지원서 질문 형식이 올바르지 않습니다.");
+        }
+
+        Set<String> questionIds = new HashSet<>();
+        for (JsonNode question : questions) {
+            String id = textValue(question, "id");
+            String type = textValue(question, "type");
+            String title = textValue(question, "title");
+            if (id == null || !questionIds.add(id) || type == null || !QUESTION_TYPES.contains(type)
+                    || title == null || title.isBlank()) {
+                throw new BadRequestException("지원서 질문 구성이 올바르지 않습니다.");
+            }
+            boolean choice = type.equals("SINGLE_CHOICE") || type.equals("MULTIPLE_CHOICE");
+            if (choice && (!question.path("options").isArray() || question.path("options").isEmpty())) {
+                throw new BadRequestException("선택형 질문에는 보기가 1개 이상 있어야 합니다.");
+            }
+        }
+        return schema;
+    }
+
     private JsonNode normalizeSchema(JsonNode schema) {
         if (schema == null) {
             throw new BadRequestException("지원서 양식이 없습니다.");

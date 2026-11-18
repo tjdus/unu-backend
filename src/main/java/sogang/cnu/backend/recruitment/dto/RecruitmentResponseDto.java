@@ -1,10 +1,10 @@
 package sogang.cnu.backend.recruitment.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import sogang.cnu.backend.common.domain.dto.AuditorDto;
-import sogang.cnu.backend.form.dto.FormResponseDto;
 import sogang.cnu.backend.quarter.dto.QuarterResponseDto;
 import sogang.cnu.backend.recruitment.RecruitmentType;
 
@@ -22,7 +22,7 @@ public class RecruitmentResponseDto {
     private String endAt;
     private QuarterResponseDto quarter;
     private Boolean active;
-    private FormResponseDto form;
+    private JsonNode questions;
     private String createdAt;
     private String modifiedAt;
     private AuditorDto createdBy;

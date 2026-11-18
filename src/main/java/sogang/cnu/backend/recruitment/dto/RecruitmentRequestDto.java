@@ -1,5 +1,6 @@
 package sogang.cnu.backend.recruitment.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ public class RecruitmentRequestDto {
     private LocalDateTime endAt;
     private UUID quarterId;
     private Boolean active;
-    private UUID formId;
+    /** The application form's questions ({ version, questions: [...] }). */
+    private JsonNode questions;
     private RecruitmentType type;
 }

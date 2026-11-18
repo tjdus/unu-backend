@@ -2,7 +2,7 @@ package sogang.cnu.backend.recruitment.command;
 
 import lombok.Builder;
 import lombok.Getter;
-import sogang.cnu.backend.form.Form;
+import com.fasterxml.jackson.databind.JsonNode;
 import sogang.cnu.backend.quarter.Quarter;
 import sogang.cnu.backend.recruitment.RecruitmentType;
 
@@ -18,6 +18,6 @@ public class RecruitmentCreateCommand {
     private LocalDateTime endAt;
     private Quarter quarter;
     private Boolean active;
-    private Form form;
+    private JsonNode questions;
     private RecruitmentType type;
 }
