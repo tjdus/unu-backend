@@ -13,7 +13,6 @@ import java.time.LocalDate;
 @Getter
 @Builder
 public class ActivitySessionUpdateCommand {
-    private Integer sessionNumber;
     private LocalDate date;
     private String description;
 }

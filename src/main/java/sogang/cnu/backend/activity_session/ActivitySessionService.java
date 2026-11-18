@@ -59,14 +59,14 @@ public class ActivitySessionService {
 
     @Transactional
     public ActivitySessionResponseDto create(ActivitySessionRequestDto dto) {
-        Activity activity = activityRepository.findById(dto.getActivityId())
+        Activity activity = activityRepository.findByIdForUpdate(dto.getActivityId())
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
         requireScheduleManager(activity);
-        validateSession(activity, dto.getSessionNumber(), dto.getDate(), null);
+        validateSession(activity, dto.getDate(), null);
 
         ActivitySessionCreateCommand createCommand = ActivitySessionCreateCommand.builder()
                 .activity(activity)
-                .sessionNumber(dto.getSessionNumber())
+                .sessionNumber(nextStoredSessionNumber(activity.getId()))
                 .date(dto.getDate())
                 .description(dto.getDescription())
                 .build();
@@ -78,7 +78,7 @@ public class ActivitySessionService {
 
     @Transactional
     public List<ActivitySessionResponseDto> createBulk(ActivitySessionBulkRequestDto dto) {
-        Activity activity = activityRepository.findById(dto.getActivityId())
+        Activity activity = activityRepository.findByIdForUpdate(dto.getActivityId())
                 .orElseThrow(() -> new NotFoundException("Activity not found"));
         requireScheduleManager(activity);
 
@@ -93,8 +93,8 @@ public class ActivitySessionService {
                 .map(ActivitySession::getDate)
                 .collect(java.util.stream.Collectors.toSet());
         int nextSessionNumber = existing.stream()
-                .map(ActivitySession::getSessionNumber)
-                .max(Integer::compareTo)
+                .mapToInt(ActivitySession::getSessionNumber)
+                .max()
                 .orElse(0) + 1;
 
         Set<LocalDate> excludedDates = dto.getExcludedDates() == null
@@ -129,7 +129,7 @@ public class ActivitySessionService {
         }
 
         return activitySessionRepository.saveAll(sessions).stream()
-                .sorted(Comparator.comparing(ActivitySession::getSessionNumber))
+                .sorted(Comparator.comparing(ActivitySession::getDate))
                 .map(activitySessionMapper::toResponseDto)
                 .toList();
     }
@@ -149,12 +149,10 @@ public class ActivitySessionService {
         }
         validateSession(
                 activitySession.getActivity(),
-                dto.getSessionNumber(),
                 dto.getDate(),
                 activitySession.getId()
         );
         ActivitySessionUpdateCommand updateCommand = ActivitySessionUpdateCommand.builder()
-                .sessionNumber(dto.getSessionNumber())
                 .date(dto.getDate())
                 .description(dto.getDescription())
                 .build();
@@ -175,18 +173,19 @@ public class ActivitySessionService {
     @Transactional(readOnly = true)
     public List<ActivitySessionResponseDto> getByActivityId(UUID activityId) {
         return activitySessionRepository.findByActivityId(activityId).stream()
+                .sorted(Comparator.comparing(ActivitySession::getDate))
                 .map(activitySessionMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
-    private void validateSession(Activity activity, Integer sessionNumber, LocalDate date, UUID currentSessionId) {
+    private int nextStoredSessionNumber(UUID activityId) {
+        return activitySessionRepository.findFirstByActivityIdOrderBySessionNumberDesc(activityId)
+                .map(ActivitySession::getSessionNumber)
+                .orElse(0) + 1;
+    }
+
+    private void validateSession(Activity activity, LocalDate date, UUID currentSessionId) {
         validateDateInActivity(activity, date);
-        boolean duplicateNumber = currentSessionId == null
-                ? activitySessionRepository.existsByActivityIdAndSessionNumber(activity.getId(), sessionNumber)
-                : activitySessionRepository.existsByActivityIdAndSessionNumberAndIdNot(activity.getId(), sessionNumber, currentSessionId);
-        if (duplicateNumber) {
-            throw new BadRequestException("이미 등록된 회차 번호입니다.");
-        }
         boolean duplicateDate = currentSessionId == null
                 ? activitySessionRepository.existsByActivityIdAndDate(activity.getId(), date)
                 : activitySessionRepository.existsByActivityIdAndDateAndIdNot(activity.getId(), date, currentSessionId);

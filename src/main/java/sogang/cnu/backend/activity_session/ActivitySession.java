@@ -48,7 +48,6 @@ public class ActivitySession extends BaseEntity {
     private String description;
 
     public void update(ActivitySessionUpdateCommand command) {
-        this.sessionNumber = command.getSessionNumber();
         this.date = command.getDate();
         this.description = command.getDescription();
     }
