@@ -11,7 +11,6 @@ public class ActivityJoinRequestDto {
     private String refundAccountHolder;
     private Boolean agreedToDepositPolicy;
     private Boolean confirmedDepositPayment;
-    private Boolean agreedToPrivacy;
     private Boolean agreedToPromotion;
     private String appliedPosition;
     private String applicationMessage;

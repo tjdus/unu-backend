@@ -101,5 +101,16 @@ public class SignupInvitationMember {
     public void markUsed(User user, Instant usedAt) {
         this.user = user;
         this.usedAt = usedAt;
+        clearProfile();
+    }
+
+    /** 지원서에서 복사한 개인정보를 지운다. 가입을 마쳤거나 보유기간이 지난 경우 (처리방침 제3조). */
+    public void clearProfile() {
+        this.name = null;
+        this.major = null;
+        this.subMajor = null;
+        this.email = null;
+        this.githubId = null;
+        this.phoneNumber = null;
     }
 }

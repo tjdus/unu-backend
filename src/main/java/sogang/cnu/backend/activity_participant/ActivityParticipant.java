@@ -155,8 +155,15 @@ public class ActivityParticipant extends BaseEntity {
         this.refundAccountHolder = accountHolder;
         this.depositPolicyAgreedAt = now;
         this.depositPaymentConfirmedAt = now;
-        this.privacyAgreedAt = now;
+        // 환급 계좌는 계약 이행 근거로 처리하므로 동의를 받지 않는다 (privacyAgreedAt은 과거 기록용).
         this.promotionAgreedAt = promotionAgreed ? now : null;
+    }
+
+    /** 환급 계좌정보 파기 (처리방침 제3조 ⑤). */
+    public void clearRefundAccount() {
+        this.refundBankName = null;
+        this.refundAccountNumber = null;
+        this.refundAccountHolder = null;
     }
 
     public void recordProjectApplication(String position, String message) {

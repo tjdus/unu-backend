@@ -527,8 +527,7 @@ public class ActivityParticipantService {
     ) {
         if (request == null
                 || !Boolean.TRUE.equals(request.getAgreedToDepositPolicy())
-                || !Boolean.TRUE.equals(request.getConfirmedDepositPayment())
-                || !Boolean.TRUE.equals(request.getAgreedToPrivacy())) {
+                || !Boolean.TRUE.equals(request.getConfirmedDepositPayment())) {
             throw new BadRequestException("보증금 유의사항을 확인하고 필수 항목에 동의해주세요.");
         }
 

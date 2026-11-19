@@ -43,4 +43,7 @@ public class ApplicationRequestDto {
 
     @Size(min = 6, max = 100, message = "비밀번호는 6자 이상 100자 이하여야 합니다.")
     private String password;
+
+    /** 신규 제출 시 개인정보 수집·이용 동의 (필수). 수정 요청에서는 쓰지 않는다. */
+    private Boolean agreedToPrivacy;
 }

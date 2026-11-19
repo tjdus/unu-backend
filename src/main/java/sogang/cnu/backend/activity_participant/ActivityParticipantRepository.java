@@ -75,4 +75,12 @@ public interface ActivityParticipantRepository extends JpaRepository<ActivityPar
             @Param("today") LocalDate today,
             @Param("excludedActivityStatus") ActivityStatus excludedActivityStatus
     );
+
+    /** 보유기간(수집일로부터 6개월)이 지난 환급 계좌정보. */
+    @Query("""
+            select p from ActivityParticipant p
+            where p.refundAccountNumber is not null
+              and coalesce(p.depositPolicyAgreedAt, p.joinedAt) < :cutoff
+            """)
+    List<ActivityParticipant> findRefundAccountsCollectedBefore(@Param("cutoff") java.time.LocalDateTime cutoff);
 }

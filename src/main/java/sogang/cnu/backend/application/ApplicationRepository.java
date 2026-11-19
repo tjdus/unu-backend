@@ -29,6 +29,19 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
             @Param("userId") UUID userId,
             @Param("studentId") String studentId,
             @Param("excludedStatus") ApplicationStatus excludedStatus);
+    /** 보유기간이 지난 신입 지원서: 불합격은 결정일, 그 외는 제출일 기준 (처리방침 제3조). */
+    @Query("""
+            select a from Application a
+            where a.recruitment.type = :type
+              and ((a.status = :rejected
+                    and coalesce(a.reviewedAt, a.modifiedAt, a.submittedAt) < :rejectedCutoff)
+                or (a.status <> :rejected and a.submittedAt < :submittedCutoff))
+            """)
+    List<Application> findExpiredForRetention(
+            @Param("type") RecruitmentType type,
+            @Param("rejected") ApplicationStatus rejected,
+            @Param("rejectedCutoff") java.time.LocalDateTime rejectedCutoff,
+            @Param("submittedCutoff") java.time.LocalDateTime submittedCutoff);
     boolean existsByRecruitmentIdAndStudentIdAndStatusNot(UUID recruitmentId, String studentId, ApplicationStatus status);
     boolean existsByRecruitmentIdAndEmailIgnoreCaseAndStatusNot(UUID recruitmentId, String email, ApplicationStatus status);
     boolean existsByRecruitmentIdAndStudentIdAndStatusNotAndIdNot(

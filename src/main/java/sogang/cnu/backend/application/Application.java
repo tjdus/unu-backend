@@ -70,8 +70,16 @@ public class Application extends BaseEntity {
 
     private String password;
 
+    /** 신입 지원서 개인정보 수집·이용 동의 시각 (학회 내부 신청은 null). */
+    @Column(name = "privacy_agreed_at")
+    private LocalDateTime privacyAgreedAt;
+
     public void updateStatus(ApplicationStatus newStatus) {
         this.status = newStatus;
+        // 합격·불합격 결정 시각: 불합격자 개인정보 파기 기한의 기준이 된다.
+        if (newStatus == ApplicationStatus.PASSED || newStatus == ApplicationStatus.REJECTED) {
+            this.reviewedAt = LocalDateTime.now();
+        }
     }
 
     public void updateAnswers(JsonNode newAnswers) {
@@ -94,6 +102,7 @@ public class Application extends BaseEntity {
                 .answers(command.getAnswers())
                 .formSnapshot(command.getFormSnapshot())
                 .password(command.getPassword())
+                .privacyAgreedAt(command.getPrivacyAgreedAt())
                 .build();
     }
 

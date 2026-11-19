@@ -172,6 +172,9 @@ public class ApplicationService {
 
     private ApplicationResponse create(ApplicationRequestDto dto, Recruitment recruitment) {
         validateCreatePassword(dto.getPassword());
+        if (!Boolean.TRUE.equals(dto.getAgreedToPrivacy())) {
+            throw new BadRequestException("개인정보 수집·이용에 동의해야 지원서를 제출할 수 있습니다.");
+        }
         String studentId = dto.getStudentId().trim();
         String email = dto.getEmail().trim();
 
@@ -192,6 +195,7 @@ public class ApplicationService {
                 .answers(dto.getAnswers())
                 .formSnapshot(recruitment.getQuestions())
                 .password(passwordEncoder.encode(dto.getPassword()))
+                .privacyAgreedAt(LocalDateTime.now())
                 .build();
 
         Application application = Application.create(command);

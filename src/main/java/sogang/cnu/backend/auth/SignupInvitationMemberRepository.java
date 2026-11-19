@@ -21,6 +21,16 @@ public interface SignupInvitationMemberRepository extends JpaRepository<SignupIn
 
     Optional<SignupInvitationMember> findByInvitationIdAndStudentId(UUID invitationId, String studentId);
 
+    /** 지원서에서 복사한 합격자 정보 중 보유기간(6개월)이 지난 것. */
+    @Query("""
+            SELECT member
+            FROM SignupInvitationMember member
+            WHERE member.invitation.sourceRecruitmentId IS NOT NULL
+              AND member.invitation.createdAt < :cutoff
+              AND (member.name IS NOT NULL OR member.email IS NOT NULL OR member.phoneNumber IS NOT NULL)
+            """)
+    List<SignupInvitationMember> findCopiedProfilesCreatedBefore(@Param("cutoff") java.time.Instant cutoff);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT member

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import sogang.cnu.backend.recruitment.Recruitment;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -23,4 +24,5 @@ public class ApplicationCreateCommand {
     private JsonNode formSnapshot;
 
     private String password;
+    private LocalDateTime privacyAgreedAt;
 }
